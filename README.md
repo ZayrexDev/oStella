@@ -16,7 +16,7 @@ and also provides a standalone API for other clients to consume.
 
 Here is a demo of the best-of-20 panel for me:
 
-![Demo]()
+<img width="1800" height="1857" alt="demo" src="https://github.com/user-attachments/assets/21d392c3-3319-4853-9bc4-3ad4e0136167" />
 
 ## Prerequisites
 
