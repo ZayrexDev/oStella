@@ -70,6 +70,7 @@ public class Score {
             case "B" -> "#ebbd48";
             case "C" -> "#ff8e5d";
             case "D" -> "#ff5a5a";
+            case "F" -> "#fe004f";
             default -> "#FFFFFF";
         };
     }

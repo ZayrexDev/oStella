@@ -3,6 +3,7 @@ package xyz.zcraft.data;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -10,44 +11,8 @@ import java.util.List;
 import java.util.Locale;
 
 @Data
-public class UserExtended {
-    @SerializedName("avatar_url")
-    public String avatarUrl;
-
-    @SerializedName("country_code")
-    public String countryCode;
-
-    @SerializedName("default_group")
-    public String defaultGroup;
-
-    public Long id;
-
-    @SerializedName("is_active")
-    public Boolean isActive;
-
-    @SerializedName("is_bot")
-    public Boolean isBot;
-
-    @SerializedName("is_deleted")
-    public Boolean isDeleted;
-
-    @SerializedName("is_online")
-    public Boolean isOnline;
-
-    @SerializedName("is_supporter")
-    public Boolean isSupporter;
-
-    @SerializedName("last_visit")
-    public String lastVisit;
-
-    @SerializedName("pm_friends_only")
-    public Boolean pmFriendsOnly;
-
-    @SerializedName("profile_colour")
-    public String profileColour;
-
-    public String username;
-
+@EqualsAndHashCode(callSuper = true)
+public class UserExtended extends User {
     @SerializedName("cover_url")
     public String coverUrl;
 

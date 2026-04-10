@@ -18,26 +18,23 @@
             width: 1800px;
         }
 
-        /* --- NEW: Profile Header Styles --- */
         .profile-header {
             display: flex;
             align-items: center;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 16px;
             padding: 30px;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             gap: 40px;
         }
 
-        /* NEW: Wrapper for the left side (Avatar + Details) */
         .profile-main {
             display: flex;
             align-items: center;
             gap: 40px;
         }
 
-        /* --- NEW: Rank Counts Section --- */
         .rank-counts-container {
             display: grid;
             grid-template-columns: 1fr;
@@ -69,32 +66,25 @@
             font-family: 'Courier New', Courier, monospace;
         }
 
-        /* osu! specific grade colors */
         .grade-ssh {
             color: #e0e0e0;
         }
 
-        /* Silver SS */
         .grade-ss {
             color: #f1c40f;
         }
 
-        /* Gold SS */
         .grade-sh {
             color: #e0e0e0;
         }
 
-        /* Silver S */
         .grade-s {
             color: #f1c40f;
         }
 
-        /* Gold S */
         .grade-a {
             color: #2ecc71;
         }
-
-        /* Green A */
 
         .avatar {
             width: 150px;
@@ -107,9 +97,9 @@
         .supporter-heart {
             width: 28px;
             height: 28px;
-            fill: #ff66aa; /* The classic osu! pink */
-            filter: drop-shadow(0 0 6px rgba(255, 102, 170, 0.6)); /* Glowing effect */
-            margin-right: 5px; /* Adds a tiny bit of breathing room before the flag */
+            fill: #ff66aa;
+            filter: drop-shadow(0 0 6px rgba(255, 102, 170, 0.6));
+            margin-right: 5px;
         }
 
         .profile-details {
@@ -175,6 +165,7 @@
     </style>
     <style>
         .grid-container {
+            margin-top: 20px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
@@ -318,6 +309,31 @@
 
     </style>
     <style>
+        .score-type {
+            text-align: center;
+            text-transform: uppercase;
+            font-size: 2em;
+            font-weight: bold;
+            letter-spacing: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .score-type::before,
+        .score-type::after {
+            content: "";
+            flex: 1;
+            border-bottom: 4px solid #FFF;
+        }
+
+        .score-type:not(:empty)::before {
+            margin-right: 15px;
+        }
+
+        .score-type:not(:empty)::after {
+            margin-left: 15px;
+        }
+
         .bottom {
             position: relative;
             bottom: 0;
@@ -328,7 +344,7 @@
             letter-spacing: 1px;
         }
     </style>
-    <title>BO30 - osuScoreSight</title>
+    <title>oStella</title>
 </head>
 <body>
 
@@ -408,6 +424,8 @@
 
 </div>
 
+<div class="score-type" th:text="${type}">Best of 40 Scores</div>
+
 <div class="grid-container">
     <div class="card" th:each="score : ${scores}">
 
@@ -442,7 +460,7 @@
                 <span class="hit-count-50" th:text="${score.statistics.get('count_50')}">50</span>
                 <span class="hit-count-miss" th:text="${score.statistics.get('count_miss')}">0</span>
             </div>
-            <span class="pp-number" th:text="${#numbers.formatInteger(score.pp, 1)} + 'pp'">222pp</span>
+            <span class="pp-number" th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 0, 0) + 'pp' : '--pp'}">222pp</span>
         </div>
 
         <div class="score-stats">
@@ -453,7 +471,7 @@
         </div>
     </div>
 </div>
-<div class="bottom">Generated with osuScoreSight by Zayrex</div>
+<div class="bottom">Generated with oStella by Zayrex</div>
 <script th:inline="javascript">
     // 1. Thymeleaf injects your Java List of history data here
     // If the Java list is empty, it defaults to the mock array on the right

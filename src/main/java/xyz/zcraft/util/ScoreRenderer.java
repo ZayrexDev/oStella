@@ -12,6 +12,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import xyz.zcraft.data.Score;
+import xyz.zcraft.data.ScoreType;
 import xyz.zcraft.data.UserExtended;
 
 import java.util.List;
@@ -43,10 +44,14 @@ public class ScoreRenderer {
         }));
     }
 
-    public byte[] render(UserExtended user, List<Score> scores) {
+    public byte[] render(UserExtended user, List<Score> scores, ScoreType type) {
         Context ctx = new Context();
         ctx.setVariable("user", user);
         ctx.setVariable("scores", scores);
+        ctx.setVariable("type", switch (type) {
+            case BEST -> "Best of " + scores.size() + " Scores";
+            case RECENT -> "Most recent " +  scores.size() + " Scores";
+        });
 
         String finalHtml = templateEngine.process("stat", ctx);
 

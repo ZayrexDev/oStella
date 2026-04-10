@@ -90,29 +90,6 @@ public class Beatmapset {
     public Long trackId;
 
     @Data
-    public static class Covers {
-        public String cover;
-
-        @SerializedName("cover@2x")
-        public String cover2x;
-
-        public String card;
-
-        @SerializedName("card@2x")
-        public String card2x;
-
-        public String list;
-
-        @SerializedName("list@2x")
-        public String list2x;
-
-        public String slimcover;
-
-        @SerializedName("slimcover@2x")
-        public String slimcover2x;
-    }
-
-    @Data
     public static class Description {
         public String description;
         public String bbcode;

@@ -2,30 +2,14 @@ package xyz.zcraft.data;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class BeatmapExtended {
+@EqualsAndHashCode(callSuper = true)
+public class BeatmapExtended extends Beatmap {
     public Double accuracy;
 
     public Double ar;
-
-    @SerializedName("beatmapset_id")
-    public Long beatmapsetId;
-
-    public Long id;
-
-    @SerializedName("difficulty_rating")
-    public Double difficultyRating;
-
-    public String status;
-
-    @SerializedName("total_length")
-    public Long totalLength;
-
-    @SerializedName("user_id")
-    public Long userId;
-
-    public String version;
 
     public Double bpm;
 
@@ -69,4 +53,5 @@ public class BeatmapExtended {
 
     public String url;
 
+    public Beatmapset beatmapset;
 }
