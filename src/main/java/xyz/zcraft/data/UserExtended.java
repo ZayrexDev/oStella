@@ -133,6 +133,37 @@ public class UserExtended extends User {
         }
     }
 
+    public ScoreChange getScoreChange() {
+        final ScoreChange scoreChange = new ScoreChange();
+        final List<Long> data = getRankHistory().getData().reversed();
+
+        if (data.size() < 2) {
+            return scoreChange;
+        }
+        scoreChange.hasData[3] = true;
+        scoreChange.data[3] = Math.toIntExact(data.get(1) - data.getFirst());
+
+        if (data.size() < 7) {
+            return scoreChange;
+        }
+        scoreChange.hasData[2] = true;
+        scoreChange.data[2] = Math.toIntExact(data.get(6) - data.getFirst());
+
+        if (data.size() < 30) {
+            return scoreChange;
+        }
+        scoreChange.hasData[1] = true;
+        scoreChange.data[1] = Math.toIntExact(data.get(29) - data.getFirst());
+
+        if (data.size() < 90) {
+            return scoreChange;
+        }
+        scoreChange.hasData[0] = true;
+        scoreChange.data[0] = Math.toIntExact(data.get(89) - data.getFirst());
+
+        return scoreChange;
+    }
+
     @Data
     public static class Kudosu {
         public Integer total;

@@ -52,6 +52,7 @@ public class ScoreRenderer {
             case BEST -> "Best of " + scores.size() + " Scores";
             case RECENT -> "Most recent " +  scores.size() + " Scores";
         });
+        ctx.setVariable("change", user.getScoreChange());
 
         String finalHtml = templateEngine.process("stat", ctx);
 

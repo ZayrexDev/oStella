@@ -14,7 +14,7 @@
             background-color: #1a1a2e;
             color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 40px;
+            padding: 40px 40px 10px 40px;
             width: 1800px;
         }
 
@@ -161,6 +161,28 @@
         .stat-sub {
             font-size: 1em;
             color: #a0a0b8;
+        }
+
+        .rank-change-column {
+            display: flex;
+            font-size: 1.5em;
+            margin-left: auto;
+            gap: 40px;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .change-num-up {
+            color: #4ade80;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .change-num-down {
+            color: #f87171;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .change-num-same {
+            color: #9ca3af;
         }
     </style>
     <style>
@@ -365,26 +387,44 @@
                      src="https://assets.ppy.sh/teams/flag/41211/7e1c4a9bf4562f0375e955d230f56e06a579ea1881691b423d0a015572abf645.png"
                      alt="team-flag">
                 <span class="teamName" th:if="${user.team != null}" th:text="${user.team.name}">Team Name</span>
+                <div class="rank-change-column">
+                    <div class="rank-change" th:if="${change.hasData[0]}">
+                        <span>3m</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(0)}" th:text="${change.getText(0)}">▲ 42</span>
+                    </div>
+                    <div class="rank-change" th:if="${change.hasData[1]}">
+                        <span>1m</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(1)}" th:text="${change.getText(1)}">▲ 42</span>
+                    </div>
+                    <div class="rank-change" th:if="${change.hasData[2]}">
+                        <span>1w</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(2)}" th:text="${change.getText(2)}">▲ 42</span>
+                    </div>
+                    <div class="rank-change" th:if="${change.hasData[3]}">
+                        <span>1d</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(3)}" th:text="${change.getText(3)}">▲ 42</span>
+                    </div>
+                </div>
             </div>
             <div class="stats-row">
                 <div class="stat-group">
                     <span class="stat-label">Performance</span>
                     <span class="stat-value"
-                          th:text="${#numbers.formatInteger(user.statistics.pp, 1)} + 'pp'">3,000pp</span>
+                          th:text="${#numbers.formatInteger(user.statistics.pp, 1, 'COMMA')} + 'pp'">3,000pp</span>
                 </div>
                 <div class="stat-group">
                     <span class="stat-label">Rank</span>
-                    <span class="stat-value" th:text="'#' + ${user.statistics.globalRank}">#12,345</span>
+                    <span class="stat-value" th:text="'#' + ${#numbers.formatInteger(user.statistics.globalRank, 1, 'COMMA')}">#12,345</span>
                     <span class="stat-sub" th:text="${user.countryCode} + ' #' + ${user.statistics.rank.country}">AU #150</span>
                 </div>
                 <div class="stat-group">
                     <span class="stat-label">Play Time</span>
-                    <span class="stat-value" th:text="${#numbers.formatInteger(user.statistics.playTime / 3600, 1)} + ' hrs'">450 hrs</span>
+                    <span class="stat-value" th:text="${#numbers.formatInteger(user.statistics.playTime / 3600, 1, 'COMMA')} + ' hrs'">450 hrs</span>
                     <span class="stat-sub" th:text="'From ' + ${user.formattedJoinDate}">From May 2000</span>
                 </div>
                 <div class="stat-group">
                     <span class="stat-label">Play Count</span>
-                    <span class="stat-value" th:text="${user.statistics.playCount}">114,514</span>
+                    <span class="stat-value" th:text="${#numbers.formatInteger(user.statistics.playCount, 1, 'COMMA')}">114,514</span>
                 </div>
                 <div class="chart-wrapper" style="width: 650px; height: 80px; margin-top: 15px;">
                     <canvas id="historyChart"></canvas>
