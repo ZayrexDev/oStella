@@ -342,6 +342,7 @@
             font-size: 1.5em;
             color: #a0a0b8;
             letter-spacing: 1px;
+            margin-top: 15px;
         }
     </style>
     <title>oStella</title>
@@ -349,10 +350,8 @@
 <body>
 
 <div class="profile-header">
-
     <div class="profile-main">
         <img class="avatar" th:src="${user.avatarUrl}" src="https://a.ppy.sh/2" alt="avatar">
-
         <div class="profile-details">
             <div class="profile-name-row">
                 <img class="flag" th:src="'https://osu.ppy.sh/images/flags/' + ${user.countryCode} + '.png'"
@@ -367,38 +366,32 @@
                      alt="team-flag">
                 <span class="teamName" th:if="${user.team != null}" th:text="${user.team.name}">Team Name</span>
             </div>
-
             <div class="stats-row">
                 <div class="stat-group">
                     <span class="stat-label">Performance</span>
                     <span class="stat-value"
                           th:text="${#numbers.formatInteger(user.statistics.pp, 1)} + 'pp'">3,000pp</span>
                 </div>
-
                 <div class="stat-group">
                     <span class="stat-label">Rank</span>
                     <span class="stat-value" th:text="'#' + ${user.statistics.globalRank}">#12,345</span>
                     <span class="stat-sub" th:text="${user.countryCode} + ' #' + ${user.statistics.rank.country}">AU #150</span>
                 </div>
-
                 <div class="stat-group">
                     <span class="stat-label">Play Time</span>
                     <span class="stat-value" th:text="${#numbers.formatInteger(user.statistics.playTime / 3600, 1)} + ' hrs'">450 hrs</span>
                     <span class="stat-sub" th:text="'From ' + ${user.formattedJoinDate}">From May 2000</span>
                 </div>
-
                 <div class="stat-group">
                     <span class="stat-label">Play Count</span>
                     <span class="stat-value" th:text="${user.statistics.playCount}">114,514</span>
                 </div>
-
                 <div class="chart-wrapper" style="width: 650px; height: 80px; margin-top: 15px;">
                     <canvas id="historyChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="rank-counts-container">
         <div class="rank-item">
             <span class="rank-grade grade-ssh">XH</span>
@@ -421,26 +414,21 @@
             <span class="rank-count" th:text="${user.statistics.gradeCounts.a}">401</span>
         </div>
     </div>
-
 </div>
 
 <div class="score-type" th:text="${type}">Best of 40 Scores</div>
 
 <div class="grid-container">
     <div class="card" th:each="score : ${scores}">
-
         <div class="rank-badge" th:text="${score.rank}" th:style="'background:' + ${score.getRankColor()}">SS</div>
-
         <div class="mod-badge" th:if="${score.mods != null and !score.mods.isEmpty()}" th:text="${score.mods}">HD HR
         </div>
-
         <img class="jacket" th:src="${score.beatmapset.covers.slimcover}"
              src="https://assets.ppy.sh/beatmaps/320118/covers/slimcover.jpg?1650632079"
              alt="jacket">
         <div class="song-title" th:text="${score.beatmapset.title}">Take a Hint feat. Victoria Justice & Elizabeth
             Gillies (Speed Up Ver.)
         </div>
-
         <div class="diff">
             <div class="diff-badge" th:style="'background: ' + ${score.diffColor} + ';'">
                 <svg class="diff-star" th:style="'fill: ' + ${score.diffTextColor} + ';'" viewBox="0 0 20 20">
@@ -452,7 +440,6 @@
             </div>
             <div class="diff-title" th:text="${score.beatmap.version}">I Think You Could Use a Mint</div>
         </div>
-
         <div class="score-stats">
             <div class="hit-count">
                 <span class="hit-count-300" th:text="${score.statistics.get('count_300')}">300</span>
@@ -462,7 +449,6 @@
             </div>
             <span class="pp-number" th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 0, 0) + 'pp' : '--pp'}">222pp</span>
         </div>
-
         <div class="score-stats">
             <span class="combo-number" th:text="${score.maxCombo} + 'x'">444x</span>
             <span class="score-time" th:text="${score.createdAt}">March 30, 2026 5:40 PM</span>
@@ -471,25 +457,18 @@
         </div>
     </div>
 </div>
+
 <div class="bottom">Generated with oStella by Zayrex</div>
+
 <script th:inline="javascript">
-    // 1. Thymeleaf injects your Java List of history data here
-    // If the Java list is empty, it defaults to the mock array on the right
     const historyData = /*[[${user.rankHistory.data}]]*/ [12345, 12222, 11111, 10000, 9876];
 
     let max = 0;
-    for (let i = 0; i < historyData.length; i++) {
-        max = max < historyData[i] ? historyData[i] : max;
-    }
+    for (let i = 0; i < historyData.length; i++) max = max < historyData[i] ? historyData[i] : max;
+    for (let i = 0; i < historyData.length; i++) historyData[i] = max - historyData[i];
 
-    for (let i = 0; i < historyData.length; i++) {
-        historyData[i] = max - historyData[i];
-    }
-
-    // 2. Generate dummy X-axis labels (just numbers 1 through N)
     const labels = historyData.map((_, index) => index);
 
-    // 3. Draw the Chart
     const ctx = document.getElementById('historyChart').getContext('2d');
     new Chart(ctx, {
         type: 'line',
@@ -523,5 +502,6 @@
         }
     });
 </script>
+
 </body>
 </html>
