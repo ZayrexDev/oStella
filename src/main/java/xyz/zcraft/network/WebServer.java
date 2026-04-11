@@ -112,7 +112,7 @@ public class WebServer {
                     );
                     final UserExtended user = NetworkHelper.getUser(id, tokenManager.getTokenData());
 
-                    return renderer.render(user, scores, ScoreType.RECENT);
+                    return renderer.renderScores(user, scores, ScoreType.RECENT);
                 }, delayMillis).thenAccept(image -> ctx.status(200).contentType("img/png").result(image)),
                 "Recent scores request failed! Param:{n=" + n + ", id:" + id + "}"
         );
@@ -195,7 +195,7 @@ public class WebServer {
                     );
                     final UserExtended user = NetworkHelper.getUser(id, tokenManager.getTokenData());
 
-                    return renderer.render(user, scores, ScoreType.BEST);
+                    return renderer.renderScores(user, scores, ScoreType.BEST);
                 }, delayMillis).thenAccept(image -> ctx.status(200).contentType("img/png").result(image)),
                 "Best of N request failed! Param:{n=" + n + ", id:" + id + "}"
         );

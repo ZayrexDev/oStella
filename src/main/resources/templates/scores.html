@@ -246,10 +246,28 @@
         .song-title {
             font-size: 1.5em;
             font-weight: bold;
-            margin-bottom: 6px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .title-sub {
+            display: flex;
+            margin-bottom: 6px;
+        }
+
+        .song-artist {
+            font-size: 1em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: lighter;
+        }
+
+        .beatmap-id {
+            font-size: 1em;
+            margin-left: auto;
+            font-weight: lighter;
         }
 
         .score-stats {
@@ -357,6 +375,8 @@
         }
 
         .bottom {
+            display: flex;
+            justify-content: space-between;
             position: relative;
             bottom: 0;
             width: 100%;
@@ -367,7 +387,7 @@
             margin-top: 15px;
         }
     </style>
-    <title>oStella</title>
+    <title>oStella - Scores</title>
 </head>
 <body>
 
@@ -378,7 +398,7 @@
             <div class="profile-name-row">
                 <img class="flag" th:src="'https://osu.ppy.sh/images/flags/' + ${user.countryCode} + '.png'"
                      src="https://osu.ppy.sh/images/flags/AU.png" alt="flag">
-                <span class="username" th:text="${user.username}">peppy</span>
+                <span class="username" th:text="${user.username}">ExampleUser</span>
                 <svg class="supporter-heart" th:if="${user.isSupporter}" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
@@ -390,19 +410,23 @@
                 <div class="rank-change-column">
                     <div class="rank-change" th:if="${change.hasData[0]}">
                         <span>3m</span>
-                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(0)}" th:text="${change.getText(0)}">▲ 42</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(0)}"
+                              th:text="${change.getText(0)}">▲ 42</span>
                     </div>
                     <div class="rank-change" th:if="${change.hasData[1]}">
                         <span>1m</span>
-                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(1)}" th:text="${change.getText(1)}">▲ 42</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(1)}"
+                              th:text="${change.getText(1)}">▲ 42</span>
                     </div>
                     <div class="rank-change" th:if="${change.hasData[2]}">
                         <span>1w</span>
-                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(2)}" th:text="${change.getText(2)}">▲ 42</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(2)}"
+                              th:text="${change.getText(2)}">▲ 42</span>
                     </div>
                     <div class="rank-change" th:if="${change.hasData[3]}">
                         <span>1d</span>
-                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(3)}" th:text="${change.getText(3)}">▲ 42</span>
+                        <span class="change-num" th:class="'change-num-' + ${change.getSubfix(3)}"
+                              th:text="${change.getText(3)}">▲ 42</span>
                     </div>
                 </div>
             </div>
@@ -414,12 +438,14 @@
                 </div>
                 <div class="stat-group">
                     <span class="stat-label">Rank</span>
-                    <span class="stat-value" th:text="'#' + ${#numbers.formatInteger(user.statistics.globalRank, 1, 'COMMA')}">#12,345</span>
+                    <span class="stat-value"
+                          th:text="'#' + ${#numbers.formatInteger(user.statistics.globalRank, 1, 'COMMA')}">#12,345</span>
                     <span class="stat-sub" th:text="${user.countryCode} + ' #' + ${user.statistics.rank.country}">AU #150</span>
                 </div>
                 <div class="stat-group">
                     <span class="stat-label">Play Time</span>
-                    <span class="stat-value" th:text="${#numbers.formatInteger(user.statistics.playTime / 3600, 1, 'COMMA')} + ' hrs'">450 hrs</span>
+                    <span class="stat-value"
+                          th:text="${#numbers.formatInteger(user.statistics.playTime / 3600, 1, 'COMMA')} + ' hrs'">450 hrs</span>
                     <span class="stat-sub" th:text="'From ' + ${user.formattedJoinDate}">From May 2000</span>
                 </div>
                 <div class="stat-group">
@@ -466,19 +492,23 @@
         <img class="jacket" th:src="${score.beatmapset.covers.slimcover}"
              src="https://assets.ppy.sh/beatmaps/320118/covers/slimcover.jpg?1650632079"
              alt="jacket">
-        <div class="song-title" th:text="${score.beatmapset.title}">Take a Hint feat. Victoria Justice & Elizabeth
-            Gillies (Speed Up Ver.)
+        <div class="song-title" th:text="${score.beatmapset.title}">This Is An Example Song Title</div>
+        <div class="title-sub">
+            <div class="song-artist" th:text="${score.beatmapset.artist}">This Is An Example Artist</div>
+            <div class="beatmap-id" th:text="${score.beatmap.id}">123456789</div>
         </div>
         <div class="diff">
             <div class="diff-badge" th:style="'background: ' + ${score.diffColor} + ';'">
                 <svg class="diff-star" th:style="'fill: ' + ${score.diffTextColor} + ';'" viewBox="0 0 20 20">
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                 </svg>
-                <div class="diff-rating" th:style="'color: ' + ${score.diffTextColor} + ';'" th:text="${#numbers.formatDecimal(score.beatmap.difficultyRating, 1, 2)}">
+                <div class="diff-rating" th:style="'color: ' + ${score.diffTextColor} + ';'"
+                     th:text="${#numbers.formatDecimal(score.beatmap.difficultyRating, 1, 2)}">
                     5.78
                 </div>
             </div>
-            <div class="diff-title" th:text="${score.beatmap.version}">I Think You Could Use a Mint</div>
+            <div class="diff-title" th:text="${score.beatmap.version}">This Is An Example Diff</div>
+
         </div>
         <div class="score-stats">
             <div class="hit-count">
@@ -487,18 +517,22 @@
                 <span class="hit-count-50" th:text="${score.statistics.get('count_50')}">50</span>
                 <span class="hit-count-miss" th:text="${score.statistics.get('count_miss')}">0</span>
             </div>
-            <span class="pp-number" th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 0, 0) + 'pp' : '--pp'}">222pp</span>
+            <span class="pp-number"
+                  th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 0, 0) + 'pp' : '--pp'}">222pp</span>
         </div>
         <div class="score-stats">
             <span class="combo-number" th:text="${score.maxCombo} + 'x'">444x</span>
-            <span class="score-time" th:text="${score.createdAt}">March 30, 2026 5:40 PM</span>
+            <span class="score-time" th:text="${score.createdAt}">2026-04-11T23:30:27Z</span>
             <span class="acc-number"
                   th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '%'">100.00%</span>
         </div>
     </div>
 </div>
 
-<div class="bottom">Generated with oStella by Zayrex</div>
+<div class="bottom">
+    <span th:text="'Data collected in ' + ${time}">Data collected in 2026-04-11T23:30:27Z</span>
+    <span>Generated with oStella by Zayrex</span>
+</div>
 
 <script th:inline="javascript">
     const historyData = /*[[${user.rankHistory.data}]]*/ [12345, 12222, 11111, 10000, 9876];

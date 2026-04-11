@@ -15,6 +15,8 @@ import xyz.zcraft.data.Score;
 import xyz.zcraft.data.ScoreType;
 import xyz.zcraft.data.UserExtended;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class ScoreRenderer {
@@ -44,7 +46,7 @@ public class ScoreRenderer {
         }));
     }
 
-    public byte[] render(UserExtended user, List<Score> scores, ScoreType type) {
+    public byte[] renderScores(UserExtended user, List<Score> scores, ScoreType type) {
         Context ctx = new Context();
         ctx.setVariable("user", user);
         ctx.setVariable("scores", scores);
@@ -53,8 +55,9 @@ public class ScoreRenderer {
             case RECENT -> "Most recent " +  scores.size() + " Scores";
         });
         ctx.setVariable("change", user.getScoreChange());
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
-        String finalHtml = templateEngine.process("stat", ctx);
+        String finalHtml = templateEngine.process("scores", ctx);
 
         Page page = browser.newPage();
 
