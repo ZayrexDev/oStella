@@ -100,6 +100,21 @@ public class NetworkHelper {
         }
     }
 
+    public static JsonObject byPassRequest(TokenData tokenData, String query) {
+        try {
+            final var request = newRequestBuilder(tokenData)
+                    .uri(URI.create("https://osu.ppy.sh/api/v2/" + query))
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            return JsonParser.parseString(body).getAsJsonObject();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static HttpRequest.Builder newRequestBuilder(TokenData tokenData) {
         return HttpRequest.newBuilder()
                 .header("Content-Type", "application/json")

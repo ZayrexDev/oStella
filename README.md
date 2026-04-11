@@ -61,7 +61,7 @@ curl http://localhost:8721/bo?id=12345678&n=20 --output best_of_20.png
 
 ## Endpoints
 
-Base URL: `http://localhost:<OSU_PORT>`
+Base URL: `http://localhost:<OSTELLA_PORT>`
 
 | Endpoint  | Method | Query     | Response                              |
 |-----------|--------|-----------|---------------------------------------|
@@ -77,9 +77,9 @@ Base URL: `http://localhost:<OSU_PORT>`
 |---------------------|----------|----------------------------------|
 | `OSU_CLIENT_ID`     | yes      | osu! OAuth client id             |
 | `OSU_CLIENT_SECRET` | yes      | osu! OAuth client secret         |
-| `OSU_PORT`          | yes      | HTTP server port                 |
-| `OSU_MAX_THREADS`   | yes      | worker pool size for async tasks |
-| `OSU_DELAY_MILLIS`  | yes      | delay before requests            |
+| `OSTELLA_PORT`          | yes      | HTTP server port                 |
+| `OSTELLA_MAX_THREADS`   | yes      | worker pool size for async tasks |
+| `OSTELLA_DELAY`  | yes      | delay before requests            |
 
 Notes:
 
@@ -118,11 +118,11 @@ Log files are written to `logs/`:
 ## Troubleshooting
 
 - `Invalid configuration` at startup:
-  - Check `.env` values are present and numeric fields are valid (`OSU_PORT`, `OSU_MAX_THREADS`, `OSU_DELAY_MILLIS`).
+  - Check `.env` values are present and numeric fields are valid (`OSTELLA_PORT`, `OSTELLA_MAX_THREADS`, `OSTELLA_DELAY`).
 - Playwright launch/render issues:
   - Install Chromium with the command in "Playwright Note" and restart.
 - Endpoint timeout/slowness:
-  - Increase `OSU_MAX_THREADS`, lower `OSU_DELAY_MILLIS`, and verify upstream osu! API health.
+  - Increase `OSTELLA_MAX_THREADS`, lower `OSTELLA_DELAY`, and verify upstream osu! API health.
 
 ## License
 
