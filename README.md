@@ -14,9 +14,9 @@ and also provides a standalone API for other clients to consume.
 - Health endpoint (`/status`)
 - Automatic OAuth token renewal for osu! API
 
-Here is a demo of the best-of-20 panel for me:
+Here is a demo of my account:
 
-<img width="1800" height="1857" alt="demo" src="https://github.com/user-attachments/assets/21d392c3-3319-4853-9bc4-3ad4e0136167" />
+<img width="1800" height="1278" alt="image" src="https://github.com/user-attachments/assets/ddad0426-7dbd-40cb-b38c-085afe569f6b" />
 
 ## Prerequisites
 
