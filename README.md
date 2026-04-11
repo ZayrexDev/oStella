@@ -36,9 +36,10 @@ Here is a demo of my account:
 ```env
 OSU_CLIENT_ID=your_client_id
 OSU_CLIENT_SECRET=your_client_secret
-OSU_PORT=8721
-OSU_MAX_THREADS=8
-OSU_DELAY_MILLIS=100
+OSTELLA_PORT=8721
+OSTELLA_MAX_THREADS=2
+OSTELLA_DELAY=1000
+OSTELLA_DEBUG=false
 ```
 
 ### 2) Build
@@ -73,13 +74,13 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 
 ## Configuration Reference
 
-| Variable            | Required | Description                      |
-|---------------------|----------|----------------------------------|
-| `OSU_CLIENT_ID`     | yes      | osu! OAuth client id             |
-| `OSU_CLIENT_SECRET` | yes      | osu! OAuth client secret         |
-| `OSTELLA_PORT`          | yes      | HTTP server port                 |
-| `OSTELLA_MAX_THREADS`   | yes      | worker pool size for async tasks |
-| `OSTELLA_DELAY`  | yes      | delay before requests            |
+| Variable              | Required | Description                      |
+|-----------------------|----------|----------------------------------|
+| `OSU_CLIENT_ID`       | yes      | osu! OAuth client id             |
+| `OSU_CLIENT_SECRET`   | yes      | osu! OAuth client secret         |
+| `OSTELLA_PORT`        | yes      | HTTP server port                 |
+| `OSTELLA_MAX_THREADS` | yes      | worker pool size for async tasks |
+| `OSTELLA_DELAY`       | yes      | delay before requests            |
 
 Notes:
 
