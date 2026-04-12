@@ -14,9 +14,14 @@ and also provides a standalone API for other clients to consume.
 - Health endpoint (`/status`)
 - Automatic OAuth token renewal for osu! API
 
-Here is a demo of my account:
+Here some demo:
 
-<img width="1800" height="1278" alt="image" src="https://github.com/user-attachments/assets/ddad0426-7dbd-40cb-b38c-085afe569f6b" />
+### Best-of-N
+<img width="900" alt="image" src="https://github.com/user-attachments/assets/ddad0426-7dbd-40cb-b38c-085afe569f6b" />
+
+### Beatmap Card
+<img width="320" alt="image" src="https://github.com/user-attachments/assets/0b8c51aa-ecf7-4e9e-9f67-327ce53ad9e3" />
+
 
 ## Prerequisites
 
