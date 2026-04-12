@@ -1,4 +1,4 @@
-package xyz.zcraft.data;
+package xyz.zcraft.model.beatmap;
 
 import lombok.Data;
 

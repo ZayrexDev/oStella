@@ -1,4 +1,4 @@
-package xyz.zcraft.data;
+package xyz.zcraft.model.score;
 
 import lombok.Data;
 

@@ -1,8 +1,9 @@
-package xyz.zcraft.data;
+package xyz.zcraft.model.beatmap;
 
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
+import xyz.zcraft.model.user.UserExtended;
 
 import java.util.List;
 
@@ -35,6 +36,7 @@ public class Beatmapset {
     public String source;
 
     public String status;
+    public String tags;
 
     public Boolean spotlight;
 

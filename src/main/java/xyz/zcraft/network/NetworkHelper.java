@@ -3,7 +3,11 @@ package xyz.zcraft.network;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import xyz.zcraft.data.*;
+import xyz.zcraft.model.*;
+import xyz.zcraft.model.beatmap.*;
+import xyz.zcraft.model.score.Score;
+import xyz.zcraft.model.score.ScoreType;
+import xyz.zcraft.model.user.UserExtended;
 import xyz.zcraft.util.Config;
 
 import java.io.IOException;
@@ -16,6 +20,8 @@ import java.util.List;
 
 public class NetworkHelper {
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
+    private static final String BASE_URL = "https://osu.ppy.sh/api/v2";
+    private static final Gson GSON = new Gson();
 
     public static TokenData getToken(Config conf) {
         try {
@@ -47,8 +53,7 @@ public class NetworkHelper {
 
     public static List<Score> getUserScores(TokenData tokenData, String id, ScoreType mode, int limit, boolean includeFails) {
         try {
-            final var request = newRequestBuilder(tokenData)
-                    .uri(URI.create(String.format("https://osu.ppy.sh/api/v2/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", id, mode.name().toLowerCase(), limit, includeFails ? 1 : 0)))
+            final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", id, mode.name().toLowerCase(), limit, includeFails ? 1 : 0))
                     .GET()
                     .build();
 
@@ -56,7 +61,7 @@ public class NetworkHelper {
 
             final LinkedList<Score> scores = new LinkedList<>();
             JsonParser.parseString(body).getAsJsonArray().forEach(s -> {
-                final Score e = new Gson().fromJson(s, Score.class);
+                final Score e = GSON.fromJson(s, Score.class);
                 scores.add(e);
             });
 
@@ -68,14 +73,13 @@ public class NetworkHelper {
 
     public static UserExtended getUser(String id, TokenData tokenData) {
         try {
-            final var request = newRequestBuilder(tokenData)
-                    .uri(URI.create(String.format("https://osu.ppy.sh/api/v2/users/%s", id)))
+            final var request = newRequestBuilder(tokenData, "/users/" + id)
                     .GET()
                     .build();
 
             final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
 
-            return new Gson().fromJson(body, UserExtended.class);
+            return GSON.fromJson(body, UserExtended.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get user!", e);
         }
@@ -83,8 +87,7 @@ public class NetworkHelper {
 
     public static List<MultiplayerRoom> getRooms(TokenData tokenData) {
         try {
-            final var request = newRequestBuilder(tokenData)
-                    .uri(URI.create("https://osu.ppy.sh/api/v2/rooms"))
+            final var request = newRequestBuilder(tokenData,"/rooms")
                     .GET()
                     .build();
 
@@ -92,7 +95,7 @@ public class NetworkHelper {
 
             final LinkedList<MultiplayerRoom> rooms = new LinkedList<>();
             JsonParser.parseString(body).getAsJsonArray().forEach(
-                    s -> rooms.add(new Gson().fromJson(s, MultiplayerRoom.class)));
+                    s -> rooms.add(GSON.fromJson(s, MultiplayerRoom.class)));
 
             return rooms;
         } catch (IOException | InterruptedException e) {
@@ -102,8 +105,7 @@ public class NetworkHelper {
 
     public static JsonObject byPassRequest(TokenData tokenData, String query) {
         try {
-            final var request = newRequestBuilder(tokenData)
-                    .uri(URI.create("https://osu.ppy.sh/api/v2/" + query))
+            final var request = newRequestBuilder(tokenData, query)
                     .GET()
                     .build();
 
@@ -115,8 +117,46 @@ public class NetworkHelper {
         }
     }
 
-    private static HttpRequest.Builder newRequestBuilder(TokenData tokenData) {
+    public static Beatmapset getBeatmapset(TokenData tokenData, String setId) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/beatmapsets/" + setId)
+                    .GET()
+                    .build();
+
+            return GSON.fromJson(CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body(), Beatmapset.class);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static BeatmapExtended getBeatmap(TokenData tokenData, String beatmapId) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/beatmaps/" + beatmapId)
+                    .GET()
+                    .build();
+
+            return GSON.fromJson(CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body(), BeatmapExtended.class);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String getBeatmapString(String beatmapId) {
+        try {
+            final var request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://osu.ppy.sh/osu/%s".formatted(beatmapId)))
+                    .GET()
+                    .build();
+
+            return CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static HttpRequest.Builder newRequestBuilder(TokenData tokenData, String endpoint) {
         return HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + endpoint))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
                 .header("Authorization", "Bearer " + tokenData.token());

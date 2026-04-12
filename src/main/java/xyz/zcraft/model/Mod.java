@@ -1,4 +1,4 @@
-package xyz.zcraft.data;
+package xyz.zcraft.model;
 
 import lombok.Data;
 

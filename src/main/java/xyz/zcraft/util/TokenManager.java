@@ -3,7 +3,7 @@ package xyz.zcraft.util;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import xyz.zcraft.data.TokenData;
+import xyz.zcraft.model.TokenData;
 import xyz.zcraft.network.NetworkHelper;
 
 import java.util.Timer;

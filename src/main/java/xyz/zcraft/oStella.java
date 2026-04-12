@@ -7,6 +7,8 @@ import xyz.zcraft.network.WebServer;
 import xyz.zcraft.util.Config;
 import xyz.zcraft.util.TokenManager;
 
+import java.io.IOException;
+
 public class oStella {
     private static final Logger LOG = LogManager.getLogger(oStella.class);
 
@@ -37,8 +39,14 @@ public class oStella {
 
         LOG.info("Starting web server");
 
-        webServer = new WebServer(conf, tokenManager);
-        webServer.start();
+        try {
+            webServer = new WebServer(conf, tokenManager);
+            webServer.start();
+        } catch (IOException e) {
+            LOG.error("Failed to start web server", e);
+            System.exit(1);
+            return;
+        }
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("Stopping web server");

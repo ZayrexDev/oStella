@@ -1,7 +1,10 @@
-package xyz.zcraft.data;
+package xyz.zcraft.model;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
+import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.DifficultyRange;
+import xyz.zcraft.model.user.User;
 
 import java.util.List;
 

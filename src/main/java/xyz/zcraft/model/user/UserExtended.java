@@ -1,9 +1,10 @@
-package xyz.zcraft.data;
+package xyz.zcraft.model.user;
 
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import xyz.zcraft.model.score.ScoreChange;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>oStella - Beatmap</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px;
+            width: fit-content;
+        }
+
+        .root {
+            width: 900px;
+            border-radius: 12px;
+            position: relative;
+            height: 100%;
+            align-content: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .rank-status {
+            text-transform: uppercase;
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: lime;
+            color: white;
+            font-weight: 900;
+            padding: 4px 16px;
+            border-radius: 100px;
+            font-size: 1.1em;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        .spotlight-badge {
+            text-transform: uppercase;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: lime;
+            color: white;
+            font-weight: 900;
+            padding: 4px 16px;
+            border-radius: 100px;
+            font-size: 1.1em;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        .song-cover {
+            display: block;
+            width: 900px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .song-title {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .diff-star {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        .diff-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #8e44ad, #c0392b);
+            color: #fff;
+            font-weight: 700;
+            padding: 1px 8px;
+            border-radius: 40px;
+            font-size: 1em;
+            gap: 4px;
+            width: 90px;
+            height: 30px;
+        }
+
+        .mapper {
+            height: stretch;
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            margin-left: auto;
+            gap: 8px;
+            font-size: 1.2em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mapper-name {
+            font-size: 1.5em;
+        }
+
+        .title-sub {
+            display: flex;
+            font-weight: lighter;
+            margin-bottom: 6px;
+        }
+
+        .song-artist {
+            font-size: 1.8em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .beatmap-id {
+            font-size: 1.8em;
+            margin-left: auto;
+        }
+
+        .diff {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .diff-title {
+            font-size: 2em;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .diff-rating {
+            font-size: 1.4em;
+        }
+
+        .diff-spec {
+            display: flex;
+            gap: 40px;
+        }
+
+        .spec-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .spec-label {
+            color: #a0a0b8;
+            font-size: 1.6em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .spec-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .play-fav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: left;
+
+            font-size: 1.4em;
+        }
+
+        .play-count {
+            align-items: center;
+            display: flex;
+            gap: 5px;
+        }
+
+        .fav-count {
+            align-items: center;
+            display: flex;
+            gap: 5px;
+        }
+
+        .play-icon {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        .fav-icon {
+            width: 25px;
+            height: 25px;
+            fill: white;
+        }
+
+        .meta {
+            margin-bottom: 5px;
+        }
+
+        .spec-back {
+            display: flex;
+            text-align: end;
+            gap: 24px;
+        }
+
+        .spec-front {
+            display: flex;
+            text-align: start;
+            gap: 24px;
+        }
+
+        .spec-mid {
+            width: stretch;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .spec-pp {
+            display: flex;
+            text-align: center;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .spec-sub {
+            font-size: 1.2em;
+            color: #a0a0b8;
+            margin-top: -8px;
+        }
+
+        .bottom {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+            color: #a0a0b8;
+        }
+
+        .user-stat {
+            width: 100%;
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .stat-wrapper {
+            width: 500px;
+        }
+
+        .stat {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            text-transform: uppercase;
+            width: 100px;
+            text-align: right;
+            flex-shrink: 0;
+            color: #a0a0b8;
+            font-size: 1.2em;
+        }
+
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 250px;
+        }
+
+        .progress-track {
+            flex-grow: 1;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffcc22, #ff4e6a);
+            border-radius: 5px;
+        }
+
+        .progress-text {
+            font-size: 1.2em;
+            color: #fff;
+            width: 45px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .chart-row-layout {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            width: 100%;
+        }
+
+        .side-legend {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
+            font-size: 0.95em;
+            color: #a0a0b8;
+            flex-shrink: 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+<div class="root">
+    <span class="rank-status" th:text="${beatmap.status}"
+          th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'">Ranked</span>
+    <span class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</span>
+    <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
+         src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
+
+    <div class="meta">
+        <span class="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title</span>
+        <div class="title-sub">
+            <div class="song-artist" th:text="${beatmap.beatmapset.artist}">This Is An Example Artist</div>
+            <div class="beatmap-id" th:text="${beatmap.id}">123456789</div>
+        </div>
+        <div class="diff">
+            <div class="diff-badge" th:style="'background: ' + ${beatmap.diffColor} + ';'">
+                <svg class="diff-star" th:style="'fill: ' + ${beatmap.diffTextColor} + ';'" viewBox="0 0 20 20">
+                    <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
+                </svg>
+                <div class="diff-rating" th:style="'color: ' + ${beatmap.diffTextColor} + ';'"
+                     th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.78
+                </div>
+            </div>
+            <div class="diff-title" th:text="${beatmap.version}">This Is An Example Diff</div>
+            <div class="mapper">
+                <span>By</span>
+                <span class="mapper-name" th:text="${beatmap.ownersString}">ExampleMapper</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="play-fav">
+        <div class="play-count">
+            <svg class="play-icon" viewBox="0 0 1024 1024">
+                <path d="M512 1024A512 512 0 1 1 512 0a512 512 0 0 1 0 1024zM383.232 287.616v448l384-223.104-384-224.896z"></path>
+            </svg>
+            <span th:text="${#numbers.formatInteger(beatmap.playcount, 1, 'COMMA')}">128,610,342</span>
+        </div>
+        <div class="fav-count">
+            <svg class="fav-icon" viewBox="0 0 1024 1024">
+                <path d="M923 283.6c-13.4-31.1-32.6-58.9-56.9-82.8-24.3-23.8-52.5-42.4-84-55.5-32.5-13.5-66.9-20.3-102.4-20.3-49.3 0-97.4 13.5-139.2 39-10 6.1-19.5 12.8-28.5 20.1-9-7.3-18.5-14-28.5-20.1-41.8-25.5-89.9-39-139.2-39-35.5 0-69.9 6.8-102.4 20.3-31.4 13-59.7 31.7-84 55.5-24.4 23.9-43.5 51.7-56.9 82.8-13.9 32.3-21 66.6-21 101.9 0 33.3 6.8 68 20.3 103.3 11.3 29.5 27.5 60.1 48.2 91 32.8 48.9 77.9 99.9 133.9 151.6 92.8 85.7 184.7 144.9 188.6 147.3l23.7 15.2c10.5 6.7 24 6.7 34.5 0l23.7-15.2c3.9-2.5 95.7-61.6 188.6-147.3 56-51.7 101.1-102.7 133.9-151.6 20.7-30.9 37-61.5 48.2-91 13.5-35.3 20.3-70 20.3-103.3 0.1-35.3-7-69.6-20.9-101.9z"></path>
+            </svg>
+            <span th:text="${#numbers.formatInteger(beatmap.beatmapset.favouriteCount, 1, 'COMMA')}">128,610,342</span>
+        </div>
+    </div>
+
+    <div class="diff-spec">
+        <div class="spec-front">
+            <div class="spec-group">
+                <span class="spec-label">Length</span>
+                <span class="spec-value"
+                      th:text="${beatmap.hitLength / 60} + ':' + ${#numbers.formatInteger(beatmap.hitLength % 60, 2)}">2:15</span>
+                <span class="spec-sub"
+                      th:text="'~' + ${beatmap.totalLength / 60} + ':' + ${#numbers.formatInteger(beatmap.totalLength % 60, 2)}">~ 1:58</span>
+            </div>
+            <div class="spec-group">
+                <span class="spec-label">Combo</span>
+                <span class="spec-value" th:text="${beatmap.maxCombo} + 'x'">789x</span>
+            </div>
+        </div>
+        <div class="spec-mid">
+            <span class="spec-label">Performance</span>
+            <div class="spec-pp">
+                <div class="spec-group">
+                    <span class="spec-value" th:text="${ppSS}">200</span>
+                    <span class="spec-sub">SS</span>
+                </div>
+                <div class="spec-group">
+                    <span class="spec-value" th:text="${ppFC}">180</span>
+                    <span class="spec-sub">98%FC</span>
+                </div>
+                <div class="spec-group">
+                    <span class="spec-value" th:text="${pp95}">100</span>
+                    <span class="spec-sub">95%</span>
+                </div>
+            </div>
+        </div>
+        <div class="spec-back">
+            <div class="spec-group">
+                <span class="spec-label">BPM</span>
+                <span class="spec-value" th:text="${#numbers.formatInteger(beatmap.bpm, 1)}">200</span>
+            </div>
+            <div class="spec-group">
+                <span class="spec-label">CS</span>
+                <span class="spec-value" th:text="${beatmap.cs}">5.0</span>
+                <span class="spec-sub" th:text="${beatmap.getCSString()}">30px</span>
+            </div>
+            <div class="spec-group">
+                <span class="spec-label">HP</span>
+                <span class="spec-value" th:text="${beatmap.drain}">5.0</span>
+                <span class="spec-sub">qwq</span>
+            </div>
+            <div class="spec-group">
+                <span class="spec-label">OD</span>
+                <span class="spec-value" th:text="${beatmap.accuracy}">5.0</span>
+                <span class="spec-sub" th:text="${beatmap.getODString()}">50ms</span>
+            </div>
+            <div class="spec-group">
+                <span class="spec-label">AR</span>
+                <span class="spec-value" th:text="${beatmap.ar}">5.0</span>
+                <span class="spec-sub" th:text="${beatmap.getARString()}">233ms</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="user-stat">
+        <div class="stat-wrapper">
+            <div class="stat">
+                <div class="stat-label">Pass%</div>
+                <div class="progress-wrapper">
+                    <div class="progress-track">
+                        <div class="progress-fill" th:style="'width: ' + ${beatmap.passRate} + '%;'"
+                             style="width: 23%;"></div>
+                    </div>
+                    <span class="progress-text"
+                          th:text="${#numbers.formatDecimal(beatmap.passRate, 1, 2)} + '%'">12.7%</span>
+                </div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Tags</div>
+                <span th:text="${beatmap.getTagString()}">tag tag tag tag tag tag tag tag tag tag tag tag tag tag tag</span>
+            </div>
+        </div>
+        <div class="chart-row-layout">
+            <div class="chart-wrapper" style="flex-grow: 1; height: 60px; position: relative;">
+                <canvas id="failChart"></canvas>
+            </div>
+            <div class="side-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff4e6a;"></div>
+                    <span>Fails</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #9cff22;"></div>
+                    <span>Retries</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="bottom">
+        <span th:text="${'Data collected in ' + time}">Data collected in 2026-04-11T23:30:27Z</span>
+        <span>Generated with oStella by Zayrex</span>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const rawFailData = /*[[${beatmap.failtimes.fail}]]*/  [0, 134359, 224183, 133403, 75465, 23034, 38041, 9229];
+    const rawExitData = /*[[${beatmap.failtimes.exit}]]*/ [0, 145492, 59974, 26000, 94668, 2179, 2453, 4931];
+
+    let firstActivityIndex = 0;
+    for (let i = 0; i < rawFailData.length; i++) {
+        if (rawFailData[i] > 0 || rawExitData[i] > 0) {
+            firstActivityIndex = i;
+            break;
+        }
+    }
+
+    const failData = rawFailData.slice(firstActivityIndex);
+    const retryData = rawExitData.slice(firstActivityIndex);
+
+    for (let i = 0; i < retryData.length; i++) {
+        retryData[i] = Math.max(0, retryData[i] - failData[i]);
+    }
+
+    const failLabels = failData.map((_, index) => index);
+
+    const failCtx = document.getElementById('failChart').getContext('2d');
+    new Chart(failCtx, {
+        type: 'line',
+        data: {
+            labels: failLabels,
+            datasets: [
+                {
+                    label: 'Fails',
+                    data: failData,
+                    borderColor: '#ff4e6a', // Soft red
+                    backgroundColor: 'rgba(255, 78, 106, 0.4)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.4 // Keeps the curve smooth
+                },
+                {
+                    label: 'Retries',
+                    data: retryData,
+                    borderColor: '#9cff22', // Warm yellow/orange
+                    backgroundColor: 'rgb(148 255 34 / 0.4)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false, // CRITICAL for Playwright headless screenshots!
+            scales: {
+                x: {display: false}, // Hide grid and labels
+                y: {display: false}
+            },
+            plugins: {
+                legend: {display: false},
+                tooltip: {enabled: false}
+            },
+            // This ensures both lines blend nicely where they overlap
+            interaction: {mode: 'index', intersect: false}
+        }
+    });
+</script>
+
+</body>
+</html>
+

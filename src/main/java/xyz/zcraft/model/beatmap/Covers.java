@@ -1,4 +1,4 @@
-package xyz.zcraft.data;
+package xyz.zcraft.model.beatmap;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;

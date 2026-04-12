@@ -204,7 +204,6 @@
             align-content: center;
             justify-content: center;
             align-items: center;
-
         }
 
         .jacket {
@@ -498,11 +497,11 @@
             <div class="beatmap-id" th:text="${score.beatmap.id}">123456789</div>
         </div>
         <div class="diff">
-            <div class="diff-badge" th:style="'background: ' + ${score.diffColor} + ';'">
-                <svg class="diff-star" th:style="'fill: ' + ${score.diffTextColor} + ';'" viewBox="0 0 20 20">
+            <div class="diff-badge" th:style="'background: ' + ${score.beatmap.diffColor} + ';'">
+                <svg class="diff-star" th:style="'fill: ' + ${score.beatmap.diffTextColor} + ';'" viewBox="0 0 20 20">
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                 </svg>
-                <div class="diff-rating" th:style="'color: ' + ${score.diffTextColor} + ';'"
+                <div class="diff-rating" th:style="'color: ' + ${score.beatmap.diffTextColor} + ';'"
                      th:text="${#numbers.formatDecimal(score.beatmap.difficultyRating, 1, 2)}">
                     5.78
                 </div>

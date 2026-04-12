@@ -1,4 +1,4 @@
-package xyz.zcraft.util;
+package xyz.zcraft.service;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
@@ -11,21 +11,22 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
-import xyz.zcraft.data.Score;
-import xyz.zcraft.data.ScoreType;
-import xyz.zcraft.data.UserExtended;
+import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.score.Score;
+import xyz.zcraft.model.score.ScoreType;
+import xyz.zcraft.model.user.UserExtended;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-public class ScoreRenderer {
-    private static final Logger LOG = LogManager.getLogger(ScoreRenderer.class);
+public class ScoreRenderService {
+    private static final Logger LOG = LogManager.getLogger(ScoreRenderService.class);
     private static Playwright playwright;
     private static Browser browser;
     private static TemplateEngine templateEngine;
 
-    public ScoreRenderer() {
+    public ScoreRenderService() {
         LOG.info("Initializing template resolver");
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setTemplateMode(TemplateMode.HTML);
@@ -62,6 +63,33 @@ public class ScoreRenderer {
         Page page = browser.newPage();
 
         page.setViewportSize(1400, 1000);
+
+        page.setContent(finalHtml);
+
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+
+        byte[] screenshotBytes = page.screenshot(
+                new Page.ScreenshotOptions().setFullPage(true)
+        );
+
+        page.close();
+
+        return screenshotBytes;
+    }
+
+    public byte[] renderBeatmap(BeatmapExtended map, int ppSS, int ppFC, int pp95) {
+        Context ctx = new Context();
+        ctx.setVariable("beatmap", map);
+        ctx.setVariable("ppSS", ppSS);
+        ctx.setVariable("ppFC", ppFC);
+        ctx.setVariable("pp95", pp95);
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        String finalHtml = templateEngine.process("beatmap", ctx);
+
+        Page page = browser.newPage();
+
+        page.setViewportSize(960, 760);
 
         page.setContent(finalHtml);
 

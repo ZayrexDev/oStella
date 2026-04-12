@@ -2,17 +2,24 @@ package xyz.zcraft.network;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.github.nanamochi.rosu_pp_jar.Performance;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import xyz.zcraft.data.*;
-import xyz.zcraft.util.AsyncTaskExecutor;
+import xyz.zcraft.model.*;
+import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.score.Score;
+import xyz.zcraft.model.score.ScoreType;
+import xyz.zcraft.model.user.UserExtended;
+import xyz.zcraft.service.AsyncService;
+import xyz.zcraft.service.BeatmapCacheService;
 import xyz.zcraft.util.Config;
-import xyz.zcraft.util.ScoreRenderer;
+import xyz.zcraft.service.ScoreRenderService;
 import xyz.zcraft.util.TokenManager;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -23,25 +30,26 @@ import static xyz.zcraft.util.FormatUtil.isInteger;
 public class WebServer {
     private static final Logger LOG = LogManager.getLogger(WebServer.class);
 
-    private final ScoreRenderer renderer;
-    private final AsyncTaskExecutor executor;
+    private final ScoreRenderService renderer;
+    private final BeatmapCacheService cacheService;
+    private final AsyncService executor;
     private final Config conf;
-    private final int delayMillis;
     private final TokenManager tokenManager;
     private final Javalin app;
 
-    public WebServer(Config conf, TokenManager tokenManager) {
+    public WebServer(Config conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
-        this.delayMillis = conf.delay();
         this.tokenManager = tokenManager;
-        renderer = new ScoreRenderer();
-        executor = new AsyncTaskExecutor(conf.maxThreads());
+        renderer = new ScoreRenderService();
+        executor = new AsyncService(conf.maxThreads(), conf.delay());
+        cacheService = new BeatmapCacheService();
         app = Javalin.create(cfg -> {
             cfg.routes
                     .get("bo", this::getBestOfN)
                     .get("daily", this::getDaily)
                     .get("mp", this::getMultiplayerRooms)
                     .get("rs", this::getRecentScores)
+                    .get("bm", this::getBeatmap)
                     .get("status", this::getServerStatus);
 
             if (conf.debug()) {
@@ -51,13 +59,52 @@ public class WebServer {
         });
     }
 
+    private void getBeatmap(@NotNull Context context) {
+        final String id = context.queryParam("id");
+
+        LOG.info("{} - bm - {}", context.ip(), id);
+
+        if (id == null || !isInteger(id)) {
+            context.status(400).result("Invalid query parameter!");
+            return;
+        }
+
+        contextFutureWithError(context,
+                executor.runDelayAsync(() -> {
+                    final BeatmapExtended beatmap = NetworkHelper.getBeatmap(tokenManager.getTokenData(), id);
+                    final io.github.nanamochi.rosu_pp_jar.Beatmap rosuBeatmap = cacheService.getRosuBeatmap(id, false);
+
+                    final Performance perfSS = Performance.create(rosuBeatmap);
+                    perfSS.setAccuracy(100.0);
+                    perfSS.setMisses(0);
+                    perfSS.setCombo(beatmap.getMaxCombo());
+
+                    final Performance perfFC = Performance.create(rosuBeatmap);
+                    perfFC.setAccuracy(98.0);
+                    perfFC.setMisses(0);
+                    perfFC.setCombo(beatmap.getMaxCombo());
+
+                    final Performance perf95 = Performance.create(rosuBeatmap);
+                    perf95.setAccuracy(95.0);
+
+                    return renderer.renderBeatmap(
+                            beatmap,
+                            perfSS.calculate().pp().intValue(),
+                            perfFC.calculate().pp().intValue(),
+                            perf95.calculate().pp().intValue()
+                    );
+                }).thenAccept(image -> context.status(200).contentType("img/png").result(image)),
+                "Beatmap request failed! Param:{id:" + id + "}"
+        );
+    }
+
     private void bypassRequest(@NotNull Context context) {
         LOG.info("{} - bypass - {}", context.ip(), context.queryString());
         contextFutureWithError(context,
-                executor.runAsync(() -> NetworkHelper.byPassRequest(
+                executor.runDelayAsync(() -> NetworkHelper.byPassRequest(
                         tokenManager.getTokenData(),
                         context.queryString()
-                ), delayMillis).thenAccept(response -> context.status(200).json(new Response(true, "Success", response).toString())),
+                )).thenAccept(response -> context.status(200).json(new Response(true, "Success", response).toString())),
                 "Failed to bypass request");
     }
 
@@ -73,9 +120,8 @@ public class WebServer {
 
     private void getServerStatus(@NotNull Context context) {
         LOG.info("{} - status", context.ip());
-        context.future(() -> executor.runAsync(
-                () -> NetworkHelper.getUser("2", tokenManager.getTokenData()),
-                delayMillis
+        context.future(() -> executor.runDelayAsync(
+                () -> NetworkHelper.getUser("2", tokenManager.getTokenData())
         ).thenAccept(user -> {
             if (user != null) {
                 context.status(200).json(new Response(true, "Server is running, API is up.", null));
@@ -102,7 +148,7 @@ public class WebServer {
         }
 
         contextFutureWithError(ctx,
-                executor.runAsync(() -> {
+                executor.runDelayAsync(() -> {
                     final List<Score> scores = NetworkHelper.getUserScores(
                             tokenManager.getTokenData(),
                             id,
@@ -113,7 +159,7 @@ public class WebServer {
                     final UserExtended user = NetworkHelper.getUser(id, tokenManager.getTokenData());
 
                     return renderer.renderScores(user, scores, ScoreType.RECENT);
-                }, delayMillis).thenAccept(image -> ctx.status(200).contentType("img/png").result(image)),
+                }).thenAccept(image -> ctx.status(200).contentType("img/png").result(image)),
                 "Recent scores request failed! Param:{n=" + n + ", id:" + id + "}"
         );
     }
@@ -122,7 +168,7 @@ public class WebServer {
         LOG.info("{} - mp", context.ip());
 
         contextFutureWithError(context,
-                executor.runAsync(() -> {
+                executor.runDelayAsync(() -> {
                     final List<MultiplayerRoom> rooms = NetworkHelper.getRooms(tokenManager.getTokenData());
                     rooms.sort(Comparator.comparingInt(MultiplayerRoom::getParticipantCount));
 
@@ -132,7 +178,7 @@ public class WebServer {
                         arr.add(room.getName() + " << " + room.getParticipantCount());
                     }
                     return arr;
-                }, delayMillis).thenAccept(arr -> context.status(200).json(new Response(true, "Success", arr).toString())),
+                }).thenAccept(arr -> context.status(200).json(new Response(true, "Success", arr).toString())),
                 "Multiplayer rooms request failed!"
         );
     }
@@ -141,9 +187,9 @@ public class WebServer {
         LOG.info("{} - daily", context.ip());
 
         contextFutureWithError(context,
-                executor.runAsync(() -> NetworkHelper.getRooms(tokenManager.getTokenData()).stream()
+                executor.runDelayAsync(() -> NetworkHelper.getRooms(tokenManager.getTokenData()).stream()
                         .filter(room -> Objects.equals(room.getCategory(), "daily_challenge"))
-                        .findFirst(), delayMillis).thenAccept(roomResult -> {
+                        .findFirst()).thenAccept(roomResult -> {
                     if (roomResult.isEmpty()) {
                         context.status(404).result(new Response(false, "Daily challenge room not found!", null).toString());
                         return;
@@ -185,7 +231,7 @@ public class WebServer {
         }
 
         contextFutureWithError(ctx,
-                executor.runAsync(() -> {
+                executor.runDelayAsync(() -> {
                     final List<Score> scores = NetworkHelper.getUserScores(
                             tokenManager.getTokenData(),
                             id,
@@ -196,7 +242,7 @@ public class WebServer {
                     final UserExtended user = NetworkHelper.getUser(id, tokenManager.getTokenData());
 
                     return renderer.renderScores(user, scores, ScoreType.BEST);
-                }, delayMillis).thenAccept(image -> ctx.status(200).contentType("img/png").result(image)),
+                }).thenAccept(image -> ctx.status(200).contentType("img/png").result(image)),
                 "Best of N request failed! Param:{n=" + n + ", id:" + id + "}"
         );
     }
