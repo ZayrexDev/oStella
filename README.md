@@ -17,10 +17,14 @@ and also provides a standalone API for other clients to consume.
 Here some demo:
 
 ### Best-of-N
-<img width="900" alt="image" src="https://github.com/user-attachments/assets/ddad0426-7dbd-40cb-b38c-085afe569f6b" />
+<img width="900" alt="image" src="https://github.com/user-attachments/assets/f4ff6ac7-b241-4c6b-956e-9c258c27faa7" />
 
 ### Beatmap Card
-<img width="320" alt="image" src="https://github.com/user-attachments/assets/0b8c51aa-ecf7-4e9e-9f67-327ce53ad9e3" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/0b8c51aa-ecf7-4e9e-9f67-327ce53ad9e3" />
+
+### Group Leaderboard
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/4a229779-c674-4172-8d6b-6accdabb5a5e" />
+
 
 
 ## Prerequisites
