@@ -173,7 +173,7 @@ public class WebServer {
                 u,
                 ScoreType.RECENT,
                 Integer.parseInt(n),
-                true
+                false
         )).get();
 
         final UserExtended user = executor.runDelayAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u)).get();
