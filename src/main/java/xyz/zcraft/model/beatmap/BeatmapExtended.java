@@ -76,7 +76,7 @@ public class BeatmapExtended extends Beatmap {
     }
 
     public String getODString() {
-        return "±" + (80 - 6 * accuracy) + "ms";
+        return "±" + String.format("%.1f", (80 - 6 * accuracy)) + "ms";
     }
 
     public String getARString() {
