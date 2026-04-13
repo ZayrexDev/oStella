@@ -1,7 +1,7 @@
 # oStella
 
-`oStella` is a Java service that fetches osu! data and exposes simple HTTP endpoints for status, 
-multiplayer info, and rendered score images.
+`oStella` is a Java service that fetches osu! data and exposes simple HTTP endpoints for status,
+multiplayer info, and rendered osu! images.
 
 It is the backend for [Seira](https://github.com/ZayrexDev/Seira) bot, 
 and also provides a standalone API for other clients to consume.
@@ -9,12 +9,14 @@ and also provides a standalone API for other clients to consume.
 ## What You Get
 
 - PNG score panels for best (`/bo`) and recent (`/rs`) osu! scores
+- PNG beatmap card endpoint (`/bm`)
+- PNG player comparison leaderboard endpoint (`/pk`)
 - Multiplayer room summary endpoint (`/mp`)
 - Current daily challenge endpoint (`/daily`)
 - Health endpoint (`/status`)
 - Automatic OAuth token renewal for osu! API
 
-Here some demo:
+Here are some demo:
 
 ### Best-of-N
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/f4ff6ac7-b241-4c6b-956e-9c258c27faa7" />
@@ -66,7 +68,7 @@ java -jar target/oStella-1.0-SNAPSHOT-jar-with-dependencies.jar
 ### 4) Call an Endpoint
 
 ```shell
-curl http://localhost:8721/bo?id=12345678&n=20 --output best_of_20.png
+curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
 ```
 
 ## Endpoints
@@ -76,8 +78,10 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 | Endpoint  | Method | Query     | Response                              |
 |-----------|--------|-----------|---------------------------------------|
 | `/status` | GET    | none      | JSON health message                   |
-| `/bo`     | GET    | `id`, `n` | `image/png` best-of-N panel           |
-| `/rs`     | GET    | `id`, `n` | `image/png` recent-N panel            |
+| `/bo`     | GET    | `u`, `n`  | `image/png` best-of-N panel           |
+| `/rs`     | GET    | `u`, `n`  | `image/png` recent-N panel            |
+| `/bm`     | GET    | `bm`      | `image/png` beatmap card              |
+| `/pk`     | GET    | `bm`, `u` | `image/png` PP leaderboard card       |
 | `/mp`     | GET    | none      | JSON list of top multiplayer rooms    |
 | `/daily`  | GET    | none      | JSON daily challenge room info or 404 |
 
@@ -93,7 +97,9 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 
 Notes:
 
-- `/bo` and `/rs` require numeric `n`; invalid params return HTTP `400`.
+- `/bo` and `/rs` require `u` and numeric `n`; invalid params return HTTP `400`.
+- `/bm` requires numeric `bm`; invalid params return HTTP `400`.
+- `/pk` requires numeric `bm` and `u` as one or more usernames/ids separated by commas.
 - Score endpoints currently call osu! API with `mode=osu`.
 
 ## Build Artifacts
@@ -120,10 +126,12 @@ Log files are written to `logs/`:
 
 - `src/main/java/xyz/zcraft/oStella.java` - app bootstrap
 - `src/main/java/xyz/zcraft/network/WebServer.java` - routes/handlers
-- `src/main/java/xyz/zcraft/network/NetworkHelper.java` - osu! API requests
+- `src/main/java/xyz/zcraft/network/OsuAPI.java` - osu! API requests
 - `src/main/java/xyz/zcraft/util/TokenManager.java` - OAuth token lifecycle
-- `src/main/java/xyz/zcraft/util/ScoreRenderer.java` - HTML to PNG rendering
-- `src/main/resources/templates/stat.html` - score panel template
+- `src/main/java/xyz/zcraft/service/ScoreRenderService.java` - HTML to PNG rendering
+- `src/main/resources/templates/scores.html` - score panel template
+- `src/main/resources/templates/beatmap.html` - beatmap card template
+- `src/main/resources/templates/pk.html` - group leaderboard template
 
 ## Troubleshooting
 
