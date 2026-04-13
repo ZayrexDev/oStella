@@ -3,8 +3,10 @@ package xyz.zcraft.network;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import xyz.zcraft.model.*;
-import xyz.zcraft.model.beatmap.*;
+import xyz.zcraft.model.MultiplayerRoom;
+import xyz.zcraft.model.TokenData;
+import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
 import xyz.zcraft.model.user.UserExtended;
@@ -18,7 +20,7 @@ import java.net.http.HttpResponse;
 import java.util.LinkedList;
 import java.util.List;
 
-public class NetworkHelper {
+public class OsuAPI {
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static final String BASE_URL = "https://osu.ppy.sh/api/v2";
     private static final Gson GSON = new Gson();
@@ -71,7 +73,25 @@ public class NetworkHelper {
         }
     }
 
-    public static UserExtended getUser(String id, TokenData tokenData) {
+    public static Score getUserScore(TokenData tokenData, String u, String bm) {
+        try {
+            final var request = newRequestBuilder(tokenData, String.format("/beatmaps/%s/scores/users/%s", bm, u))
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+
+            return GSON.fromJson(JsonParser.parseString(body).getAsJsonObject().get("score").getAsJsonObject(), Score.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get user!", e);
+        }
+    }
+
+    public static UserExtended getUser(TokenData tokenData, String id) {
         try {
             final var request = newRequestBuilder(tokenData, "/users/" + id)
                     .GET()
@@ -87,7 +107,7 @@ public class NetworkHelper {
 
     public static List<MultiplayerRoom> getRooms(TokenData tokenData) {
         try {
-            final var request = newRequestBuilder(tokenData,"/rooms")
+            final var request = newRequestBuilder(tokenData, "/rooms")
                     .GET()
                     .build();
 

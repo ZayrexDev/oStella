@@ -4,7 +4,7 @@ import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.model.TokenData;
-import xyz.zcraft.network.NetworkHelper;
+import xyz.zcraft.network.OsuAPI;
 
 import java.util.Timer;
 
@@ -28,7 +28,7 @@ public class TokenManager {
     private void renewToken() {
         if (tokenData == null || tokenData.token() == null ||
                 System.currentTimeMillis() - tokenData.tokenGrantTime() >= tokenData.expiresIn() * 1000) {
-            tokenData = NetworkHelper.getToken(conf);
+            tokenData = OsuAPI.getToken(conf);
             LOG.info("Token renewed, expires in {}", tokenData.expiresIn());
 
             timer.schedule(new java.util.TimerTask() {

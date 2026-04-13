@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>oStella - Group PK</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* Your base background color for the headless browser canvas */
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px;
+            width: fit-content;
+        }
+
+        /* --- BASE LAYOUT --- */
+        .pk-card {
+            width: 840px; /* Slightly wider to give the rows breathing room */
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Clips the banner to the rounded corners */
+        }
+
+        .pk-content {
+            padding: 24px;
+            padding-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- THE BANNER --- */
+        .pk-banner {
+            width: 100%;
+            height: 160px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .pk-status {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            text-transform: uppercase;
+            font-weight: 900;
+            padding: 4px 16px;
+            border-radius: 100px;
+            font-size: 1.1em;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+            z-index: 2;
+        }
+
+        .pk-banner-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            top: 20px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(26, 26, 46, 0) 0%, rgba(26, 26, 46, 0.95) 70%, rgba(26, 26, 46, 1) 80%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 16px 24px;
+            gap: 4px;
+        }
+
+        .pk-title-row {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .pk-map-title {
+            font-size: 2.2em;
+            font-weight: 900;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .pk-map-artist {
+            font-size: 1.4em;
+            font-weight: 300;
+            color: #e2e8f0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .pk-diff-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pk-diff-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 1em;
+            gap: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .pk-diff-star {
+            width: 16px;
+            height: 16px;
+        }
+
+        .pk-diff-rating {
+            font-size: 1.1em;
+        }
+
+        .pk-map-diff {
+            color: #ff66aa;
+            font-size: 1.3em;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .pk-mapper {
+            margin-left: auto;
+            font-size: 1.1em;
+            color: #a0a0b8;
+        }
+
+        .pk-mapper span:last-child {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .pk-subtitle {
+            display: flex;
+            font-size: 1em;
+            color: #a0a0b8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+
+        .pk-id {
+            letter-spacing: 1px;
+            margin-left: auto;
+        }
+
+        /* --- LEADERBOARD LIST --- */
+        .pk-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pk-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            border-radius: 12px;
+        }
+
+        .pk-rank {
+            font-size: 1.6em;
+            font-weight: 900;
+            color: #a0a0b8;
+            width: 45px;
+            text-align: center;
+        }
+
+        .pk-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .pk-name-box {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pk-stat-box {
+            gap: 8px;
+            text-align: left;
+        }
+
+        .pk-acc {
+            font-size: 1.6em;
+            font-weight: 900;
+        }
+
+        .pk-combo {
+            margin-top: -4px;
+            font-size: 1em;
+        }
+
+        .pk-level {
+            font-size: 2.4em;
+            font-weight: 900;
+        }
+
+        .pk-username {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .pk-mods {
+            color: #ffcc22;
+            font-weight: 900;
+            font-size: 1em;
+        }
+
+        .pk-score-box {
+            text-align: right;
+        }
+
+        .pk-pp {
+            font-size: 1.6em;
+            font-weight: 900;
+        }
+
+        .pk-diff {
+            font-size: 1em;
+            color: #ff4e6a;
+            font-weight: bold;
+            margin-top: -4px;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .first-place {
+            background: linear-gradient(90deg, rgba(255, 204, 34, 0.15), rgba(255, 204, 34, 0.05));
+            border: 1px solid rgba(255, 204, 34, 0.4);
+            padding: 16px;
+        }
+
+        .first-place .pk-level {
+            font-size: 2.6em;
+        }
+
+        .first-place .pk-stat-box {
+            color: #ffcc22;
+        }
+
+        .first-place .pk-acc {
+            font-size: 1.8em;
+        }
+
+        .first-place .pk-combo {
+            font-size: 1em;
+        }
+
+        .first-place .pk-rank {
+            color: #ffcc22;
+            font-size: 2em;
+        }
+
+        .first-place .pk-avatar {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #ffcc22;
+        }
+
+        .first-place .pk-pp {
+            color: #ffcc22;
+            font-size: 1.8em;
+        }
+
+        .bottom {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+            color: #a0a0b8;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="pk-card">
+    <div class="pk-banner" th:style="'background-image: url(' + ${beatmap.beatmapset.covers.cover} + ');'"
+         style="background-image: url('https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233')">
+        <div class="pk-status" th:text="${beatmap.status}"
+             th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'">
+            RANKED
+        </div>
+
+        <div class="pk-banner-overlay">
+            <div class="pk-title-row">
+                <div class="pk-map-title" th:text="${beatmap.beatmapset.title}">ExampleTitle</div>
+                <div class="pk-map-artist" th:text="${beatmap.beatmapset.artist}">ExampleArtist</div>
+            </div>
+            <div class="pk-diff-row">
+                <div class="pk-diff-badge" th:style="'background: ' + ${beatmap.diffColor} + ';'">
+                    <svg class="pk-diff-star" th:style="'fill: ' + ${beatmap.diffTextColor} + ';'" viewBox="0 0 20 20">
+                        <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
+                    </svg>
+                    <div class="pk-diff-rating" th:style="'color: ' + ${beatmap.diffTextColor} + ';'"
+                         th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.72
+                    </div>
+                </div>
+                <div class="pk-map-diff" th:text="${beatmap.version}">ExampleVersion</div>
+                <div class="pk-mapper">
+                    <span>By</span>
+                    <span th:text="${beatmap.ownersString}">ExampleMapper</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pk-content">
+        <div class="pk-subtitle">
+            <div>Group PK Leaderboard</div>
+            <div class="pk-id" th:text="'BM ' + ${beatmap.id}">BM 1234567</div>
+        </div>
+
+        <div class="pk-list">
+            <div class="pk-row"
+                 th:each="placement, iterStat : ${placements}"
+                 th:classappend="${iterStat.index == 0} ? 'first-place' : ''">
+
+                <div class="pk-rank" th:text="'#' + ${iterStat.count}">#1</div>
+                <img class="pk-avatar" th:src="${placement.user.avatarUrl}" alt="Avatar">
+
+                <div class="pk-name-box">
+                    <span class="pk-username" th:text="${placement.user.username}">ABCDEFGHIJKLMN</span>
+                    <span class="pk-mods" th:if="${placement.score.mods != 'NM'}"
+                          th:text="${placement.score.modString}">HDHRDT</span>
+                </div>
+
+                <div class="pk-rank-box">
+                    <div class="pk-level" th:text="${placement.score.rank}"
+                         th:style="'color: ' + ${placement.score.getRankColor()} + ';'">XH
+                    </div>
+                </div>
+
+                <div class="pk-stat-box" th:style="${placement.score.accuracy == 1 ? 'color: #ffcc22;' : ''}">
+                    <div class="pk-acc"
+                         th:text="${#numbers.formatDecimal(placement.score.accuracy * 100, 1, 2) + '%'}">98.76%
+                    </div>
+                    <div class="pk-combo"
+                         th:text="${placement.score.maxCombo} + 'x' + ${placement.score.isPerfectCombo ? ' FC' : ''}">
+                        432x
+                    </div>
+                </div>
+
+                <div class="pk-score-box">
+                    <div class="pk-pp" th:text="${#numbers.formatDecimal(placement.score.pp, 1, 1)} + ' PP'">340 PP
+                    </div>
+                    <div class="pk-diff"
+                         th:style="${iterStat.index == 0 ? 'color: #ffcc22;' : ''}"
+                         th:text="${iterStat.index == 0 ? 'MAX ' + #numbers.formatDecimal(ppMax, 1, 1) + 'PP' : '-' + #numbers.formatDecimal(placements[0].score.pp - placement.score.pp, 1, 1) + ' PP'}">
+                        -42.5 PP
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom">
+    <span th:text="${'Data collected in ' + time}">Data collected in 2026-04-11T23:30:27Z</span>
+    <span>Generated with oStella by Zayrex</span>
+</div>
+
+</body>
+</html>

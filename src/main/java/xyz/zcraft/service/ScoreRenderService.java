@@ -12,6 +12,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
 import xyz.zcraft.model.user.UserExtended;
@@ -63,6 +64,32 @@ public class ScoreRenderService {
         Page page = browser.newPage();
 
         page.setViewportSize(1400, 1000);
+
+        page.setContent(finalHtml);
+
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+
+        byte[] screenshotBytes = page.screenshot(
+                new Page.ScreenshotOptions().setFullPage(true)
+        );
+
+        page.close();
+
+        return screenshotBytes;
+    }
+
+    public byte[] renderPK(BeatmapExtended map, List<Placement> placements, double ppMax) {
+        Context ctx = new Context();
+        ctx.setVariable("beatmap", map);
+        ctx.setVariable("placements", placements);
+        ctx.setVariable("ppMax", ppMax);
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        String finalHtml = templateEngine.process("pk", ctx);
+
+        Page page = browser.newPage();
+
+        page.setViewportSize(760, 400);
 
         page.setContent(finalHtml);
 

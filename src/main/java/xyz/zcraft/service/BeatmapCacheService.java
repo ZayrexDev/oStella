@@ -3,7 +3,7 @@ package xyz.zcraft.service;
 import io.github.nanamochi.rosu_pp_jar.Beatmap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import xyz.zcraft.network.NetworkHelper;
+import xyz.zcraft.network.OsuAPI;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,7 +41,7 @@ public class BeatmapCacheService {
 
     private void cacheBeatmap(String id) throws Exception {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
-        Files.writeString(BEATMAP_CACHE.resolve(id), NetworkHelper.getBeatmapString(id));
+        Files.writeString(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapString(id));
     }
 
     public boolean isBeatmapCached(String id) {

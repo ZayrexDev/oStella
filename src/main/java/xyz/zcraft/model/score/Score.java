@@ -72,6 +72,18 @@ public class Score {
         };
     }
 
+    public String getModString() {
+        if (mods == null || mods.isEmpty()) return "[NM]";
+
+        StringBuilder sb = new StringBuilder("[");
+        for (String mod : mods) {
+            sb.append(mod);
+        }
+        sb.append("]");
+
+        return sb.toString();
+    }
+
     public static class ScoreStatistics extends HashMap<String, Long> {
     }
 }
