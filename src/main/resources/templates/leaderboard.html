@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>oStella - Leaderboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px;
+            width: fit-content;
+        }
+
+        /* --- BASE LAYOUT --- */
+        .lb-card {
+            width: 840px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .lb-content {
+            padding: 16px 24px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .lb-mapper span:last-child {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* --- LEADERBOARD LIST --- */
+        .lb-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .lb-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            border-radius: 12px;
+        }
+
+        .lb-rank {
+            font-size: 1.6em;
+            font-weight: 900;
+            color: #a0a0b8;
+            width: 45px;
+            text-align: center;
+        }
+
+        .lb-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .lb-name-box {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lb-stat-box {
+            gap: 8px;
+            text-align: left;
+        }
+
+        .lb-global {
+            font-size: 1.6em;
+            font-weight: 900;
+        }
+
+        .lb-username {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .lb-online {
+            color: #b0dc00;
+            font-weight: 900;
+            font-size: 1em;
+        }
+
+        .lb-score-box {
+            text-align: right;
+        }
+
+        .lb-pp {
+            font-size: 1.6em;
+            font-weight: 900;
+        }
+
+        .lb-diff {
+            font-size: 1em;
+            color: #ff4e6a;
+            font-weight: bold;
+            margin-top: -4px;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .first-place {
+            background: linear-gradient(90deg, rgba(255, 204, 34, 0.15), rgba(255, 204, 34, 0.05));
+            border: 1px solid rgba(255, 204, 34, 0.4);
+            padding: 16px;
+        }
+
+        .first-place .lb-stat-box {
+            color: #ffcc22;
+        }
+
+        .first-place .lb-global {
+            font-size: 1.8em;
+        }
+
+        .first-place .lb-rank {
+            color: #ffcc22;
+            font-size: 2em;
+        }
+
+        .first-place .lb-avatar {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #ffcc22;
+        }
+
+        .first-place .lb-pp {
+            color: #ffcc22;
+            font-size: 1.8em;
+        }
+
+        .bottom {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+            color: #a0a0b8;
+        }
+
+        .score-type {
+            text-align: center;
+            text-transform: uppercase;
+            font-size: 2em;
+            font-weight: bold;
+            letter-spacing: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .score-type::before,
+        .score-type::after {
+            content: "";
+            flex: 1;
+            border-bottom: 4px solid #FFF;
+        }
+
+        .score-type:not(:empty)::before {
+            margin-right: 15px;
+        }
+
+        .score-type:not(:empty)::after {
+            margin-left: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="lb-card">
+    <div class="lb-content">
+        <div class="score-type">Group Leaderboard</div>
+
+
+        <div class="lb-list">
+            <div class="lb-row"
+                 th:each="user, iterStat : ${users}"
+                 th:classappend="${iterStat.index == 0} ? 'first-place' : ''">
+
+                <div class="lb-rank" th:text="'#' + ${iterStat.count}">#1</div>
+                <img class="lb-avatar" th:src="${user.getAvatarUrl()}" alt="Avatar">
+
+                <div class="lb-name-box">
+                    <span class="lb-username" th:text="${user.getUsername()}">ABCDEFGHIJKLMN</span>
+                    <span class="lb-online" th:if="${user.isOnline()}">Online</span>
+                </div>
+
+                <div class="lb-stat-box">
+                    <div class="lb-global"
+                         th:text="${user.getRankStr()}">#123,456,789
+                    </div>
+                </div>
+
+                <div class="lb-score-box">
+                    <div class="lb-pp" th:text="${!user.doHavePp() ? '--' : #numbers.formatDecimal(user.getStatisticsRulesets().getOsu().getPp(), 1, 1)} + ' PP'">340 PP
+                    </div>
+                    <div class="lb-diff"
+                         th:if="${iterStat.index != 0 && user.doHavePp()}"
+                         th:text="'-' + ${#numbers.formatDecimal(users[iterStat.index - 1].getStatisticsRulesets().getOsu().getPp() - user.getStatisticsRulesets().getOsu().getPp(), 1, 1) + ' PP'}">
+                        -42.5 PP
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom">
+    <span th:text="${'Data collected in ' + time}">Data collected in 2026-04-11T23:30:27Z</span>
+    <span>Generated with oStella by Zayrex</span>
+</div>
+
+</body>
+</html>

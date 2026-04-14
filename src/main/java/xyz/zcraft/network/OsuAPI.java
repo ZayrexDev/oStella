@@ -1,6 +1,7 @@
 package xyz.zcraft.network;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import xyz.zcraft.model.MultiplayerRoom;
@@ -9,6 +10,7 @@ import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
+import xyz.zcraft.model.user.User;
 import xyz.zcraft.model.user.UserExtended;
 import xyz.zcraft.util.Config;
 
@@ -100,6 +102,27 @@ public class OsuAPI {
             final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
 
             return GSON.fromJson(body, UserExtended.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get user!", e);
+        }
+    }
+
+    public static List<User> getUsers(TokenData tokenData, List<String> ids) {
+        StringBuilder sb = new StringBuilder("?");
+        for (String id : ids) {
+            sb.append("ids[]=").append(id).append("&");
+        }
+        try {
+            final var request = newRequestBuilder(tokenData, "/users" + sb)
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            final JsonArray users = JsonParser.parseString(body).getAsJsonObject().get("users").getAsJsonArray();
+            final LinkedList<User> userList = new LinkedList<>();
+            users.forEach(u -> userList.add(GSON.fromJson(u, User.class)));
+            return userList;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get user!", e);
         }

@@ -15,6 +15,7 @@ import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
+import xyz.zcraft.model.user.User;
 import xyz.zcraft.model.user.UserExtended;
 
 import java.time.Instant;
@@ -86,6 +87,30 @@ public class ScoreRenderService {
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
         String finalHtml = templateEngine.process("pk", ctx);
+
+        Page page = browser.newPage();
+
+        page.setViewportSize(760, 400);
+
+        page.setContent(finalHtml);
+
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+
+        byte[] screenshotBytes = page.screenshot(
+                new Page.ScreenshotOptions().setFullPage(true)
+        );
+
+        page.close();
+
+        return screenshotBytes;
+    }
+
+    public byte[] renderLeaderboard(List<User> users) {
+        Context ctx = new Context();
+        ctx.setVariable("users", users);
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        String finalHtml = templateEngine.process("leaderboard", ctx);
 
         Page page = browser.newPage();
 

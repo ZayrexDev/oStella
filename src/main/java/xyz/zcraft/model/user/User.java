@@ -3,6 +3,8 @@ package xyz.zcraft.model.user;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 
+import java.util.Optional;
+
 @Data
 public class User {
     @SerializedName("avatar_url")
@@ -41,4 +43,21 @@ public class User {
     private String profileColour;
 
     private String username;
+
+    @SerializedName("statistics_rulesets")
+    private StatisticsRuleset statisticsRulesets;
+
+    public String getRankStr() {
+        return Optional.ofNullable(statisticsRulesets)
+                .map(StatisticsRuleset::getOsu)
+                .map(Statistics::getGlobalRank)
+                .map(l -> String.format("#%,d", l))
+                .orElse("");
+    }
+
+    public boolean doHavePp() {
+        return Optional.ofNullable(statisticsRulesets)
+                .map(StatisticsRuleset::getOsu)
+                .map(Statistics::getPp).isPresent();
+    }
 }

@@ -14,6 +14,9 @@ import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
+import xyz.zcraft.model.user.Statistics;
+import xyz.zcraft.model.user.StatisticsRuleset;
+import xyz.zcraft.model.user.User;
 import xyz.zcraft.model.user.UserExtended;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.BeatmapCacheService;
@@ -50,6 +53,7 @@ public class WebServer {
                     .get("rs", this::getRecentScores)
                     .get("bm", this::getBeatmap)
                     .get("pk", this::getPK)
+                    .get("lb", this::getLeaderBoard)
                     .get("status", this::getServerStatus)
                     .before(ctx -> LOG.info("{} - {} {}", ctx.ip(), ctx.method(), ctx.path()))
                     .exception(Exception.class, (e, ctx) -> LOG.error("An error occurred while processing request: {}", ctx.queryString(), e));
@@ -59,6 +63,36 @@ public class WebServer {
                 cfg.routes.get("bypass", this::bypassRequest);
             }
         });
+    }
+
+    private void getLeaderBoard(@NotNull Context context) throws Exception {
+        final String us = context.queryParam("u");
+
+        if (us == null) {
+            context.status(400).result("Invalid query parameter!");
+            return;
+        }
+
+        final String[] u = us.split(",");
+        final List<String> ids = Arrays.asList(u);
+        final LinkedList<User> users = new LinkedList<>();
+
+        for (int i = 0; i < ids.size(); i += 50) {
+            final List<String> subList = ids.subList(i, Math.min(i + 50, ids.size()));
+            users.addAll(executor.runDelayAsync(() -> OsuAPI.getUsers(tokenManager.getTokenData(), subList)).get());
+        }
+
+        users.sort(Comparator.comparingDouble((User user) ->
+                Optional.ofNullable(user)
+                        .map(User::getStatisticsRulesets)
+                        .map(StatisticsRuleset::getOsu)
+                        .map(Statistics::getPp)
+                        .orElse(0.0)
+        ).reversed());
+
+        final byte[] imgByte = renderer.renderLeaderboard(users);
+
+        context.status(200).result(imgByte);
     }
 
     private void getPK(@NotNull Context context) throws Exception {
@@ -80,7 +114,7 @@ public class WebServer {
             final UserExtended user = executor.runDelayAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), s)).get();
             if (user == null) continue;
 
-            if(userScore.getPp() == null) continue;
+            if (userScore.getPp() == null) continue;
 
             final Placement placement = new Placement();
             placement.setScore(userScore);
