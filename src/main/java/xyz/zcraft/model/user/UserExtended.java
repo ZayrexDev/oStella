@@ -10,6 +10,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -136,7 +137,10 @@ public class UserExtended extends User {
 
     public ScoreChange getScoreChange() {
         final ScoreChange scoreChange = new ScoreChange();
-        final List<Long> data = getRankHistory().getData().reversed();
+        final List<Long> data = Optional.ofNullable(getRankHistory())
+                .map(RankHistory::getData)
+                .map(List::reversed)
+                .orElse(List.of());
 
         if (data.size() < 2) {
             return scoreChange;

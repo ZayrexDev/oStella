@@ -1,5 +1,6 @@
 package xyz.zcraft.service;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,20 @@ public class AsyncService {
         }), delayMillis, TimeUnit.MILLISECONDS);
 
         return future;
+    }
+
+    public <T> Optional<T> enqueue(Supplier<T> supplier) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+
+        scheduler.schedule(() -> executor.execute(() -> {
+            try {
+                future.complete(supplier.get());
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+            }
+        }), delayMillis, TimeUnit.MILLISECONDS);
+
+        return Optional.ofNullable(future.join());
     }
 
     public void close() {

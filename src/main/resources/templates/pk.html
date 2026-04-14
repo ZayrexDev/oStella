@@ -317,7 +317,7 @@
                          th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.72
                     </div>
                 </div>
-                <div class="pk-map-diff" th:text="${beatmap.version}">ExampleVersion</div>
+                <div class="pk-map-diff" th:text="${beatmap.version}" th:style="'color: ' + ${beatmap.getDiffColor()} + ';'">ExampleVersion</div>
                 <div class="pk-mapper">
                     <span>By</span>
                     <span th:text="${beatmap.ownersString}">ExampleMapper</span>

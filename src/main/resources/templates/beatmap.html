@@ -344,7 +344,7 @@
 <body>
 <div class="root">
     <span class="rank-status" th:text="${beatmap.status}"
-          th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'">Ranked</span>
+          th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">Ranked</span>
     <span class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</span>
     <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
          src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">

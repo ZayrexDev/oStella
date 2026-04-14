@@ -166,7 +166,11 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            return GSON.fromJson(CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body(), Beatmapset.class);
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+            return GSON.fromJson(body, Beatmapset.class);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -178,7 +182,11 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            return GSON.fromJson(CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body(), BeatmapExtended.class);
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+            return GSON.fromJson(body, BeatmapExtended.class);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

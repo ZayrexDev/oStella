@@ -77,7 +77,7 @@ public class Beatmap {
             case "QUALIFIED" -> "#4fc0ff";
             case "PENDING" -> "#ffd966";
             case "WIP" -> "#ff9966";
-            case "GRAVEYARD" -> "#000000d";
+            case "GRAVEYARD" -> "#000000";
             default -> "#ffffff";
         };
     }
