@@ -23,7 +23,8 @@ Here are some demo:
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/f4ff6ac7-b241-4c6b-956e-9c258c27faa7" />
 
 ### Beatmap Card
-<img width="400" alt="image" src="https://github.com/user-attachments/assets/0b8c51aa-ecf7-4e9e-9f67-327ce53ad9e3" />
+<img width="400" alt="Image_1776274447088_586" src="https://github.com/user-attachments/assets/43f8c0d7-5ea3-4171-a0e8-8f347fc4d380" />
+
 
 ### Group Leaderboard
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/4a229779-c674-4172-8d6b-6accdabb5a5e" />
