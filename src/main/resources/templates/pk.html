@@ -196,10 +196,12 @@
         }
 
         .pk-name-box {
+            position: relative;
             flex-grow: 1;
             display: flex;
             align-items: center;
             gap: 8px;
+            height: stretch;
         }
 
         .pk-stat-box {
@@ -233,6 +235,7 @@
 
         .pk-uid {
             position: absolute;
+            bottom: 0;
             margin-top: -2px;
             color: #a0a0b8;
             letter-spacing: 1px;
@@ -361,10 +364,10 @@
                 <div class="pk-name-box">
                     <div class="pk-name">
                         <span class="pk-username" th:text="${placement.user.username}">ABCDEFGHIJKLMN</span>
-                        <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">U25487965 // S1234567896</div>
                     </div>
                     <span class="pk-mods" th:if="${placement.score.mods != 'NM'}"
                           th:text="${placement.score.modString}">[HDHRDT]</span>
+                    <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">U25234487965 // S1234234567896</div>
                 </div>
 
                 <div class="pk-rank-box">
