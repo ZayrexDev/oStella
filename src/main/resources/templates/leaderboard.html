@@ -70,6 +70,10 @@
             object-fit: cover;
         }
 
+        .lb-name {
+            position: relative;
+        }
+
         .lb-name-box {
             flex-grow: 1;
             display: flex;
@@ -90,6 +94,14 @@
         .lb-username {
             font-size: 1.5em;
             font-weight: bold;
+        }
+
+        .lb-id {
+            position: absolute;
+            margin-top: -6px;
+            color: #a0a0b8;
+            letter-spacing: 1px;
+            font-size: .8em;
         }
 
         .lb-online {
@@ -196,7 +208,10 @@
                 <img class="lb-avatar" th:src="${user.getAvatarUrl()}" alt="Avatar">
 
                 <div class="lb-name-box">
-                    <span class="lb-username" th:text="${user.getUsername()}">ABCDEFGHIJKLMN</span>
+                    <div class="lb-name">
+                        <span class="lb-username" th:text="${user.getUsername()}">ABCDEFGHIJKLMN</span>
+                        <div class="lb-id" th:text="${'U' + user.id}">U25487965</div>
+                    </div>
                     <span class="lb-online" th:if="${user.isOnline()}">Online</span>
                 </div>
 

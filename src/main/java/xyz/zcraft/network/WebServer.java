@@ -53,7 +53,7 @@ public class WebServer {
                     .get("daily", this::getDaily)
                     .get("mp", this::getMultiplayerRooms)
                     .get("rs", this::getRecentScores)
-                    .get("bm", this::getBeatmap)
+                    .get("m", this::getBeatmap)
                     .get("pk", this::getPK)
                     .get("lb", this::getLeaderBoard)
                     .get("status", this::getServerStatus)
@@ -98,10 +98,10 @@ public class WebServer {
     }
 
     private void getPK(@NotNull Context context) {
-        final String bm = context.queryParam("bm");
+        final String m = context.queryParam("m");
         final String us = context.queryParam("u");
 
-        if (bm == null || us == null || !isInteger(bm)) {
+        if (m == null || us == null || !isInteger(m)) {
             context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
@@ -110,7 +110,7 @@ public class WebServer {
 
         final LinkedList<Placement> placements = new LinkedList<>();
         for (String s : u) {
-            final var userScore = executor.enqueue(() -> OsuAPI.getUserScore(tokenManager.getTokenData(), s, bm));
+            final var userScore = executor.enqueue(() -> OsuAPI.getUserScore(tokenManager.getTokenData(), s, m));
             if (userScore.isEmpty() || userScore.get().getPp() == null) continue;
 
             final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), s));
@@ -126,14 +126,14 @@ public class WebServer {
 
         placements.sort((a, b) -> (int) (b.score.pp - a.score.pp));
 
-        final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), bm));
+        final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
 
         if (beatmap.isEmpty()) {
             context.status(400).result(new Response(false, "No beatmap found", null).toString());
             return;
         }
 
-        final var rosuBeatmap = executor.enqueue(() -> cacheService.getRosuBeatmap(bm, false));
+        final var rosuBeatmap = executor.enqueue(() -> cacheService.getRosuBeatmap(m, false));
 
         if (rosuBeatmap.isEmpty()) {
             context.status(400).result(new Response(false, "Beatmap PP calculation failed", null).toString());
@@ -151,21 +151,21 @@ public class WebServer {
     }
 
     private void getBeatmap(@NotNull Context context) {
-        final String bm = context.queryParam("bm");
+        final String m = context.queryParam("m");
 
-        if (bm == null || !isInteger(bm)) {
+        if (m == null || !isInteger(m)) {
             context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
 
-        final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), bm));
+        final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
 
         if (beatmap.isEmpty()) {
             context.status(400).result(new Response(false, "No beatmap found", null).toString());
             return;
         }
 
-        final var rosuBeatmap = executor.enqueue(() -> cacheService.getRosuBeatmap(bm, false));
+        final var rosuBeatmap = executor.enqueue(() -> cacheService.getRosuBeatmap(m, false));
 
         if (rosuBeatmap.isEmpty()) {
             context.status(400).result(new Response(false, "No beatmap found", null).toString());

@@ -118,6 +118,10 @@
             text-overflow: ellipsis;
         }
 
+        .mapper-by {
+            color: #a0a0b8;
+        }
+
         .mapper-name {
             font-size: 1.5em;
         }
@@ -136,9 +140,12 @@
         }
 
         .beatmap-id {
-            font-size: 1.4em;
+            font-size: 1.2em;
             margin-left: auto;
             align-self: end;
+            letter-spacing: 1px;
+            color: #a0a0b8;
+            font-weight: normal;
         }
 
         .diff {
@@ -394,7 +401,7 @@
         </div>
         <div class="title-sub">
             <div class="song-artist" th:text="${beatmap.beatmapset.artist}">This Is An Example Artist</div>
-            <div class="beatmap-id" th:text="${'S' + beatmap.beatmapset.id + ' M' + beatmap.id}">S123465 M987654</div>
+            <div class="beatmap-id" th:text="${'MS' + beatmap.beatmapset.id + ' - M' + beatmap.id}">MS123465 - M987654</div>
         </div>
         <div class="diff">
             <div class="diff-badge" th:style="'background: ' + ${beatmap.diffColor} + ';'">
@@ -407,7 +414,7 @@
             </div>
             <div class="diff-title" th:text="${beatmap.version}">This Is An Example Diff</div>
             <div class="mapper">
-                <span>By</span>
+                <span class="mapper-by">By</span>
                 <span class="mapper-name" th:text="${beatmap.ownersString}">ExampleMapper</span>
             </div>
         </div>

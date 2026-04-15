@@ -227,6 +227,18 @@
             font-weight: bold;
         }
 
+        .pk-name {
+            position: relative;
+        }
+
+        .pk-uid {
+            position: absolute;
+            margin-top: -6px;
+            color: #a0a0b8;
+            letter-spacing: 1px;
+            font-size: .8em;
+        }
+
         .pk-mods {
             color: #ffcc22;
             font-weight: 900;
@@ -333,7 +345,7 @@
     <div class="pk-content">
         <div class="pk-subtitle">
             <div>Group PK Leaderboard</div>
-            <div class="pk-id" th:text="'BM ' + ${beatmap.id}">BM 1234567</div>
+            <div class="pk-id" th:text="'MS' + ${beatmap.beatmapset.id} + ' - M' + ${beatmap.id}">MS123456 - M1234567</div>
         </div>
 
         <div class="pk-not-available" th:if="${!beatmap.hasLeaderboard()}">Leaderboard is not available for this map...</div>
@@ -347,7 +359,10 @@
                 <img class="pk-avatar" th:src="${placement.user.avatarUrl}" alt="Avatar">
 
                 <div class="pk-name-box">
-                    <span class="pk-username" th:text="${placement.user.username}">ABCDEFGHIJKLMN</span>
+                    <div class="pk-name">
+                        <span class="pk-username" th:text="${placement.user.username}">ABCDEFGHIJKLMN</span>
+                        <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">U25487965 // S1234567896</div>
+                    </div>
                     <span class="pk-mods" th:if="${placement.score.mods != 'NM'}"
                           th:text="${placement.score.modString}">[HDHRDT]</span>
                 </div>
