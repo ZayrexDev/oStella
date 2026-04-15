@@ -158,6 +158,12 @@
             margin-left: auto;
         }
 
+        .pk-not-available {
+            text-align: center;
+            font-size: 1.6em;
+            color: #a0a0b8;
+        }
+
         /* --- LEADERBOARD LIST --- */
         .pk-list {
             display: flex;
@@ -301,7 +307,6 @@
              th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'">
             RANKED
         </div>
-
         <div class="pk-banner-overlay">
             <div class="pk-title-row">
                 <div class="pk-map-title" th:text="${beatmap.beatmapset.title}">ExampleTitle</div>
@@ -330,6 +335,8 @@
             <div>Group PK Leaderboard</div>
             <div class="pk-id" th:text="'BM ' + ${beatmap.id}">BM 1234567</div>
         </div>
+
+        <div class="pk-not-available" th:if="${!beatmap.hasLeaderboard()}">Leaderboard is not available for this map...</div>
 
         <div class="pk-list">
             <div class="pk-row"

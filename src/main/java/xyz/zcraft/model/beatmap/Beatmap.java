@@ -3,35 +3,29 @@ package xyz.zcraft.model.beatmap;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 
-import java.util.HashMap;
+import java.util.Objects;
+import java.util.Optional;
 
 @Data
 public class Beatmap {
-    @SerializedName("beatmapset_id")
-    public Long beatmapsetId;
-
-    public Long id;
-
-    @SerializedName("difficulty_rating")
-    public Double difficultyRating;
-
-    public Object mode;
-
-    public String status;
-
-    @SerializedName("total_length")
-    public Long totalLength;
-
-    @SerializedName("user_id")
-    public Long userId;
-
-    public String version;
-
     private static final double[] STAR_THRESHOLDS = {0.1, 1.25, 2.0, 2.5, 3.3, 4.2, 4.9, 5.8, 6.7, 7.7, 9.0};
     private static final String[] STAR_COLORS = {
             "#4290fb", "#4fc0ff", "#4fffd5", "#7cff4f", "#f6f05c",
             "#ff8068", "#ff4e6f", "#c645b8", "#6563de", "#18158e", "#000000"
     };
+    @SerializedName("beatmapset_id")
+    public Long beatmapsetId;
+    public Long id;
+    @SerializedName("difficulty_rating")
+    public Double difficultyRating;
+    public Object mode;
+    public String status;
+    @SerializedName("total_length")
+    public Long totalLength;
+    @SerializedName("user_id")
+    public Long userId;
+    public String version;
+
     public String getDiffColor() {
         if (difficultyRating < 0.1) return "#aaaaaa";
         if (difficultyRating >= 9.0) return "#000000";
@@ -67,9 +61,6 @@ public class Beatmap {
         return String.format("#%02x%02x%02x", r, g, b);
     }
 
-    public static class ScoreStatistics extends HashMap<String, Long> {
-    }
-
     public String getStatusColor() {
         return switch (status.toUpperCase()) {
             case "RANKED", "APPROVED" -> "#b3ff66";
@@ -84,10 +75,16 @@ public class Beatmap {
 
     public String getStatusTextColor() {
         return switch (status.toUpperCase()) {
-            case "RANKED", "LOVED", "PENDING", "WIP", "APPROVED" -> "#394246";
-            case "QUALIFIED" -> "#4fc0ff";
+            case "RANKED", "LOVED", "PENDING", "WIP", "APPROVED", "QUALIFIED" -> "#394246";
             case "GRAVEYARD" -> "#5c6970";
             default -> "#ffffff";
         };
+    }
+
+    public boolean hasLeaderboard() {
+        return Optional.ofNullable(getStatus())
+                .map(String::toUpperCase)
+                .map(s -> Objects.equals(s, "RANKED") || Objects.equals(s, "LOVED"))
+                .orElse(false);
     }
 }
