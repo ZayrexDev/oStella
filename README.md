@@ -9,8 +9,9 @@ and also provides a standalone API for other clients to consume.
 ## What You Get
 
 - PNG score panels for best (`/bo`) and recent (`/rs`) osu! scores
-- PNG beatmap card endpoint (`/bm`)
+- PNG beatmap card endpoint (`/m`)
 - PNG player comparison leaderboard endpoint (`/pk`)
+- PNG user PP leaderboard endpoint (`/lb`)
 - Multiplayer room summary endpoint (`/mp`)
 - Current daily challenge endpoint (`/daily`)
 - Health endpoint (`/status`)
@@ -75,31 +76,34 @@ curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
 
 Base URL: `http://localhost:<OSTELLA_PORT>`
 
-| Endpoint  | Method | Query     | Response                              |
-|-----------|--------|-----------|---------------------------------------|
-| `/status` | GET    | none      | JSON health message                   |
-| `/bo`     | GET    | `u`, `n`  | `image/png` best-of-N panel           |
-| `/rs`     | GET    | `u`, `n`  | `image/png` recent-N panel            |
-| `/bm`     | GET    | `bm`      | `image/png` beatmap card              |
-| `/pk`     | GET    | `bm`, `u` | `image/png` PP leaderboard card       |
-| `/mp`     | GET    | none      | JSON list of top multiplayer rooms    |
-| `/daily`  | GET    | none      | JSON daily challenge room info or 404 |
+| Endpoint  | Method | Query     | Response                                      |
+|-----------|--------|-----------|-----------------------------------------------|
+| `/status` | GET    | none      | JSON health message                           |
+| `/bo`     | GET    | `u`, `n`  | `image/png` best-of-N panel                   |
+| `/rs`     | GET    | `u`, `n`  | `image/png` recent-N panel                    |
+| `/m`      | GET    | `m`       | `image/png` beatmap card                      |
+| `/pk`     | GET    | `m`, `u`  | `image/png` PP leaderboard card for a beatmap |
+| `/lb`     | GET    | `u`       | `image/png` user PP leaderboard               |
+| `/mp`     | GET    | none      | JSON list of top multiplayer rooms            |
+| `/daily`  | GET    | none      | JSON daily challenge room info or 404         |
 
 ## Configuration Reference
 
-| Variable              | Required | Description                      |
-|-----------------------|----------|----------------------------------|
-| `OSU_CLIENT_ID`       | yes      | osu! OAuth client id             |
-| `OSU_CLIENT_SECRET`   | yes      | osu! OAuth client secret         |
-| `OSTELLA_PORT`        | yes      | HTTP server port                 |
-| `OSTELLA_MAX_THREADS` | yes      | worker pool size for async tasks |
-| `OSTELLA_DELAY`       | yes      | delay before requests            |
+| Variable              | Required | Default | Description                      |
+|-----------------------|----------|---------|----------------------------------|
+| `OSU_CLIENT_ID`       | yes      | —       | osu! OAuth client id             |
+| `OSU_CLIENT_SECRET`   | yes      | —       | osu! OAuth client secret         |
+| `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                 |
+| `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks |
+| `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests      |
+| `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/bypass`  |
 
 Notes:
 
 - `/bo` and `/rs` require `u` and numeric `n`; invalid params return HTTP `400`.
-- `/bm` requires numeric `bm`; invalid params return HTTP `400`.
-- `/pk` requires numeric `bm` and `u` as one or more usernames/ids separated by commas.
+- `/m` requires numeric `m`; invalid params return HTTP `400`.
+- `/pk` requires numeric `m` and `u` as one or more usernames/ids separated by commas.
+- `/lb` requires `u` as one or more usernames/ids separated by commas.
 - Score endpoints currently call osu! API with `mode=osu`.
 
 ## Build Artifacts
@@ -131,7 +135,8 @@ Log files are written to `logs/`:
 - `src/main/java/xyz/zcraft/service/ScoreRenderService.java` - HTML to PNG rendering
 - `src/main/resources/templates/scores.html` - score panel template
 - `src/main/resources/templates/beatmap.html` - beatmap card template
-- `src/main/resources/templates/pk.html` - group leaderboard template
+- `src/main/resources/templates/pk.html` - beatmap PP leaderboard template
+- `src/main/resources/templates/leaderboard.html` - user PP leaderboard template
 
 ## Troubleshooting
 
