@@ -76,7 +76,7 @@ public class WebServer {
         }
 
         final String[] u = us.split(",");
-        final List<String> ids = Arrays.asList(u);
+        final List<String> ids = Arrays.stream(u).distinct().toList();
         final LinkedList<User> users = new LinkedList<>();
 
         for (int i = 0; i < ids.size(); i += 50) {
@@ -106,7 +106,7 @@ public class WebServer {
             return;
         }
 
-        final String[] u = us.split(",");
+        final String[] u = Arrays.stream(us.split(",")).distinct().toArray(String[]::new);
 
         final LinkedList<Placement> placements = new LinkedList<>();
         for (String s : u) {
