@@ -48,10 +48,12 @@
 
         .uid {
             position: absolute;
+            bottom: 0;
+            right: 10px;
             margin-top: -6px;
             color: #a0a0b8;
             letter-spacing: 1px;
-            font-size: 1.2em;
+            font-size: 1.5em;
         }
 
         .rank-item {
@@ -408,10 +410,7 @@
             <div class="profile-name-row">
                 <img class="flag" th:src="'https://osu.ppy.sh/images/flags/' + ${user.countryCode} + '.png'"
                      src="https://osu.ppy.sh/images/flags/AU.png" alt="flag">
-                <div>
-                    <span class="username" th:text="${user.username}">ExampleUser</span>
-                    <div class="uid">U12345678</div>
-                </div>
+                <span class="username" th:text="${user.username}">ExampleUser</span>
                 <svg class="supporter-heart" th:if="${user.isSupporter}" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
@@ -472,27 +471,28 @@
         </div>
     </div>
     <div class="rank-counts-container">
-            <div class="rank-item">
-                <span class="rank-grade grade-ssh">XH</span>
-                <span class="rank-count" th:text="${user.statistics.gradeCounts.ssh}">14</span>
-            </div>
-            <div class="rank-item">
-                <span class="rank-grade grade-ss">X</span>
-                <span class="rank-count" th:text="${user.statistics.gradeCounts.ss}">42</span>
-            </div>
-            <div class="rank-item">
-                <span class="rank-grade grade-sh">SH</span>
-                <span class="rank-count" th:text="${user.statistics.gradeCounts.sh}">89</span>
-            </div>
-            <div class="rank-item">
-                <span class="rank-grade grade-s">S</span>
-                <span class="rank-count" th:text="${user.statistics.gradeCounts.s}">215</span>
-            </div>
-            <div class="rank-item">
-                <span class="rank-grade grade-a">A</span>
-                <span class="rank-count" th:text="${user.statistics.gradeCounts.a}">401</span>
-            </div>
+        <div class="rank-item">
+            <span class="rank-grade grade-ssh">XH</span>
+            <span class="rank-count" th:text="${user.statistics.gradeCounts.ssh}">14</span>
         </div>
+        <div class="rank-item">
+            <span class="rank-grade grade-ss">X</span>
+            <span class="rank-count" th:text="${user.statistics.gradeCounts.ss}">42</span>
+        </div>
+        <div class="rank-item">
+            <span class="rank-grade grade-sh">SH</span>
+            <span class="rank-count" th:text="${user.statistics.gradeCounts.sh}">89</span>
+        </div>
+        <div class="rank-item">
+            <span class="rank-grade grade-s">S</span>
+            <span class="rank-count" th:text="${user.statistics.gradeCounts.s}">215</span>
+        </div>
+        <div class="rank-item">
+            <span class="rank-grade grade-a">A</span>
+            <span class="rank-count" th:text="${user.statistics.gradeCounts.a}">401</span>
+        </div>
+    </div>
+    <div class="uid" th:text="'U' + ${user.id}">U12345678</div>
 </div>
 
 <div class="score-type" th:text="${type}">Best of 40 Scores</div>
