@@ -3,6 +3,7 @@ package xyz.zcraft.network;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.github.nanamochi.rosu_pp_jar.Performance;
+import io.github.nanamochi.rosu_pp_jar.SpecificDifficultyAttributes;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
@@ -183,11 +185,23 @@ public class WebServer {
         final Performance perf95 = Performance.create(rosuBeatmap.get());
         perf95.setAccuracy(95.0);
 
+        final DiffSpec diffSpec = new DiffSpec();
+
+        diffSpec.setPpSS(perfSS.calculate().pp());
+        diffSpec.setPpFC(perfFC.calculate().pp());
+        diffSpec.setPp95(perf95.calculate().pp());
+
+        final var attr = perfSS.calculate().difficultyAttributes().getSpecificDifficultyAttributes();
+        if (attr instanceof SpecificDifficultyAttributes.Osu(
+                io.github.nanamochi.rosu_pp_jar.OsuDifficultyAttributes attributes
+        )) {
+            diffSpec.setAim(attributes.aim());
+            diffSpec.setSpeed(attributes.speed());
+        }
+
         final byte[] bytes = renderer.renderBeatmap(
                 beatmap.get(),
-                perfSS.calculate().pp().intValue(),
-                perfFC.calculate().pp().intValue(),
-                perf95.calculate().pp().intValue()
+                diffSpec
         );
 
         context.status(200).result(bytes);

@@ -32,8 +32,8 @@
         .rank-status {
             text-transform: uppercase;
             position: absolute;
-            top: 16px;
-            left: 16px;
+            top: 12px;
+            left: 12px;
             background: lime;
             color: white;
             font-weight: 900;
@@ -43,18 +43,26 @@
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
         }
 
-        .spotlight-badge {
-            text-transform: uppercase;
+        .badges {
             position: absolute;
-            top: 16px;
-            right: 16px;
-            background: lime;
-            color: white;
+            top: 12px;
+            right: 12px;
+            text-transform: uppercase;
             font-weight: 900;
+            display: flex;
+            gap: 16px;
+        }
+
+        .badges div {
+            color: white;
             padding: 4px 16px;
             border-radius: 100px;
             font-size: 1.1em;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        .spotlight-badge {
+            background: linear-gradient(135deg, #00e5ff, #7c4dff, #ff4ecd);
         }
 
         .song-cover {
@@ -67,6 +75,7 @@
         }
 
         .song-title {
+            width: 100%;
             font-size: 3em;
             font-weight: bold;
             margin-bottom: 6px;
@@ -127,8 +136,9 @@
         }
 
         .beatmap-id {
-            font-size: 1.8em;
+            font-size: 1.4em;
             margin-left: auto;
+            align-self: end;
         }
 
         .diff {
@@ -155,6 +165,28 @@
             justify-content: space-between;
             align-items: flex-start;
             width: 100%;
+        }
+
+        .pp-spec {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pp-title {
+            font-size: 2em;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .pp-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .pp-sub {
+            font-size: 1.2em;
+            color: #a0a0b8;
         }
 
         .spec-group {
@@ -225,17 +257,23 @@
             gap: 24px;
         }
 
-        .spec-mid {
-            width: stretch;
-            text-align: center;
-            justify-content: center;
-        }
-
         .spec-pp {
             display: flex;
             text-align: center;
             justify-content: center;
             gap: 24px;
+        }
+
+        .spec-pp-detail {
+            margin-left: auto;
+            display: flex;
+            gap: 5px;
+            align-items: end;
+        }
+
+        .spec-pp-detail .pp-value {
+            font-weight: normal;
+            font-size: 1.2em;
         }
 
         .spec-sub {
@@ -343,17 +381,20 @@
 </head>
 <body>
 <div class="root">
-    <span class="rank-status" th:text="${beatmap.status}"
-          th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">Ranked</span>
-    <span class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</span>
+    <div class="rank-status" th:text="${beatmap.status}"
+          th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">Ranked</div>
+    <div class="badges">
+        <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
+    </div>
     <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
          src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
 
     <div class="meta">
-        <span class="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title</span>
+        <div class="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title That Is Too Long
+        </div>
         <div class="title-sub">
             <div class="song-artist" th:text="${beatmap.beatmapset.artist}">This Is An Example Artist</div>
-            <div class="beatmap-id" th:text="${beatmap.id}">123456789</div>
+            <div class="beatmap-id" th:text="${'S' + beatmap.beatmapset.id + ' M' + beatmap.id}">S123465 M987654</div>
         </div>
         <div class="diff">
             <div class="diff-badge" th:style="'background: ' + ${beatmap.diffColor} + ';'">
@@ -401,23 +442,7 @@
                 <span class="spec-value" th:text="${beatmap.maxCombo} + 'x'">789x</span>
             </div>
         </div>
-        <div class="spec-mid">
-            <span class="spec-label">Performance</span>
-            <div class="spec-pp">
-                <div class="spec-group">
-                    <span class="spec-value" th:text="${ppSS}">200</span>
-                    <span class="spec-sub">SS</span>
-                </div>
-                <div class="spec-group">
-                    <span class="spec-value" th:text="${ppFC}">180</span>
-                    <span class="spec-sub">98%FC</span>
-                </div>
-                <div class="spec-group">
-                    <span class="spec-value" th:text="${pp95}">100</span>
-                    <span class="spec-sub">95%</span>
-                </div>
-            </div>
-        </div>
+
         <div class="spec-back">
             <div class="spec-group">
                 <span class="spec-label">BPM</span>
@@ -445,7 +470,34 @@
             </div>
         </div>
     </div>
-
+    <div class="pp-spec">
+        <span class="pp-title">PP</span>
+        <div class="spec-pp">
+            <div class="pp-group">
+                <span class="pp-value" th:text="${#numbers.formatDecimal(diff.getPpSS(), 1, 1)}">200.0</span>
+                <span class="pp-sub">SS</span>
+            </div>
+            <div class="pp-group">
+                <span class="pp-value" th:text="${#numbers.formatDecimal(diff.getPpFC(), 1, 1)}">180.0</span>
+                <span class="pp-sub">98%FC</span>
+            </div>
+            <div class="pp-group">
+                <span class="pp-value" th:text="${#numbers.formatDecimal(diff.getPp95(), 1, 1)}">100.0</span>
+                <span class="pp-sub">95%</span>
+            </div>
+        </div>
+        <div class="spec-pp-detail">
+            <span>//</span>
+            <div class="pp-group">
+                <span class="pp-value" th:text="${#numbers.formatDecimal(diff.getAim(), 1, 1)}">2.5</span>
+                <span class="pp-sub">Aim</span>
+            </div>
+            <div class="pp-group">
+                <span class="pp-value" th:text="${#numbers.formatDecimal(diff.getSpeed(), 1, 1)}">1.8</span>
+                <span class="pp-sub">Spd</span>
+            </div>
+        </div>
+    </div>
     <div class="user-stat">
         <div class="stat-wrapper">
             <div class="stat">

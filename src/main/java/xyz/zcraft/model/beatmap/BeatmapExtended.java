@@ -102,7 +102,7 @@ public class BeatmapExtended extends Beatmap {
     public String getTagString() {
         return Optional.ofNullable(beatmapset)
                 .map(Beatmapset::getTags)
-                .map(t -> t.substring(0, Math.min(t.length(), 80)))
+                .map(t -> t.substring(0, Math.min(t.length(), 80)) + (t.length() > 80 ? "..." : ""))
                 .orElse("");
     }
 

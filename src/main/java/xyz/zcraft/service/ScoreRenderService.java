@@ -12,6 +12,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
@@ -129,12 +130,10 @@ public class ScoreRenderService {
         return screenshotBytes;
     }
 
-    public byte[] renderBeatmap(BeatmapExtended map, int ppSS, int ppFC, int pp95) {
+    public byte[] renderBeatmap(BeatmapExtended map, DiffSpec spec) {
         Context ctx = new Context();
         ctx.setVariable("beatmap", map);
-        ctx.setVariable("ppSS", ppSS);
-        ctx.setVariable("ppFC", ppFC);
-        ctx.setVariable("pp95", pp95);
+        ctx.setVariable("diff", spec);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
         String finalHtml = templateEngine.process("beatmap", ctx);
