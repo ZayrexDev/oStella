@@ -108,6 +108,10 @@
             color: #b0dc00;
             font-weight: 900;
             font-size: 1em;
+            border: 4px solid #b3d944;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
         }
 
         .lb-score-box {
@@ -212,7 +216,7 @@
                         <span class="lb-username" th:text="${user.getUsername()}">ABCDEFGHIJKLMN</span>
                         <div class="lb-id" th:text="${'U' + user.id}">U25487965</div>
                     </div>
-                    <span class="lb-online" th:if="${user.isOnline()}">Online</span>
+                    <span class="lb-online" th:if="${user.isOnline()}"></span>
                 </div>
 
                 <div class="lb-stat-box">
