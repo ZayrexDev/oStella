@@ -129,7 +129,7 @@ public class RosuFFI {
             File tempFile = File.createTempFile("native", libName.substring(libName.lastIndexOf('.')));
             tempFile.deleteOnExit();
             System.out.println("Extracted to: " + tempFile);
-            System.out.println("Extracted size: " + tempFile.length());
+            System.out.println("Extracted size: " + Files.size(tempFile.toPath()));
             // 将资源写入临时文件
             Files.copy(input, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             input.close();
