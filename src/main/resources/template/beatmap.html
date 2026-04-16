@@ -441,11 +441,11 @@
             </div>
         </div>
         <div class="diff">
-            <div class="diff-badge" th:style="'background: ' + ${beatmap.diffColor} + ';'">
-                <svg class="diff-star" th:style="'fill: ' + ${beatmap.diffTextColor} + ';'" viewBox="0 0 20 20">
+            <div class="diff-badge" th:style="'background: ' + ${diff.getDiffColor()} + ';'">
+                <svg class="diff-star" th:style="'fill: ' + ${diff.getDiffTextColor()} + ';'" viewBox="0 0 20 20">
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                 </svg>
-                <div class="diff-rating" th:style="'color: ' + ${beatmap.diffTextColor} + ';'"
+                <div class="diff-rating" th:style="'color: ' + ${diff.getDiffTextColor()} + ';'"
                      th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">5.78
                 </div>
             </div>
