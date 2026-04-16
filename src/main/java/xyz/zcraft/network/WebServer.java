@@ -181,9 +181,9 @@ public class WebServer {
              final RosuFFI.Performance perfFC = new RosuFFI.Performance();
              final RosuFFI.Performance perf95 = new RosuFFI.Performance()
         ) {
-            final double bpm = rosuBeatmap.bpm();
 
-            System.out.println("bpm = " + bpm);
+            System.out.println("rosuBeatmap.mode() = " + rosuBeatmap.mode());
+            System.out.println("rosuBeatmap.bpm() = " + rosuBeatmap.bpm());
 
             perfSS.setAccuracy(100.0);
             perfSS.setMisses(0);
