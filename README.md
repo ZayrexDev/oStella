@@ -24,10 +24,13 @@ Here are some demo:
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/f4ff6ac7-b241-4c6b-956e-9c258c27faa7" />
 
 ### Beatmap Card
-<img width="400" alt="Image_1776274447088_586" src="https://github.com/user-attachments/assets/43f8c0d7-5ea3-4171-a0e8-8f347fc4d380" />
+<img width="400" alt="88dee933d3192634cd7fe917b9906857" src="https://github.com/user-attachments/assets/7eea1908-9821-469d-873e-c9ea63f2ef78" />
 
 ### Group Leaderboard
-<img width="400" alt="Image_1776309880126_865" src="https://github.com/user-attachments/assets/720e2cbb-8b04-4711-8bbd-91e9a330788d" />
+<img width="400" alt="1f9303d67a65a32c0d4ed531bd48eaad" src="https://github.com/user-attachments/assets/95d41c25-ce01-4587-a8f9-9450c780d8f8" />
+
+### Beatmapset Card
+<img width="400" alt="03403d77bf6c381b67d17f89da0d82f8" src="https://github.com/user-attachments/assets/be48925b-1fe4-4b8b-8890-41a34763560c" />
 
 ## Prerequisites
 
@@ -103,7 +106,7 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 | `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                 |
 | `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks |
 | `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests      |
-| `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/bypass`  |
+| `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/debug/bypass` |
 
 Notes:
 
@@ -141,10 +144,11 @@ Log files are written to `logs/`:
 - `src/main/java/xyz/zcraft/network/OsuAPI.java` - osu! API requests
 - `src/main/java/xyz/zcraft/util/TokenManager.java` - OAuth token lifecycle
 - `src/main/java/xyz/zcraft/service/ScoreRenderService.java` - HTML to PNG rendering
-- `src/main/resources/templates/scores.html` - score panel template
-- `src/main/resources/templates/beatmap.html` - beatmap card template
-- `src/main/resources/templates/pk.html` - beatmap PP leaderboard template
-- `src/main/resources/templates/leaderboard.html` - user PP leaderboard template
+- `src/main/resources/template/scores.html` - score panel template
+- `src/main/resources/template/beatmap.html` - beatmap card template
+- `src/main/resources/template/beatmapset.html` - beatmapset card template
+- `src/main/resources/template/pk.html` - beatmap PP leaderboard template
+- `src/main/resources/template/leaderboard.html` - user PP leaderboard template
 
 ## Troubleshooting
 
