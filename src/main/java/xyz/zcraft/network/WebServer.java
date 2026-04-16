@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
@@ -53,6 +54,7 @@ public class WebServer {
                     .get("mp", this::getMultiplayerRooms)
                     .get("rs", this::getRecentScores)
                     .get("m", this::getBeatmap)
+                    .get("ms", this::getBeatmapset)
                     .get("pk", this::getPK)
                     .get("lb", this::getLeaderBoard)
                     .get("status", this::getServerStatus)
@@ -246,6 +248,27 @@ public class WebServer {
 
             context.status(200).result(bytes);
         }
+    }
+
+    private void getBeatmapset(@NotNull Context context) {
+        final String ms = context.queryParam("ms");
+
+        if (ms == null || !isInteger(ms)) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            return;
+        }
+
+        final var beatmapsetOptional = executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms));
+
+        if (beatmapsetOptional.isEmpty()) {
+            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            return;
+        }
+
+        final Beatmapset beatmapset = beatmapsetOptional.get();
+        final byte[] bytes = renderer.renderBeatmapset(beatmapset);
+
+        context.status(200).result(bytes);
     }
 
     private void bypassRequest(@NotNull Context context) {

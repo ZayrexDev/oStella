@@ -8,7 +8,9 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
+import xyz.zcraft.model.beatmap.Beatmap;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
@@ -18,6 +20,7 @@ import xyz.zcraft.model.user.UserExtended;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 
 public class ScoreRenderService {
@@ -138,6 +141,32 @@ public class ScoreRenderService {
         Page page = browser.newPage();
 
         page.setViewportSize(960, 760);
+
+        page.setContent(finalHtml);
+
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+
+        byte[] screenshotBytes = page.screenshot(
+                new Page.ScreenshotOptions().setFullPage(true)
+        );
+
+        page.close();
+
+        return screenshotBytes;
+    }
+
+    public byte[] renderBeatmapset(Beatmapset beatmapset) {
+        beatmapset.getBeatmaps().sort(Comparator.comparingDouble(Beatmap::getDifficultyRating));
+
+        Context ctx = new Context();
+        ctx.setVariable("beatmapset", beatmapset);
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        String finalHtml = templateEngine.process("beatmapset", ctx);
+
+        Page page = browser.newPage();
+
+        page.setViewportSize(1060, 880);
 
         page.setContent(finalHtml);
 

@@ -10,6 +10,7 @@ and also provides a standalone API for other clients to consume.
 
 - PNG score panels for best (`/bo`) and recent (`/rs`) osu! scores
 - PNG beatmap card endpoint (`/m`)
+- PNG beatmapset card endpoint (`/ms`)
 - PNG player comparison leaderboard endpoint (`/pk`)
 - PNG user PP leaderboard endpoint (`/lb`)
 - Multiplayer room summary endpoint (`/mp`)
@@ -87,6 +88,7 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 | `/bo`     | GET    | `u`, `n`  | `image/png` best-of-N panel                   |
 | `/rs`     | GET    | `u`, `n`  | `image/png` recent-N panel                    |
 | `/m`      | GET    | `m`       | `image/png` beatmap card                      |
+| `/ms`     | GET    | `s`       | `image/png` beatmapset card                   |
 | `/pk`     | GET    | `m`, `u`  | `image/png` PP leaderboard card for a beatmap |
 | `/lb`     | GET    | `u`       | `image/png` user PP leaderboard               |
 | `/mp`     | GET    | none      | JSON list of top multiplayer rooms            |
@@ -107,6 +109,7 @@ Notes:
 
 - `/bo` and `/rs` require `u` and numeric `n`; invalid params return HTTP `400`.
 - `/m` requires numeric `m`; invalid params return HTTP `400`.
+- `/ms` requires numeric `s`; invalid params return HTTP `400`.
 - `/pk` requires numeric `m` and `u` as one or more usernames/ids separated by commas.
 - `/lb` requires `u` as one or more usernames/ids separated by commas.
 - Score endpoints currently call osu! API with `mode=osu`.
