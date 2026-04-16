@@ -24,10 +24,27 @@ public final class DiffSpec implements Serializable {
     private String modStr;
     private boolean modded = false;
 
+    private double length;
+    private double totalLength;
+
+    public String getLengthStr() {
+        return String.format("%01d", (int) (length / 60)) + ":" + String.format("%02d", (int) (length % 60));
+    }
+
+    public String getTotalLengthStr() {
+        return String.format("%01d", (int) (totalLength / 60)) + ":" + String.format("%02d", (int) (totalLength % 60));
+    }
+
     public String getDiffChangeStr(double diff) {
         if (diff < 0.1 && diff > -0.1) return "";
         else if (diff > 0) return "▲" + "%.1f".formatted(diff);
         else return "▼" + "%.1f".formatted(-diff);
+    }
+
+    public String getDiffChangeStr(double diff, int digit) {
+        if (diff < 0.1 && diff > -0.1) return "";
+        else if (diff > 0) return "▲" + ("%." + digit + "f").formatted(diff);
+        else return "▼" + ("%." + digit + "f").formatted(-diff);
     }
 
     public String getDiffChangeClass(double diff) {

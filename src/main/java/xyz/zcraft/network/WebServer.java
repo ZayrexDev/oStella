@@ -206,6 +206,8 @@ public class WebServer {
             diffSpec.setSpeed(attr.speed);
 
             diffSpec.setBpm(beatmap.getBpm());
+            diffSpec.setLength(beatmap.getHitLength());
+            diffSpec.setTotalLength(beatmap.getTotalLength());
             diffSpec.setStar(calc.osu.t.difficulty.stars);
 
             if (mod != null && !mod.isEmpty()) {
@@ -218,6 +220,7 @@ public class WebServer {
             diffSpec.setCs(beatmap.cs);
             diffSpec.setOd(beatmap.accuracy);
 
+
             if (mods.contains("HR")) {
                 diffSpec.setCs(Math.min(diffSpec.getCs() * 1.3, 10));
             } else if (mods.contains("EZ")) {
@@ -226,8 +229,12 @@ public class WebServer {
 
             if (mods.contains("DT") || mods.contains("NC")) {
                 diffSpec.setBpm(diffSpec.getBpm() * 1.5);
+                diffSpec.setLength(diffSpec.getLength() / 1.5);
+                diffSpec.setTotalLength(diffSpec.getTotalLength() / 1.5);
             } else if (mods.contains("HT") || mods.contains("DC")) {
                 diffSpec.setBpm(diffSpec.getBpm() * 0.75);
+                diffSpec.setLength(diffSpec.getLength() / 0.75);
+                diffSpec.setTotalLength(diffSpec.getTotalLength() / 0.75);
             }
 
             diffSpec.setOd((80.0 - calc.osu.t.difficulty.great_hit_window) / 6.0);

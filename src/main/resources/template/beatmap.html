@@ -171,6 +171,10 @@
             font-size: 1.4em;
         }
 
+        .spec-diff {
+            font-weight: bold;
+        }
+
         .diff-spec {
             display: flex;
             justify-content: space-between;
@@ -431,6 +435,11 @@
                      th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">5.78
                 </div>
             </div>
+            <span class="spec-diff"
+                  th:if="${diff.modded}"
+                  th:classappend="${diff.getDiffChangeClass(diff.getStar() - beatmap.getDifficultyRating())}"
+                  th:text="${diff.getDiffChangeStr(diff.getStar() - beatmap.getDifficultyRating(), 2)}">▲1.23
+                    </span>
             <div class="diff-title" th:text="${beatmap.version}">This Is An Example Diff</div>
             <div class="mapper">
                 <span class="mapper-by">By</span>
@@ -459,9 +468,9 @@
             <div class="spec-group">
                 <span class="spec-label">Length</span>
                 <span class="spec-value"
-                      th:text="${beatmap.hitLength / 60} + ':' + ${#numbers.formatInteger(beatmap.hitLength % 60, 2)}">2:15</span>
+                      th:text="${diff.getLengthStr()}">1:15</span>
                 <span class="spec-sub"
-                      th:text="'~' + ${beatmap.totalLength / 60} + ':' + ${#numbers.formatInteger(beatmap.totalLength % 60, 2)}">~ 1:58</span>
+                      th:text="'~' + ${diff.getTotalLengthStr()}">~ 1:58</span>
             </div>
             <div class="spec-group">
                 <span class="spec-label">Combo</span>
@@ -475,20 +484,20 @@
                 <div>
                     <span class="spec-diff"
                           th:if="${diff.modded}"
-                          th:classappend="${diff.getDiffChangeClass(diff.bpm - beatmap.bpm)}"
-                          th:text="${diff.getDiffChangeStr(diff.bpm - beatmap.bpm)}">▲138
+                          th:classappend="${diff.getDiffChangeClass(diff.getBpm() - beatmap.getBpm())}"
+                          th:text="${diff.getDiffChangeStr(diff.getBpm() - beatmap.getBpm())}">▲138
                     </span>
-                    <span class="spec-value" th:text="${#numbers.formatInteger(beatmap.bpm, 1)}">200</span>
+                    <span class="spec-value" th:text="${#numbers.formatInteger(diff.getBpm(), 1)}">200</span>
                 </div>
             </div>
             <div class="spec-group">
                 <span class="spec-label">CS</span>
                 <div>
                     <span class="spec-diff"
-                          th:if="${diff.modded}"
-                          th:classappend="${diff.getDiffChangeClass(diff.cs - beatmap.cs)}"
-                          th:text="${diff.getDiffChangeStr(diff.cs -  beatmap.cs)}">▲1.2</span>
-                    <span class="spec-value" th:text="${beatmap.cs}">5.0</span>
+                          th:if="${diff.isModded()}"
+                          th:classappend="${diff.getDiffChangeClass(diff.getCs() - beatmap.getCs())}"
+                          th:text="${diff.getDiffChangeStr(diff.getCs() -  beatmap.getCs())}">▲1.2</span>
+                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getCs(), 1, 1)}">5.0</span>
                 </div>
                 <span class="spec-sub" th:text="${diff.getCSString()}">30px</span>
             </div>
@@ -499,17 +508,17 @@
                           th:if="${diff.modded}"
                           th:classappend="${diff.getDiffChangeClass(diff.hp - beatmap.drain)}"
                           th:text="${diff.getDiffChangeStr(diff.hp -  beatmap.drain)}">▲1.2</span>
-                    <span class="spec-value" th:text="${beatmap.drain}">5.0</span>
+                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 1)}">5.0</span>
                 </div>
                 <span class="spec-sub">qwq</span>
             </div>
             <div class="spec-group">
                 <span class="spec-label">OD</span>
                 <div>
-                    <span class="spec-diff" th:if="${diff.modded}"
-                          th:classappend="${diff.getDiffChangeClass(diff.od - beatmap.accuracy)}"
-                          th:text="${diff.getDiffChangeStr(diff.od -  beatmap.accuracy)}">▲1.2</span>
-                    <span class="spec-value" th:text="${beatmap.accuracy}">5.0</span>
+                    <span class="spec-diff" th:if="${diff.isModded()}"
+                          th:classappend="${diff.getDiffChangeClass(diff.getOd() - beatmap.getAccuracy())}"
+                          th:text="${diff.getDiffChangeStr(diff.getOd() -  beatmap.getAccuracy())}">▲1.2</span>
+                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getOd(), 1, 1)}">5.0</span>
                 </div>
                 <span class="spec-sub" th:text="${diff.getODString()}">50ms</span>
             </div>
@@ -517,10 +526,10 @@
                 <span class="spec-label">AR</span>
                 <div>
                     <span class="spec-diff"
-                          th:if="${diff.modded}"
-                          th:classappend="${diff.getDiffChangeClass(diff.ar - beatmap.ar)}"
-                          th:text="${diff.getDiffChangeStr(diff.ar -  beatmap.ar)}">▲1.2</span>
-                    <span class="spec-value" th:text="${beatmap.ar}">5.0</span>
+                          th:if="${diff.isModded()}"
+                          th:classappend="${diff.getDiffChangeClass(diff.getAr() - beatmap.getAr())}"
+                          th:text="${diff.getDiffChangeStr(diff.getAr() -  beatmap.getAr())}">▲1.2</span>
+                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getAr(), 1, 1)}">5.0</span>
                 </div>
                 <span class="spec-sub" th:text="${diff.getARString()}">233ms</span>
             </div>
@@ -539,7 +548,7 @@
             </div>
             <div class="pp-group">
                 <span class="pp-value" th:text="${#numbers.formatDecimal(diff.getPp95(), 1, 1)}">100.0</span>
-                <span class="pp-sub">95%</span>
+                <span class="pp-sub">95%FC</span>
             </div>
         </div>
         <div class="spec-pp-detail">
