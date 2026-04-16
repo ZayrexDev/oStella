@@ -47,7 +47,7 @@ public class BeatmapCacheService {
 
     private void cacheBeatmap(String id) throws Exception {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
-        Files.writeString(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapString(id));
+        Files.write(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapBytes(id));
     }
 
     public boolean isBeatmapCached(String id) {

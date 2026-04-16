@@ -120,6 +120,7 @@ public class RosuFFI {
         private static File extractLibrary(String libName) throws IOException {
             // 从 classpath 中读取库文件
             InputStream input = RosuFFI.class.getClassLoader().getResourceAsStream(libName);
+            System.out.println("RosuFFI native resource URL = " + RosuFFI.class.getClassLoader().getResource(libName));
             if (input == null) {
                 throw new IllegalArgumentException("Library not found: " + libName);
             }
@@ -127,8 +128,8 @@ public class RosuFFI {
             // 创建临时文件
             File tempFile = File.createTempFile("native", libName.substring(libName.lastIndexOf('.')));
             tempFile.deleteOnExit();
-
-            System.out.println("Extracting library to: " + tempFile.getAbsolutePath());
+            System.out.println("Extracted to: " + tempFile);
+            System.out.println("Extracted size: " + tempFile.length());
             // 将资源写入临时文件
             Files.copy(input, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             input.close();

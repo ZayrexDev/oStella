@@ -192,14 +192,14 @@ public class OsuAPI {
         }
     }
 
-    public static String getBeatmapString(String beatmapId) {
+    public static byte[] getBeatmapBytes(String beatmapId) {
         try {
             final var request = HttpRequest.newBuilder()
                     .uri(URI.create("https://osu.ppy.sh/osu/%s".formatted(beatmapId)))
                     .GET()
                     .build();
 
-            return CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
