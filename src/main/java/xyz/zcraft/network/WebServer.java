@@ -2,8 +2,7 @@ package xyz.zcraft.network;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.github.nanamochi.rosu_pp_jar.Performance;
-import io.github.nanamochi.rosu_pp_jar.SpecificDifficultyAttributes;
+import desu.life.RosuFFI;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
@@ -97,7 +96,7 @@ public class WebServer {
         context.status(200).result(imgByte);
     }
 
-    private void getPK(@NotNull Context context) {
+    private void getPK(@NotNull Context context) throws RosuFFI.FFIException {
         final String m = context.queryParam("m");
         final String us = context.queryParam("u");
 
@@ -140,17 +139,19 @@ public class WebServer {
             return;
         }
 
-        final Performance perfSS = Performance.create(rosuBeatmap.get());
+        final RosuFFI.Performance perfSS = new RosuFFI.Performance();
         perfSS.setAccuracy(100.0);
         perfSS.setMisses(0);
         perfSS.setCombo(beatmap.get().getMaxCombo());
 
-        final byte[] imgByte = renderer.renderPK(beatmap.get(), placements, perfSS.calculate().pp());
+        final byte[] imgByte = renderer.renderPK(beatmap.get(), placements, perfSS.calculate(rosuBeatmap.get()).osu.t.pp);
 
         context.status(200).result(imgByte);
+
+        perfSS.close();
     }
 
-    private void getBeatmap(@NotNull Context context) {
+    private void getBeatmap(@NotNull Context context) throws RosuFFI.FFIException {
         final String m = context.queryParam("m");
 
         if (m == null || !isInteger(m)) {
@@ -172,32 +173,28 @@ public class WebServer {
             return;
         }
 
-        final Performance perfSS = Performance.create(rosuBeatmap.get());
+        final RosuFFI.Performance perfSS = new RosuFFI.Performance();
         perfSS.setAccuracy(100.0);
         perfSS.setMisses(0);
         perfSS.setCombo(beatmap.get().getMaxCombo());
 
-        final Performance perfFC = Performance.create(rosuBeatmap.get());
+        final RosuFFI.Performance perfFC = new RosuFFI.Performance();
         perfFC.setAccuracy(98.0);
         perfFC.setMisses(0);
         perfFC.setCombo(beatmap.get().getMaxCombo());
 
-        final Performance perf95 = Performance.create(rosuBeatmap.get());
+        final RosuFFI.Performance perf95 = new RosuFFI.Performance();
         perf95.setAccuracy(95.0);
 
         final DiffSpec diffSpec = new DiffSpec();
 
-        diffSpec.setPpSS(perfSS.calculate().pp());
-        diffSpec.setPpFC(perfFC.calculate().pp());
-        diffSpec.setPp95(perf95.calculate().pp());
+        diffSpec.setPpSS(perfSS.calculate(rosuBeatmap.get()).osu.t.pp);
+        diffSpec.setPpFC(perfFC.calculate(rosuBeatmap.get()).osu.t.pp);
+        diffSpec.setPp95(perf95.calculate(rosuBeatmap.get()).osu.t.pp);
 
-        final var attr = perfSS.calculate().difficultyAttributes().getSpecificDifficultyAttributes();
-        if (attr instanceof SpecificDifficultyAttributes.Osu(
-                io.github.nanamochi.rosu_pp_jar.OsuDifficultyAttributes attributes
-        )) {
-            diffSpec.setAim(attributes.aim());
-            diffSpec.setSpeed(attributes.speed());
-        }
+        final var attr = perfSS.calculate(rosuBeatmap.get()).osu.t.difficulty;
+        diffSpec.setAim(attr.aim);
+        diffSpec.setSpeed(attr.speed);
 
         final byte[] bytes = renderer.renderBeatmap(
                 beatmap.get(),
@@ -205,6 +202,10 @@ public class WebServer {
         );
 
         context.status(200).result(bytes);
+
+        perfSS.close();
+        perfFC.close();
+        perf95.close();
     }
 
     private void bypassRequest(@NotNull Context context) {

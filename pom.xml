@@ -18,7 +18,6 @@
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
-                <filtering>true</filtering>
             </resource>
         </resources>
         <plugins>
@@ -121,12 +120,10 @@
             <artifactId>javalin</artifactId>
             <version>7.1.0</version>
         </dependency>
-        <!-- Source: https://mvnrepository.com/artifact/io.github.7mochi/rosu-pp-jar -->
         <dependency>
-            <groupId>io.github.7mochi</groupId>
-            <artifactId>rosu-pp-jar</artifactId>
-            <version>0.2.0</version>
-            <scope>compile</scope>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.15.0</version>
         </dependency>
     </dependencies>
 </project>
