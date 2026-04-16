@@ -120,7 +120,6 @@ public class RosuFFI {
         private static File extractLibrary(String libName) throws IOException {
             // 从 classpath 中读取库文件
             InputStream input = RosuFFI.class.getClassLoader().getResourceAsStream(libName);
-            System.out.println("RosuFFI native resource URL = " + RosuFFI.class.getClassLoader().getResource(libName));
             if (input == null) {
                 throw new IllegalArgumentException("Library not found: " + libName);
             }

@@ -1,5 +1,6 @@
 package xyz.zcraft;
 
+import desu.life.RosuFFI;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,6 +32,14 @@ public class oStella {
 
         if (conf.debug()) {
             LOG.warn("Debug mode is enabled! This may cause security and performance issues. Please disable debug mode in production environment.");
+        }
+
+        LOG.info("Initializing RosuFFI, you may ignore the warnings below.");
+
+        try {
+            new RosuFFI.Beatmap(new byte[0]).close();
+        } catch (RosuFFI.FFIException e) {
+            LOG.error("Error while initializing RosuFFI", e);
         }
 
         LOG.info("Authorizing...");
