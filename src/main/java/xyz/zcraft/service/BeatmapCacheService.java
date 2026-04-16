@@ -38,6 +38,25 @@ public class BeatmapCacheService {
         }
     }
 
+    public String getRosuBeatmapPath(String id, boolean update) {
+        if (!isBeatmapCached(id) || update) {
+            try {
+                cacheBeatmap(id);
+                LOG.info("Beatmap {} cached", id);
+            } catch (Exception e) {
+                LOG.error("Failed to download beatmap!", e);
+                throw new RuntimeException("Failed to download beatmap!", e);
+            }
+        }
+
+        try {
+            return BEATMAP_CACHE.resolve(id).toAbsolutePath().toString();
+        } catch (Exception e) {
+            LOG.error("Failed to load beatmap from cache!", e);
+            throw new RuntimeException("Failed to load beatmap from cache!", e);
+        }
+    }
+
     private void cacheBeatmap(String id) throws Exception {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
         Files.write(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapBytes(id));

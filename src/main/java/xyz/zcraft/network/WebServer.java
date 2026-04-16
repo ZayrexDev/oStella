@@ -169,14 +169,14 @@ public class WebServer {
             return;
         }
 
-        final Optional<byte[]> enqueue = executor.enqueue(() -> cacheService.getRosuBeatmapBytes(m, false));
+        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
 
-        if (enqueue.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmap found", null).toString());
-            return;
-        }
+//        if (enqueue.isEmpty()) {
+//            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+//            return;
+//        }
 
-        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(enqueue.get());
+        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
              final RosuFFI.Performance perfSS = new RosuFFI.Performance();
              final RosuFFI.Performance perfFC = new RosuFFI.Performance();
              final RosuFFI.Performance perf95 = new RosuFFI.Performance()
