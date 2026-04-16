@@ -188,11 +188,19 @@ public class WebServer {
 
         final DiffSpec diffSpec = new DiffSpec();
 
-        diffSpec.setPpSS(perfSS.calculate(rosuBeatmap.get()).osu.t.pp);
+        final RosuFFI.RosuPPLib.PerformanceAttributes cal = perfSS.calculate(rosuBeatmap.get());
+        diffSpec.setPpSS(cal.osu.t.pp);
         diffSpec.setPpFC(perfFC.calculate(rosuBeatmap.get()).osu.t.pp);
         diffSpec.setPp95(perf95.calculate(rosuBeatmap.get()).osu.t.pp);
 
-        final var attr = perfSS.calculate(rosuBeatmap.get()).osu.t.difficulty;
+        final var attr = cal.osu.t.difficulty;
+
+        System.out.println("mode=" + cal.mode);
+        System.out.println("osu.is_some=" + cal.osu.is_some);
+        System.out.println("taiko.is_some=" + cal.taiko.is_some);
+        System.out.println("fruit.is_some=" + cal.fruit.is_some);
+        System.out.println("mania.is_some=" + cal.mania.is_some);
+
         diffSpec.setAim(attr.aim);
         diffSpec.setSpeed(attr.speed);
 
