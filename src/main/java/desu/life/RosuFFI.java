@@ -128,10 +128,11 @@ public class RosuFFI {
             // 创建临时文件
             File tempFile = File.createTempFile("native", libName.substring(libName.lastIndexOf('.')));
             tempFile.deleteOnExit();
-            System.out.println("Extracted to: " + tempFile);
-            System.out.println("Extracted size: " + Files.size(tempFile.toPath()));
             // 将资源写入临时文件
             Files.copy(input, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            System.out.println("Extracted to: " + tempFile);
+            System.out.println("Extracted size: " + Files.size(tempFile.toPath()));
             input.close();
             return tempFile;
         }
