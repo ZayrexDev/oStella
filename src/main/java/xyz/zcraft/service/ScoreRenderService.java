@@ -163,7 +163,7 @@ public class ScoreRenderService {
         // 3. Find the specific node you want to check (e.g., our <h1> tag)
         JsonObject q = new JsonObject();
         q.addProperty("nodeId", rootNodeId);
-        q.addProperty("selector", "#target-element");
+        q.addProperty("selector", "#song-title");
         JsonObject queryResult = session.send("DOM.querySelector", q).getAsJsonObject();
         int targetNodeId = queryResult.get("nodeId").getAsInt();
 
