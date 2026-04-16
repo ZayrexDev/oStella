@@ -181,10 +181,6 @@ public class WebServer {
              final RosuFFI.Performance perfFC = new RosuFFI.Performance();
              final RosuFFI.Performance perf95 = new RosuFFI.Performance()
         ) {
-
-            System.out.println("rosuBeatmap.mode() = " + rosuBeatmap.mode());
-            System.out.println("rosuBeatmap.bpm() = " + rosuBeatmap.bpm());
-
             perfSS.setAccuracy(100.0);
             perfSS.setMisses(0);
             perfSS.setCombo(beatmap.get().getMaxCombo());
@@ -203,12 +199,6 @@ public class WebServer {
             diffSpec.setPp95(perf95.calculate(rosuBeatmap).osu.t.pp);
 
             final var attr = cal.osu.t.difficulty;
-
-            System.out.println("mode=" + cal.mode);
-            System.out.println("osu.is_some=" + cal.osu.is_some);
-            System.out.println("taiko.is_some=" + cal.taiko.is_some);
-            System.out.println("fruit.is_some=" + cal.fruit.is_some);
-            System.out.println("mania.is_some=" + cal.mania.is_some);
 
             diffSpec.setAim(attr.aim);
             diffSpec.setSpeed(attr.speed);
