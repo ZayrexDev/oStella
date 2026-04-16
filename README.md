@@ -68,7 +68,7 @@ mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="in
 ### 4) Run
 
 ```shell
-java -jar target/oStella-1.0-SNAPSHOT-jar-with-dependencies.jar
+mvn -U clean compile exec:java
 ```
 
 ### 5) Call an Endpoint
