@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
@@ -53,6 +54,7 @@ public class WebServer {
                     .get("mp", this::getMultiplayerRooms)
                     .get("rs", this::getRecentScores)
                     .get("m", this::getBeatmap)
+                    .get("ms", this::getBeatmapset)
                     .get("pk", this::getPK)
                     .get("lb", this::getLeaderBoard)
                     .get("status", this::getServerStatus)
@@ -61,9 +63,14 @@ public class WebServer {
 
             if (conf.debug()) {
                 LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
-                cfg.routes.get("bypass", this::bypassRequest);
+                cfg.routes.get("/debug/bypass", this::bypassRequest);
+                cfg.routes.get("/debug/fonts", this::fontsDebug);
             }
         });
+    }
+
+    private void fontsDebug(@NotNull Context context) {
+        context.status(200).result(renderer.renderFonts());
     }
 
     private void getLeaderBoard(@NotNull Context context) {
@@ -132,18 +139,11 @@ public class WebServer {
             return;
         }
 
-        final Optional<byte[]> enqueue = executor.enqueue(() -> cacheService.getRosuBeatmapBytes(m, false));
+        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
 
-        if (enqueue.isEmpty()) {
-            context.status(400).result(new Response(false, "Beatmap PP calculation failed", null).toString());
-            return;
-        }
-
-        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(enqueue.get());
+        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
              final RosuFFI.Performance perfSS = new RosuFFI.Performance()
         ) {
-
-
             perfSS.setAccuracy(100.0);
             perfSS.setMisses(0);
             perfSS.setCombo(beatmap.get().getMaxCombo());
@@ -156,60 +156,146 @@ public class WebServer {
 
     private void getBeatmap(@NotNull Context context) throws RosuFFI.FFIException {
         final String m = context.queryParam("m");
+        final String mod = context.queryParam("mod");
 
         if (m == null || !isInteger(m)) {
             context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
 
-        final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
+        final var beatmapOptional = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
 
-        if (beatmap.isEmpty()) {
+        if (beatmapOptional.isEmpty()) {
             context.status(400).result(new Response(false, "No beatmap found", null).toString());
             return;
         }
 
+        final BeatmapExtended beatmap = beatmapOptional.get();
+
         final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
 
-//        if (enqueue.isEmpty()) {
-//            context.status(400).result(new Response(false, "No beatmap found", null).toString());
-//            return;
-//        }
-
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
-             final RosuFFI.Performance perfSS = new RosuFFI.Performance();
-             final RosuFFI.Performance perfFC = new RosuFFI.Performance();
-             final RosuFFI.Performance perf95 = new RosuFFI.Performance()
+             final RosuFFI.Performance perf = new RosuFFI.Performance()
         ) {
-            perfSS.setAccuracy(100.0);
-            perfSS.setMisses(0);
-            perfSS.setCombo(beatmap.get().getMaxCombo());
-
-            perfFC.setAccuracy(98.0);
-            perfFC.setMisses(0);
-            perfFC.setCombo(beatmap.get().getMaxCombo());
-
-            perf95.setAccuracy(95.0);
-
             final DiffSpec diffSpec = new DiffSpec();
 
-            final RosuFFI.RosuPPLib.PerformanceAttributes cal = perfSS.calculate(rosuBeatmap);
-            diffSpec.setPpSS(cal.osu.t.pp);
-            diffSpec.setPpFC(perfFC.calculate(rosuBeatmap).osu.t.pp);
-            diffSpec.setPp95(perf95.calculate(rosuBeatmap).osu.t.pp);
+            final RosuFFI.Mods mods = RosuFFI.Mods.fromAcronyms(mod == null ? "" : mod, RosuFFI.Mode.Osu);
 
-            final var attr = cal.osu.t.difficulty;
+            perf.setMods(mods);
 
+            perf.setAccuracy(98.0);
+            perf.setMisses(0);
+            perf.setCombo(beatmap.getMaxCombo());
+
+            var calc = perf.calculate(rosuBeatmap);
+            diffSpec.setPpFC(calc.osu.t.pp);
+
+            perf.setAccuracy(95.0);
+
+            calc = perf.calculate(rosuBeatmap);
+            diffSpec.setPp95(calc.osu.t.pp);
+
+
+            perf.setAccuracy(100.0);
+            perf.setMisses(0);
+            perf.setCombo(beatmap.getMaxCombo());
+
+            calc = perf.calculate(rosuBeatmap);
+            diffSpec.setPpSS(calc.osu.t.pp);
+
+            final var attr = calc.osu.t.difficulty;
             diffSpec.setAim(attr.aim);
             diffSpec.setSpeed(attr.speed);
 
+            diffSpec.setBpm(beatmap.getBpm());
+            diffSpec.setLength(beatmap.getHitLength());
+            diffSpec.setTotalLength(beatmap.getTotalLength());
+            diffSpec.setStar(calc.osu.t.difficulty.stars);
+
+            if (mod != null && !mod.isEmpty()) {
+                diffSpec.setModStr(mod);
+                diffSpec.setModded(true);
+            }
+
+            diffSpec.setAr(calc.osu.t.difficulty.ar);
+            diffSpec.setHp(calc.osu.t.difficulty.hp);
+            diffSpec.setCs(beatmap.cs);
+            diffSpec.setOd(beatmap.accuracy);
+
+            // Calculate BPM CS Length
+
+            if (mods.contains("HR")) {
+                diffSpec.setCs(Math.min(diffSpec.getCs() * 1.3, 10));
+            } else if (mods.contains("EZ")) {
+                diffSpec.setCs(Math.min(diffSpec.getCs() * 0.5, 10));
+            }
+
+            if (mods.contains("DT") || mods.contains("NC")) {
+                diffSpec.setBpm(diffSpec.getBpm() * 1.5);
+                diffSpec.setLength(diffSpec.getLength() / 1.5);
+                diffSpec.setTotalLength(diffSpec.getTotalLength() / 1.5);
+            } else if (mods.contains("HT") || mods.contains("DC")) {
+                diffSpec.setBpm(diffSpec.getBpm() * 0.75);
+                diffSpec.setLength(diffSpec.getLength() / 0.75);
+                diffSpec.setTotalLength(diffSpec.getTotalLength() / 0.75);
+            }
+
+            // Calculate OD
+
+            boolean changingOd = false;
+            double od = beatmap.getAccuracy();
+            if (mods.contains("HR")) {
+                changingOd = true;
+                od = Math.min(od * 1.4, 10);
+            } else if (mods.contains("EZ")) {
+                changingOd = true;
+                od = od * 0.5;
+            }
+
+            double window = 80.0 - (6.0 * od);
+
+            if (mods.contains("DT") || mods.contains("NC")) {
+                changingOd = true;
+                window = window / 1.5;
+            } else if (mods.contains("HT") || mods.contains("DC")) {
+                changingOd = true;
+                window = window / 0.75;
+            }
+
+            od = (80.0 - window) / 6;
+
+            if (changingOd) {
+                diffSpec.setOd(od);
+            }
+
             final byte[] bytes = renderer.renderBeatmap(
-                    beatmap.get(),
+                    beatmap,
                     diffSpec
             );
 
             context.status(200).result(bytes);
         }
+    }
+
+    private void getBeatmapset(@NotNull Context context) {
+        final String ms = context.queryParam("ms");
+
+        if (ms == null || !isInteger(ms)) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            return;
+        }
+
+        final var beatmapsetOptional = executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms));
+
+        if (beatmapsetOptional.isEmpty()) {
+            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            return;
+        }
+
+        final Beatmapset beatmapset = beatmapsetOptional.get();
+        final byte[] bytes = renderer.renderBeatmapset(beatmapset);
+
+        context.status(200).result(bytes);
     }
 
     private void bypassRequest(@NotNull Context context) {

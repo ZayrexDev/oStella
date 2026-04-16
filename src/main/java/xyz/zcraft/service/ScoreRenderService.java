@@ -1,9 +1,6 @@
 package xyz.zcraft.service;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,7 +8,9 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
+import xyz.zcraft.model.beatmap.Beatmap;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
@@ -21,6 +20,7 @@ import xyz.zcraft.model.user.UserExtended;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 
 public class ScoreRenderService {
@@ -33,7 +33,7 @@ public class ScoreRenderService {
         LOG.info("Initializing template resolver");
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setTemplateMode(TemplateMode.HTML);
-        resolver.setPrefix("/templates/"); // Looks in src/main/resources/templates/
+        resolver.setPrefix("/template/"); // Looks in src/main/resources/templates/
         resolver.setSuffix(".html");
 
         templateEngine = new TemplateEngine();
@@ -56,7 +56,7 @@ public class ScoreRenderService {
         ctx.setVariable("scores", scores);
         ctx.setVariable("type", switch (type) {
             case BEST -> "Best of " + scores.size() + " Scores";
-            case RECENT -> "Most recent " +  scores.size() + " Scores";
+            case RECENT -> "Most recent " + scores.size() + " Scores";
         });
         ctx.setVariable("change", user.getScoreChange());
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
@@ -137,6 +137,52 @@ public class ScoreRenderService {
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
         String finalHtml = templateEngine.process("beatmap", ctx);
+
+        Page page = browser.newPage();
+
+        page.setViewportSize(960, 760);
+
+        page.setContent(finalHtml);
+
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+
+        byte[] screenshotBytes = page.screenshot(
+                new Page.ScreenshotOptions().setFullPage(true)
+        );
+
+        page.close();
+
+        return screenshotBytes;
+    }
+
+    public byte[] renderBeatmapset(Beatmapset beatmapset) {
+        beatmapset.getBeatmaps().sort(Comparator.comparingDouble(Beatmap::getDifficultyRating));
+
+        Context ctx = new Context();
+        ctx.setVariable("beatmapset", beatmapset);
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        String finalHtml = templateEngine.process("beatmapset", ctx);
+
+        Page page = browser.newPage();
+
+        page.setViewportSize(1060, 880);
+
+        page.setContent(finalHtml);
+
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+
+        byte[] screenshotBytes = page.screenshot(
+                new Page.ScreenshotOptions().setFullPage(true)
+        );
+
+        page.close();
+
+        return screenshotBytes;
+    }
+
+    public byte[] renderFonts() {
+        String finalHtml = templateEngine.process("fonts", new Context());
 
         Page page = browser.newPage();
 

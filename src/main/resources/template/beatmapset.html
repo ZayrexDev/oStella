@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>oStella - Beatmapset</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: 'Dejavu Sans', Tahoma, Geneva, Verdana, sans-serif !important;
+            padding: 30px;
+            width: fit-content;
+        }
+
+        .set-card {
+            width: 980px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .banner {
+            position: relative;
+            width: 100%;
+            height: 260px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .banner-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(26, 26, 46, 0.1) 25%, rgba(26, 26, 46, 0.9) 75%, rgba(26, 26, 46, 1) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 20px 24px;
+            gap: 8px;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            text-transform: uppercase;
+            font-weight: 900;
+            padding: 4px 14px;
+            border-radius: 100px;
+            font-size: 1em;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+            z-index: 2;
+        }
+
+        .banner-badges {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 2;
+        }
+
+        .banner-badges span {
+            font-size: 0.9em;
+            font-weight: 900;
+            text-transform: uppercase;
+            border-radius: 100px;
+            padding: 4px 12px;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        .badge-spotlight {
+            background: linear-gradient(135deg, #00e5ff, #7c4dff, #ff4ecd);
+        }
+
+        .badge-video {
+            background: linear-gradient(135deg, #ff4e6a, #ff8a00);
+        }
+
+        .set-title {
+            font-size: 2.6em;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .set-subtitle {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .set-artist {
+            font-size: 1.3em;
+            color: #e2e8f0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .set-id {
+            margin-left: auto;
+            letter-spacing: 1px;
+            color: #a0a0b8;
+            font-size: 1.1em;
+        }
+
+        .set-details {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px 18px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .detail-label {
+            color: #a0a0b8;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        .detail-value {
+            font-size: 1.35em;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tags {
+            grid-column: span 4;
+            color: #a0a0b8;
+            font-size: 0.95em;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .diff-header {
+            font-size: 1.4em;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffffff;
+            margin-top: 4px;
+        }
+
+        .diff-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .diff-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        .diff-star {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        .star-num {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .star-badge {
+            display: flex;
+            width: 90px;
+            height: 30px;
+            text-align: center;
+            border-radius: 999px;
+            font-weight: 900;
+            font-size: 1em;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .diff-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .diff-version {
+            font-size: 1.25em;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .diff-mapper {
+            color: #a0a0b8;
+            margin-top: 2px;
+            font-size: 0.95em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .diff-stats {
+            display: grid;
+            grid-template-columns: repeat(5, auto);
+            gap: 12px;
+            font-size: 0.95em;
+            color: #a0a0b8;
+            white-space: nowrap;
+        }
+
+        .diff-stats span b {
+            color: #ffffff;
+        }
+
+        .diff-id {
+            margin-left: auto;
+            font-size: 0.95em;
+            color: #a0a0b8;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .empty-diffs {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            color: #a0a0b8;
+            font-size: 1.2em;
+        }
+
+        .bottom {
+            margin-top: 2px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+            color: #a0a0b8;
+        }
+    </style>
+</head>
+<body>
+<div class="set-card">
+    <div class="banner" th:style="'background-image: url(' + ${beatmapset.covers.cover} + ');'"
+         style="background-image: url('https://assets.ppy.sh/beatmaps/320118/covers/cover.jpg?1650632079')">
+        <div class="status-badge"
+             th:style="'background: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? beatmapset.beatmaps[0].statusColor : '#ffffff'} + '; color: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? beatmapset.beatmaps[0].statusTextColor : '#1a1a2e'} + ';'"
+             th:text="${beatmapset.status}">RANKED
+        </div>
+        <div class="banner-badges">
+            <span class="badge-spotlight" th:if="${beatmapset.spotlight}">SPOTLIGHT</span>
+            <span class="badge-video" th:if="${beatmapset.video}">VIDEO</span>
+        </div>
+        <div class="banner-overlay">
+            <div class="set-title" th:text="${beatmapset.title}">No title</div>
+            <div class="set-subtitle">
+                <div class="set-artist" th:text="${beatmapset.artist}">Reol</div>
+                <div class="set-id" th:text="${'MS' + beatmapset.id}">MS320118</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="set-details">
+        <div class="detail-item">
+            <span class="detail-label">Creator</span>
+            <span class="detail-value" th:text="${beatmapset.creator}">VINXIS</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Play Count</span>
+            <span class="detail-value" th:text="${#numbers.formatInteger(beatmapset.playCount, 1, 'COMMA')}">128,622,024</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Favourites</span>
+            <span class="detail-value" th:text="${#numbers.formatInteger(beatmapset.favouriteCount, 1, 'COMMA')}">34,957</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Difficulties</span>
+            <span class="detail-value" th:text="${beatmapset.beatmaps != null ? beatmapset.beatmaps.size() : 0}">14</span>
+        </div>
+        <div class="tags" th:text="${beatmapset.tags}">tag1 tag2 tag3 tag4</div>
+    </div>
+
+    <div class="diff-header">Difficulty List</div>
+
+    <div class="empty-diffs" th:if="${beatmapset.beatmaps == null or beatmapset.beatmaps.isEmpty()}">
+        No difficulties were returned for this beatmapset.
+    </div>
+
+    <div class="diff-list" th:if="${beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()}">
+        <div class="diff-row" th:each="bm : ${beatmapset.beatmaps}" >
+            <div class="star-badge" th:style="'background: ' + ${bm.diffColor} + '; color: ' + ${bm.diffTextColor} + ';'">
+                <svg class="diff-star" th:style="'fill: ' + ${bm.diffTextColor} + ';'" viewBox="0 0 20 20">
+                    <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
+                </svg>
+                <div th:text="${#numbers.formatDecimal(bm.difficultyRating, 1, 2)}" class="star-num">5.24
+                </div>
+            </div>
+
+
+            <div class="diff-info">
+                <div class="diff-version" th:text="${bm.version}">Insane</div>
+                <div class="diff-mapper" th:text="${'Mapped by ' + bm.ownersString}">Mapped by VINXIS</div>
+            </div>
+
+            <div class="diff-stats">
+                <span>AR <b th:text="${#numbers.formatDecimal(bm.ar, 1, 2)}">9.10</b></span>
+                <span>OD <b th:text="${#numbers.formatDecimal(bm.accuracy, 1, 2)}">8.10</b></span>
+                <span>CS <b th:text="${#numbers.formatDecimal(bm.cs, 1, 2)}">4.00</b></span>
+                <span>HP <b th:text="${#numbers.formatDecimal(bm.drain, 1, 2)}">5.90</b></span>
+                <span>BPM <b th:text="${#numbers.formatDecimal(bm.bpm, 1, 0)}">200</b></span>
+            </div>
+
+            <div class="diff-id" th:text="${'M' + bm.id}">M712376</div>
+        </div>
+    </div>
+
+    <div class="bottom">
+        <span th:text="${'Data collected in ' + time}">Data collected in 2026-04-11T23:30:27Z</span>
+        <span>Generated with oStella by Zayrex</span>
+    </div>
+</div>
+</body>
+</html>
+

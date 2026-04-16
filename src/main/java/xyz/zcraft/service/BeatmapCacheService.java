@@ -19,6 +19,9 @@ public class BeatmapCacheService {
         }
     }
 
+    /// @deprecated Use {@link #getRosuBeatmapPath(String, boolean)} instead to avoid loading the entire beatmap into memory.
+    /// Loading beatmaps from byte[] may not work on Linux systems.
+    @Deprecated
     public byte[] getRosuBeatmapBytes(String id, boolean update) {
         if (!isBeatmapCached(id) || update) {
             try {

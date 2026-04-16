@@ -10,6 +10,7 @@ and also provides a standalone API for other clients to consume.
 
 - PNG score panels for best (`/bo`) and recent (`/rs`) osu! scores
 - PNG beatmap card endpoint (`/m`)
+- PNG beatmapset card endpoint (`/ms`)
 - PNG player comparison leaderboard endpoint (`/pk`)
 - PNG user PP leaderboard endpoint (`/lb`)
 - Multiplayer room summary endpoint (`/mp`)
@@ -23,14 +24,13 @@ Here are some demo:
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/f4ff6ac7-b241-4c6b-956e-9c258c27faa7" />
 
 ### Beatmap Card
-<img width="400" alt="Image_1776274447088_586" src="https://github.com/user-attachments/assets/43f8c0d7-5ea3-4171-a0e8-8f347fc4d380" />
-
+<img width="400" alt="88dee933d3192634cd7fe917b9906857" src="https://github.com/user-attachments/assets/7eea1908-9821-469d-873e-c9ea63f2ef78" />
 
 ### Group Leaderboard
-<img width="400" alt="Image_1776309880126_865" src="https://github.com/user-attachments/assets/720e2cbb-8b04-4711-8bbd-91e9a330788d" />
+<img width="400" alt="1f9303d67a65a32c0d4ed531bd48eaad" src="https://github.com/user-attachments/assets/95d41c25-ce01-4587-a8f9-9450c780d8f8" />
 
-
-
+### Beatmapset Card
+<img width="400" alt="03403d77bf6c381b67d17f89da0d82f8" src="https://github.com/user-attachments/assets/be48925b-1fe4-4b8b-8890-41a34763560c" />
 
 ## Prerequisites
 
@@ -42,8 +42,9 @@ Here are some demo:
 
 1. Create `.env` in the project root.
 2. Build the project.
-3. Run the fat jar.
-4. Call an endpoint.
+3. Install Playwright dependencies if not already present.
+4. Run the fat jar.
+5. Call an endpoint.
 
 ### 1) Create `.env`
 
@@ -62,13 +63,19 @@ OSTELLA_DEBUG=false
 mvn clean package
 ```
 
-### 3) Run
+### 3) Install Playwright Dependencies
 
 ```shell
-java -jar target/oStella-1.0-SNAPSHOT-jar-with-dependencies.jar
+mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install-deps"
 ```
 
-### 4) Call an Endpoint
+### 4) Run
+
+```shell
+mvn -U clean compile exec:java
+```
+
+### 5) Call an Endpoint
 
 ```shell
 curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
@@ -84,6 +91,7 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 | `/bo`     | GET    | `u`, `n`  | `image/png` best-of-N panel                   |
 | `/rs`     | GET    | `u`, `n`  | `image/png` recent-N panel                    |
 | `/m`      | GET    | `m`       | `image/png` beatmap card                      |
+| `/ms`     | GET    | `s`       | `image/png` beatmapset card                   |
 | `/pk`     | GET    | `m`, `u`  | `image/png` PP leaderboard card for a beatmap |
 | `/lb`     | GET    | `u`       | `image/png` user PP leaderboard               |
 | `/mp`     | GET    | none      | JSON list of top multiplayer rooms            |
@@ -98,12 +106,13 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 | `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                 |
 | `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks |
 | `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests      |
-| `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/bypass`  |
+| `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/debug/bypass` |
 
 Notes:
 
 - `/bo` and `/rs` require `u` and numeric `n`; invalid params return HTTP `400`.
 - `/m` requires numeric `m`; invalid params return HTTP `400`.
+- `/ms` requires numeric `s`; invalid params return HTTP `400`.
 - `/pk` requires numeric `m` and `u` as one or more usernames/ids separated by commas.
 - `/lb` requires `u` as one or more usernames/ids separated by commas.
 - Score endpoints currently call osu! API with `mode=osu`.
@@ -135,10 +144,11 @@ Log files are written to `logs/`:
 - `src/main/java/xyz/zcraft/network/OsuAPI.java` - osu! API requests
 - `src/main/java/xyz/zcraft/util/TokenManager.java` - OAuth token lifecycle
 - `src/main/java/xyz/zcraft/service/ScoreRenderService.java` - HTML to PNG rendering
-- `src/main/resources/templates/scores.html` - score panel template
-- `src/main/resources/templates/beatmap.html` - beatmap card template
-- `src/main/resources/templates/pk.html` - beatmap PP leaderboard template
-- `src/main/resources/templates/leaderboard.html` - user PP leaderboard template
+- `src/main/resources/template/scores.html` - score panel template
+- `src/main/resources/template/beatmap.html` - beatmap card template
+- `src/main/resources/template/beatmapset.html` - beatmapset card template
+- `src/main/resources/template/pk.html` - beatmap PP leaderboard template
+- `src/main/resources/template/leaderboard.html` - user PP leaderboard template
 
 ## Troubleshooting
 
