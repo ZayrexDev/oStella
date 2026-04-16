@@ -37,14 +37,8 @@ public final class DiffSpec implements Serializable {
 
     public String getDiffChangeStr(double diff) {
         if (diff < 0.1 && diff > -0.1) return "";
-        else if (diff > 0) return "▲" + "%.1f".formatted(diff);
-        else return "▼" + "%.1f".formatted(-diff);
-    }
-
-    public String getDiffChangeStr(double diff, int digit) {
-        if (diff < 0.1 && diff > -0.1) return "";
-        else if (diff > 0) return "▲" + ("%." + digit + "f").formatted(diff);
-        else return "▼" + ("%." + digit + "f").formatted(-diff);
+        else if (diff > 0) return "▲" + "%.2f".formatted(diff);
+        else return "▼" + "%.2f".formatted(-diff);
     }
 
     public String getDiffChangeClass(double diff) {
@@ -54,7 +48,7 @@ public final class DiffSpec implements Serializable {
     }
 
     public String getODString() {
-        return "±" + String.format("%.1f", (80 - 6 * od)) + "ms";
+        return "±" + String.format("%.2f", (80 - 6 * od)) + "ms";
     }
 
     public String getARString() {
