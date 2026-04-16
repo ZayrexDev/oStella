@@ -154,50 +154,86 @@ public class WebServer {
 
     private void getBeatmap(@NotNull Context context) throws RosuFFI.FFIException {
         final String m = context.queryParam("m");
+        final String mod = context.queryParam("mod");
 
         if (m == null || !isInteger(m)) {
             context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
 
-        final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
+        final var beatmapOptional = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
 
-        if (beatmap.isEmpty()) {
+        if (beatmapOptional.isEmpty()) {
             context.status(400).result(new Response(false, "No beatmap found", null).toString());
             return;
         }
 
+        final BeatmapExtended beatmap = beatmapOptional.get();
+
         final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
 
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
-             final RosuFFI.Performance perfSS = new RosuFFI.Performance();
-             final RosuFFI.Performance perfFC = new RosuFFI.Performance();
-             final RosuFFI.Performance perf95 = new RosuFFI.Performance()
+             final RosuFFI.Performance perf = new RosuFFI.Performance()
         ) {
-            perfSS.setAccuracy(100.0);
-            perfSS.setMisses(0);
-            perfSS.setCombo(beatmap.get().getMaxCombo());
-
-            perfFC.setAccuracy(98.0);
-            perfFC.setMisses(0);
-            perfFC.setCombo(beatmap.get().getMaxCombo());
-
-            perf95.setAccuracy(95.0);
-
             final DiffSpec diffSpec = new DiffSpec();
 
-            final RosuFFI.RosuPPLib.PerformanceAttributes cal = perfSS.calculate(rosuBeatmap);
-            diffSpec.setPpSS(cal.osu.t.pp);
-            diffSpec.setPpFC(perfFC.calculate(rosuBeatmap).osu.t.pp);
-            diffSpec.setPp95(perf95.calculate(rosuBeatmap).osu.t.pp);
+            final RosuFFI.Mods mods = RosuFFI.Mods.fromAcronyms(mod == null ? "" : mod, RosuFFI.Mode.Osu);
 
-            final var attr = cal.osu.t.difficulty;
+            perf.setMods(mods);
 
+            perf.setAccuracy(98.0);
+            perf.setMisses(0);
+            perf.setCombo(beatmap.getMaxCombo());
+
+            var calc = perf.calculate(rosuBeatmap);
+            diffSpec.setPpFC(calc.osu.t.pp);
+
+            perf.setAccuracy(95.0);
+
+            calc = perf.calculate(rosuBeatmap);
+            diffSpec.setPp95(calc.osu.t.pp);
+
+
+            perf.setAccuracy(100.0);
+            perf.setMisses(0);
+            perf.setCombo(beatmap.getMaxCombo());
+
+            calc = perf.calculate(rosuBeatmap);
+            diffSpec.setPpSS(calc.osu.t.pp);
+
+            final var attr = calc.osu.t.difficulty;
             diffSpec.setAim(attr.aim);
             diffSpec.setSpeed(attr.speed);
 
+            diffSpec.setBpm(beatmap.getBpm());
+            diffSpec.setStar(calc.osu.t.difficulty.stars);
+
+            if (mod != null && !mod.isEmpty()) {
+                diffSpec.setModStr(mod);
+                diffSpec.setModded(true);
+            }
+
+            diffSpec.setAr(calc.osu.t.difficulty.ar);
+            diffSpec.setHp(calc.osu.t.difficulty.hp);
+            diffSpec.setCs(beatmap.cs);
+            diffSpec.setOd(beatmap.accuracy);
+
+            if (mods.contains("HR")) {
+                diffSpec.setCs(Math.min(diffSpec.getCs() * 1.3, 10));
+            } else if (mods.contains("EZ")) {
+                diffSpec.setCs(Math.min(diffSpec.getCs() * 0.5, 10));
+            }
+
+            if (mods.contains("DT") || mods.contains("NC")) {
+                diffSpec.setBpm(diffSpec.getBpm() * 1.5);
+            } else if (mods.contains("HT") || mods.contains("DC")) {
+                diffSpec.setBpm(diffSpec.getBpm() * 0.75);
+            }
+
+            diffSpec.setOd((80.0 - calc.osu.t.difficulty.great_hit_window) / 6.0);
+
             final byte[] bytes = renderer.renderBeatmap(
-                    beatmap.get(),
+                    beatmap,
                     diffSpec
             );
 

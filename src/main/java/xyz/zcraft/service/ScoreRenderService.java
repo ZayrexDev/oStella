@@ -1,7 +1,5 @@
 package xyz.zcraft.service;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import org.apache.logging.log4j.LogManager;
@@ -148,46 +146,6 @@ public class ScoreRenderService {
         byte[] screenshotBytes = page.screenshot(
                 new Page.ScreenshotOptions().setFullPage(true)
         );
-
-        // 1. Create a CDP Session attached to the current page
-        CDPSession session = page.context().newCDPSession(page);
-
-        // Enable the required CDP domains
-        session.send("DOM.enable");
-        session.send("CSS.enable");
-
-        // 2. Get the root document node ID
-        JsonObject docResult = session.send("DOM.getDocument").getAsJsonObject();
-        int rootNodeId = docResult.getAsJsonObject("root").get("nodeId").getAsInt();
-
-        // 3. Find the specific node you want to check (e.g., our <h1> tag)
-        JsonObject q = new JsonObject();
-        q.addProperty("nodeId", rootNodeId);
-        q.addProperty("selector", "#song-title");
-        JsonObject queryResult = session.send("DOM.querySelector", q).getAsJsonObject();
-        int targetNodeId = queryResult.get("nodeId").getAsInt();
-
-        // 4. Ask the browser engine which physical font it actually used for this node
-        JsonObject f = new JsonObject();
-        f.addProperty("nodeId", targetNodeId);
-        JsonObject fontResult = session.send("CSS.getPlatformFontsForNode", f).getAsJsonObject();
-
-        // 5. Parse and print the results
-        JsonArray fonts = fontResult.getAsJsonArray("fonts");
-        System.out.println("Physical fonts actually used by the rendering engine:");
-
-        for (int i = 0; i < fonts.size(); i++) {
-            JsonObject font = fonts.get(i).getAsJsonObject();
-            String familyName = font.get("familyName").getAsString();
-            boolean isCustomFont = font.get("isCustomFont").getAsBoolean();
-            int glyphCount = font.get("glyphCount").getAsInt();
-
-            LOG.warn("- Font Family: {}", familyName);
-            LOG.warn("  Is Web Font: {}", isCustomFont);
-            LOG.warn("  Glyphs Rendered: {}", glyphCount);
-        }
-
-        browser.close();
 
         page.close();
 

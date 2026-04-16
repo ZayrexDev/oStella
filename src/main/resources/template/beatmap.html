@@ -65,6 +65,10 @@
             background: linear-gradient(135deg, #00e5ff, #7c4dff, #ff4ecd);
         }
 
+        .mod-badge {
+            background: linear-gradient(135deg, #ff0000, #ff824d);
+        }
+
         .song-cover {
             display: block;
             width: 900px;
@@ -207,6 +211,16 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 4px;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .spec-diff-up {
+            color: #f87171;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .spec-diff-down {
+            color: #4ade80;
         }
 
         .spec-value {
@@ -394,12 +408,13 @@
     </div>
     <div class="badges">
         <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
+        <div class="mod-badge" th:if="${diff.modded}" th:text="${diff.getModStr()}">HDHRDT</div>
     </div>
     <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
          src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
 
     <div class="meta">
-        <div class="song-title" id="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title That
+        <div class="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title That
             Is Too Long
         </div>
         <div class="title-sub">
@@ -413,7 +428,7 @@
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                 </svg>
                 <div class="diff-rating" th:style="'color: ' + ${beatmap.diffTextColor} + ';'"
-                     th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.78
+                     th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">5.78
                 </div>
             </div>
             <div class="diff-title" th:text="${beatmap.version}">This Is An Example Diff</div>
@@ -457,27 +472,57 @@
         <div class="spec-back">
             <div class="spec-group">
                 <span class="spec-label">BPM</span>
-                <span class="spec-value" th:text="${#numbers.formatInteger(beatmap.bpm, 1)}">200</span>
+                <div>
+                    <span class="spec-diff"
+                          th:if="${diff.modded}"
+                          th:classappend="${diff.getDiffChangeClass(diff.bpm - beatmap.bpm)}"
+                          th:text="${diff.getDiffChangeStr(diff.bpm - beatmap.bpm)}">▲138
+                    </span>
+                    <span class="spec-value" th:text="${#numbers.formatInteger(beatmap.bpm, 1)}">200</span>
+                </div>
             </div>
             <div class="spec-group">
                 <span class="spec-label">CS</span>
-                <span class="spec-value" th:text="${beatmap.cs}">5.0</span>
-                <span class="spec-sub" th:text="${beatmap.getCSString()}">30px</span>
+                <div>
+                    <span class="spec-diff"
+                          th:if="${diff.modded}"
+                          th:classappend="${diff.getDiffChangeClass(diff.cs - beatmap.cs)}"
+                          th:text="${diff.getDiffChangeStr(diff.cs -  beatmap.cs)}">▲1.2</span>
+                    <span class="spec-value" th:text="${beatmap.cs}">5.0</span>
+                </div>
+                <span class="spec-sub" th:text="${diff.getCSString()}">30px</span>
             </div>
             <div class="spec-group">
                 <span class="spec-label">HP</span>
-                <span class="spec-value" th:text="${beatmap.drain}">5.0</span>
+                <div>
+                    <span class="spec-diff"
+                          th:if="${diff.modded}"
+                          th:classappend="${diff.getDiffChangeClass(diff.hp - beatmap.drain)}"
+                          th:text="${diff.getDiffChangeStr(diff.hp -  beatmap.drain)}">▲1.2</span>
+                    <span class="spec-value" th:text="${beatmap.drain}">5.0</span>
+                </div>
                 <span class="spec-sub">qwq</span>
             </div>
             <div class="spec-group">
                 <span class="spec-label">OD</span>
-                <span class="spec-value" th:text="${beatmap.accuracy}">5.0</span>
-                <span class="spec-sub" th:text="${beatmap.getODString()}">50ms</span>
+                <div>
+                    <span class="spec-diff" th:if="${diff.modded}"
+                          th:classappend="${diff.getDiffChangeClass(diff.od - beatmap.accuracy)}"
+                          th:text="${diff.getDiffChangeStr(diff.od -  beatmap.accuracy)}">▲1.2</span>
+                    <span class="spec-value" th:text="${beatmap.accuracy}">5.0</span>
+                </div>
+                <span class="spec-sub" th:text="${diff.getODString()}">50ms</span>
             </div>
             <div class="spec-group">
                 <span class="spec-label">AR</span>
-                <span class="spec-value" th:text="${beatmap.ar}">5.0</span>
-                <span class="spec-sub" th:text="${beatmap.getARString()}">233ms</span>
+                <div>
+                    <span class="spec-diff"
+                          th:if="${diff.modded}"
+                          th:classappend="${diff.getDiffChangeClass(diff.ar - beatmap.ar)}"
+                          th:text="${diff.getDiffChangeStr(diff.ar -  beatmap.ar)}">▲1.2</span>
+                    <span class="spec-value" th:text="${beatmap.ar}">5.0</span>
+                </div>
+                <span class="spec-sub" th:text="${diff.getARString()}">233ms</span>
             </div>
         </div>
     </div>

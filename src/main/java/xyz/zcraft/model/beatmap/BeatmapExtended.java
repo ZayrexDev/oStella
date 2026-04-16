@@ -78,27 +78,6 @@ public class BeatmapExtended extends Beatmap {
         return ((double) passcount / playcount) * 100.0;
     }
 
-    public String getODString() {
-        if (accuracy == null) return "N/A";
-        return "±" + String.format("%.1f", (80 - 6 * accuracy)) + "ms";
-    }
-
-    public String getARString() {
-        if (ar == null) return "N/A";
-        if (ar < 5) {
-            return (int) (1200 + 120 * (5 - ar)) + "ms";
-        } else if (ar == 5) {
-            return "1200ms";
-        } else {
-            return (int) (1200 - 150 * (ar - 5)) + "ms";
-        }
-    }
-
-    public String getCSString() {
-        if (cs == null) return "N/A";
-        return (int) (54.4 - 4.48 * cs) + "px";
-    }
-
     public String getTagString() {
         return Optional.ofNullable(beatmapset)
                 .map(Beatmapset::getTags)
