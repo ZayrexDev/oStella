@@ -127,8 +127,6 @@ public class RosuFFI {
             // 创建临时文件
             File tempFile = File.createTempFile("native", libName.substring(libName.lastIndexOf('.')));
             tempFile.deleteOnExit();
-
-            System.out.println("Extracting library to: " + tempFile.getAbsolutePath());
             // 将资源写入临时文件
             Files.copy(input, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             input.close();

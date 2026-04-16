@@ -132,23 +132,26 @@ public class WebServer {
             return;
         }
 
-        final var rosuBeatmap = executor.enqueue(() -> cacheService.getRosuBeatmap(m, false));
+        final Optional<byte[]> enqueue = executor.enqueue(() -> cacheService.getRosuBeatmapBytes(m, false));
 
-        if (rosuBeatmap.isEmpty()) {
+        if (enqueue.isEmpty()) {
             context.status(400).result(new Response(false, "Beatmap PP calculation failed", null).toString());
             return;
         }
 
-        final RosuFFI.Performance perfSS = new RosuFFI.Performance();
-        perfSS.setAccuracy(100.0);
-        perfSS.setMisses(0);
-        perfSS.setCombo(beatmap.get().getMaxCombo());
+        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(enqueue.get());
+             final RosuFFI.Performance perfSS = new RosuFFI.Performance()
+        ) {
 
-        final byte[] imgByte = renderer.renderPK(beatmap.get(), placements, perfSS.calculate(rosuBeatmap.get()).osu.t.pp);
 
-        context.status(200).result(imgByte);
+            perfSS.setAccuracy(100.0);
+            perfSS.setMisses(0);
+            perfSS.setCombo(beatmap.get().getMaxCombo());
 
-        perfSS.close();
+            final byte[] imgByte = renderer.renderPK(beatmap.get(), placements, perfSS.calculate(rosuBeatmap).osu.t.pp);
+
+            context.status(200).result(imgByte);
+        }
     }
 
     private void getBeatmap(@NotNull Context context) throws RosuFFI.FFIException {
@@ -166,54 +169,47 @@ public class WebServer {
             return;
         }
 
-        final var rosuBeatmap = executor.enqueue(() -> cacheService.getRosuBeatmap(m, false));
+        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
 
-        if (rosuBeatmap.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmap found", null).toString());
-            return;
+//        if (enqueue.isEmpty()) {
+//            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+//            return;
+//        }
+
+        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
+             final RosuFFI.Performance perfSS = new RosuFFI.Performance();
+             final RosuFFI.Performance perfFC = new RosuFFI.Performance();
+             final RosuFFI.Performance perf95 = new RosuFFI.Performance()
+        ) {
+            perfSS.setAccuracy(100.0);
+            perfSS.setMisses(0);
+            perfSS.setCombo(beatmap.get().getMaxCombo());
+
+            perfFC.setAccuracy(98.0);
+            perfFC.setMisses(0);
+            perfFC.setCombo(beatmap.get().getMaxCombo());
+
+            perf95.setAccuracy(95.0);
+
+            final DiffSpec diffSpec = new DiffSpec();
+
+            final RosuFFI.RosuPPLib.PerformanceAttributes cal = perfSS.calculate(rosuBeatmap);
+            diffSpec.setPpSS(cal.osu.t.pp);
+            diffSpec.setPpFC(perfFC.calculate(rosuBeatmap).osu.t.pp);
+            diffSpec.setPp95(perf95.calculate(rosuBeatmap).osu.t.pp);
+
+            final var attr = cal.osu.t.difficulty;
+
+            diffSpec.setAim(attr.aim);
+            diffSpec.setSpeed(attr.speed);
+
+            final byte[] bytes = renderer.renderBeatmap(
+                    beatmap.get(),
+                    diffSpec
+            );
+
+            context.status(200).result(bytes);
         }
-
-        final RosuFFI.Performance perfSS = new RosuFFI.Performance();
-        perfSS.setAccuracy(100.0);
-        perfSS.setMisses(0);
-        perfSS.setCombo(beatmap.get().getMaxCombo());
-
-        final RosuFFI.Performance perfFC = new RosuFFI.Performance();
-        perfFC.setAccuracy(98.0);
-        perfFC.setMisses(0);
-        perfFC.setCombo(beatmap.get().getMaxCombo());
-
-        final RosuFFI.Performance perf95 = new RosuFFI.Performance();
-        perf95.setAccuracy(95.0);
-
-        final DiffSpec diffSpec = new DiffSpec();
-
-        final RosuFFI.RosuPPLib.PerformanceAttributes cal = perfSS.calculate(rosuBeatmap.get());
-        diffSpec.setPpSS(cal.osu.t.pp);
-        diffSpec.setPpFC(perfFC.calculate(rosuBeatmap.get()).osu.t.pp);
-        diffSpec.setPp95(perf95.calculate(rosuBeatmap.get()).osu.t.pp);
-
-        final var attr = cal.osu.t.difficulty;
-
-        System.out.println("mode=" + cal.mode);
-        System.out.println("osu.is_some=" + cal.osu.is_some);
-        System.out.println("taiko.is_some=" + cal.taiko.is_some);
-        System.out.println("fruit.is_some=" + cal.fruit.is_some);
-        System.out.println("mania.is_some=" + cal.mania.is_some);
-
-        diffSpec.setAim(attr.aim);
-        diffSpec.setSpeed(attr.speed);
-
-        final byte[] bytes = renderer.renderBeatmap(
-                beatmap.get(),
-                diffSpec
-        );
-
-        context.status(200).result(bytes);
-
-        perfSS.close();
-        perfFC.close();
-        perf95.close();
     }
 
     private void bypassRequest(@NotNull Context context) {

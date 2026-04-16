@@ -1,6 +1,5 @@
 package xyz.zcraft.service;
 
-import desu.life.RosuFFI;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.network.OsuAPI;
@@ -20,7 +19,7 @@ public class BeatmapCacheService {
         }
     }
 
-    public RosuFFI.Beatmap getRosuBeatmap(String id, boolean update) {
+    public byte[] getRosuBeatmapBytes(String id, boolean update) {
         if (!isBeatmapCached(id) || update) {
             try {
                 cacheBeatmap(id);
@@ -32,7 +31,26 @@ public class BeatmapCacheService {
         }
 
         try {
-            return new RosuFFI.Beatmap(Files.readAllBytes(BEATMAP_CACHE.resolve(id)));
+            return Files.readAllBytes(BEATMAP_CACHE.resolve(id));
+        } catch (Exception e) {
+            LOG.error("Failed to load beatmap from cache!", e);
+            throw new RuntimeException("Failed to load beatmap from cache!", e);
+        }
+    }
+
+    public String getRosuBeatmapPath(String id, boolean update) {
+        if (!isBeatmapCached(id) || update) {
+            try {
+                cacheBeatmap(id);
+                LOG.info("Beatmap {} cached", id);
+            } catch (Exception e) {
+                LOG.error("Failed to download beatmap!", e);
+                throw new RuntimeException("Failed to download beatmap!", e);
+            }
+        }
+
+        try {
+            return BEATMAP_CACHE.resolve(id).toAbsolutePath().toString();
         } catch (Exception e) {
             LOG.error("Failed to load beatmap from cache!", e);
             throw new RuntimeException("Failed to load beatmap from cache!", e);
@@ -41,7 +59,7 @@ public class BeatmapCacheService {
 
     private void cacheBeatmap(String id) throws Exception {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
-        Files.writeString(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapString(id));
+        Files.write(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapBytes(id));
     }
 
     public boolean isBeatmapCached(String id) {
