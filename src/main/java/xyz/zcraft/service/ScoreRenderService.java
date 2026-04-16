@@ -154,4 +154,24 @@ public class ScoreRenderService {
 
         return screenshotBytes;
     }
+
+    public byte[] renderFonts() {
+        String finalHtml = templateEngine.process("fonts", new Context());
+
+        Page page = browser.newPage();
+
+        page.setViewportSize(960, 760);
+
+        page.setContent(finalHtml);
+
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+
+        byte[] screenshotBytes = page.screenshot(
+                new Page.ScreenshotOptions().setFullPage(true)
+        );
+
+        page.close();
+
+        return screenshotBytes;
+    }
 }

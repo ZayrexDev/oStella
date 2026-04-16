@@ -61,9 +61,14 @@ public class WebServer {
 
             if (conf.debug()) {
                 LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
-                cfg.routes.get("bypass", this::bypassRequest);
+                cfg.routes.get("/debug/bypass", this::bypassRequest);
+                cfg.routes.get("/debug/fonts", this::fontsDebug);
             }
         });
+    }
+
+    private void fontsDebug(@NotNull Context context) {
+        context.status(200).result(renderer.renderFonts());
     }
 
     private void getLeaderBoard(@NotNull Context context) {

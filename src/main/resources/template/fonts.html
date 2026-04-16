@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<!--suppress CssNoGenericFontName -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Font Test</title>
+    <!-- Importing the web fonts we discussed so they render perfectly even if not installed locally -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&family=Inter:wght@300;400;700&family=Montserrat:wght@300;400;700&family=Poppins:wght@300;400;700&family=Ubuntu:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            padding: 30px;
+            width: max-content;
+            font-size: 1.5em;
+        }
+        .font-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+            align-items: center;
+        }
+        .font-name {
+            width: 220px;
+            flex-shrink: 0;
+            color: #8892b0;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+        /* Tabular lining to keep numbers aligned for UI/Gaming context */
+        .test-text {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="font-row" style="font-family: 'Segoe UI';">
+        <div class="font-name">Segoe UI</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Trebuchet MS';">
+        <div class="font-name">Trebuchet MS</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Arial';">
+        <div class="font-name">Arial</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Tahoma';">
+        <div class="font-name">Tahoma</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Geneva';">
+        <div class="font-name">Geneva</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Inter';">
+        <div class="font-name">Inter</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Torus';">
+        <div class="font-name">Torus</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Exo 2';">
+        <div class="font-name">Exo 2</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Montserrat';">
+        <div class="font-name">Montserrat</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Poppins';">
+        <div class="font-name">Poppins</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Ubuntu';">
+        <div class="font-name">Ubuntu</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Liberation Sans';">
+        <div class="font-name">Liberation Sans</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Consolas';">
+        <div class="font-name">Consolas</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+    <div class="font-row" style="font-family: 'Courier New';">
+        <div class="font-name">Courier New</div>
+        <div class="test-text" style="font-weight: normal">Normal&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: bold">Bold&123456_-!@#$%ABCabc</div>
+        <div class="test-text" style="font-weight: 300">Light&123456_-!@#$%ABCabc</div>
+    </div>
+</div>
+</body>
+</html>
