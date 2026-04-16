@@ -222,6 +222,7 @@ public class WebServer {
             diffSpec.setCs(beatmap.cs);
             diffSpec.setOd(beatmap.accuracy);
 
+            // Calculate BPM CS Length
 
             if (mods.contains("HR")) {
                 diffSpec.setCs(Math.min(diffSpec.getCs() * 1.3, 10));
@@ -239,7 +240,33 @@ public class WebServer {
                 diffSpec.setTotalLength(diffSpec.getTotalLength() / 0.75);
             }
 
-            diffSpec.setOd((80.0 - calc.osu.t.difficulty.great_hit_window) / 6.0);
+            // Calculate OD
+
+            boolean changingOd = false;
+            double od = beatmap.getAccuracy();
+            if (mods.contains("HR")) {
+                changingOd = true;
+                od = Math.min(od * 1.4, 10);
+            } else if (mods.contains("EZ")) {
+                changingOd = true;
+                od = od * 0.5;
+            }
+
+            double window = 80.0 - (6.0 * od);
+
+            if (mods.contains("DT") || mods.contains("NC")) {
+                changingOd = true;
+                window = window / 1.5;
+            } else if (mods.contains("HT") || mods.contains("DC")) {
+                changingOd = true;
+                window = window / 0.75;
+            }
+
+            od = (80.0 - window) / 6;
+
+            if (changingOd) {
+                diffSpec.setOd(od);
+            }
 
             final byte[] bytes = renderer.renderBeatmap(
                     beatmap,

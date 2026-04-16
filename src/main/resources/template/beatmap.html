@@ -207,7 +207,7 @@
 
         .spec-label {
             color: #a0a0b8;
-            font-size: 1.6em;
+            font-size: 1.4em;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 4px;
@@ -283,13 +283,13 @@
             position: relative;
             display: flex;
             text-align: end;
-            gap: 12px;
+            gap: 4px;
         }
 
         .spec-front {
             display: flex;
             text-align: start;
-            gap: 24px;
+            gap: 8px;
         }
 
         .spec-pp {
@@ -496,7 +496,7 @@
             <div class="spec-group">
                 <span class="spec-diff"
                       th:classappend="${diff.getDiffChangeClass(diff.getBpm() - beatmap.getBpm())}"
-                      th:text="${diff.getDiffChangeStr(diff.getBpm() - beatmap.getBpm())}">▲138
+                      th:text="${diff.getIntDiffChangeStr(diff.getBpm() - beatmap.getBpm())}">▲100
                     </span>
                 <div class="spec-item">
                     <span class="spec-label">BPM</span>
@@ -506,8 +506,7 @@
             <div class="spec-group">
                 <span class="spec-diff"
                       th:classappend="${diff.getDiffChangeClass(diff.getCs() - beatmap.getCs())}"
-                      th:text="${diff.getDiffChangeStr(diff.getCs() -  beatmap.getCs())}"
-                      th:style="${diff.isModded() || diff.getDiffChangeClass(diff.getCs() - beatmap.getCs()) == '' ? '' : 'visibility: hidden; '}">▲1.20</span>
+                      th:text="${diff.getDiffChangeStr(diff.getCs() -  beatmap.getCs())}">▲1.20</span>
                 <div class="spec-item">
                     <span class="spec-label">CS</span>
                     <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getCs(), 1, 2)}">5.00</span>
@@ -516,13 +515,13 @@
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:classappend="${diff.getDiffChangeClass(diff.hp - beatmap.drain)}"
-                      th:text="${diff.getDiffChangeStr(diff.hp -  beatmap.drain)}">▲1.20</span>
+                      th:classappend="${diff.getDiffChangeClass(diff.getAr() - beatmap.getAr())}"
+                      th:text="${diff.getDiffChangeStr(diff.getAr() -  beatmap.getAr())}">▲1.20</span>
                 <div class="spec-item">
-                    <span class="spec-label">HP</span>
-                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 2)}">5.00</span>
+                    <span class="spec-label">AR</span>
+                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getAr(), 1, 2)}">5.00</span>
                 </div>
-                <span class="spec-sub">qwq</span>
+                <span class="spec-sub" th:text="${diff.getARString()}">233ms</span>
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
@@ -536,13 +535,13 @@
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:classappend="${diff.getDiffChangeClass(diff.getAr() - beatmap.getAr())}"
-                      th:text="${diff.getDiffChangeStr(diff.getAr() -  beatmap.getAr())}">▲1.20</span>
+                      th:classappend="${diff.getDiffChangeClass(diff.hp - beatmap.drain)}"
+                      th:text="${diff.getDiffChangeStr(diff.hp -  beatmap.drain)}">▲1.20</span>
                 <div class="spec-item">
-                    <span class="spec-label">AR</span>
-                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getAr(), 1, 2)}">5.00</span>
+                    <span class="spec-label">HP</span>
+                    <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 2)}">5.00</span>
                 </div>
-                <span class="spec-sub" th:text="${diff.getARString()}">233ms</span>
+                <span class="spec-sub">qwq</span>
             </div>
         </div>
     </div>
