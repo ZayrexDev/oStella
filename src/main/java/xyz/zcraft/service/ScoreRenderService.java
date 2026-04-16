@@ -55,7 +55,7 @@ public class ScoreRenderService {
             String fontFamily = (String) page.locator("body")
                     .evaluate("element => window.getComputedStyle(element).fontFamily");
 
-            System.out.println("The computed font family is: " + fontFamily);
+            LOG.warn("The computed font family is: {}", fontFamily);
 
             browser.close();
         }
