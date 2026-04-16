@@ -36,13 +36,13 @@ public final class DiffSpec implements Serializable {
     }
 
     public String getDiffChangeStr(double diff) {
-        if (diff < 0.1 && diff > -0.1) return "";
+        if (diff < 0.1 && diff > -0.1) return "~0.00";
         else if (diff > 0) return "▲" + "%.2f".formatted(diff);
         else return "▼" + "%.2f".formatted(-diff);
     }
 
     public String getDiffChangeClass(double diff) {
-        if (diff < 0.1 && diff > -0.1) return "";
+        if (diff < 0.1 && diff > -0.1) return "spec-diff-same";
         else if (diff > 0) return "spec-diff-up";
         else return "spec-diff-down";
     }

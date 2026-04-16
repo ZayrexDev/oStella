@@ -171,11 +171,6 @@
             font-size: 1.4em;
         }
 
-        .spec-diff {
-            font-weight: bold;
-            font-size: 1em;
-        }
-
         .diff-spec {
             display: flex;
             justify-content: space-between;
@@ -223,11 +218,17 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             font-size: 1em;
+            margin-bottom: -4px;
         }
 
         /*noinspection CssUnusedSymbol*/
         .spec-diff-up {
             color: #f87171;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .spec-diff-same {
+            visibility: hidden;
         }
 
         /*noinspection CssUnusedSymbol*/
@@ -279,6 +280,7 @@
         }
 
         .spec-back {
+            position: relative;
             display: flex;
             text-align: end;
             gap: 12px;
@@ -398,6 +400,10 @@
             flex-shrink: 0;
         }
 
+        .spec-diff {
+            margin-bottom: -4px;
+        }
+
         .legend-item {
             display: flex;
             align-items: center;
@@ -489,45 +495,40 @@
         <div class="spec-back">
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:if="${diff.modded}"
                       th:classappend="${diff.getDiffChangeClass(diff.getBpm() - beatmap.getBpm())}"
                       th:text="${diff.getDiffChangeStr(diff.getBpm() - beatmap.getBpm())}">▲138
                     </span>
-                <div>
+                <div class="spec-item">
                     <span class="spec-label">BPM</span>
-
                     <span class="spec-value" th:text="${#numbers.formatInteger(diff.getBpm(), 1)}">200</span>
                 </div>
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:if="${diff.isModded()}"
                       th:classappend="${diff.getDiffChangeClass(diff.getCs() - beatmap.getCs())}"
-                      th:text="${diff.getDiffChangeStr(diff.getCs() -  beatmap.getCs())}">▲1.20</span>
-                <div>
+                      th:text="${diff.getDiffChangeStr(diff.getCs() -  beatmap.getCs())}"
+                      th:style="${diff.isModded() || diff.getDiffChangeClass(diff.getCs() - beatmap.getCs()) == '' ? '' : 'visibility: hidden; '}">▲1.20</span>
+                <div class="spec-item">
                     <span class="spec-label">CS</span>
-
                     <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getCs(), 1, 2)}">5.00</span>
                 </div>
                 <span class="spec-sub" th:text="${diff.getCSString()}">30px</span>
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:if="${diff.modded}"
                       th:classappend="${diff.getDiffChangeClass(diff.hp - beatmap.drain)}"
                       th:text="${diff.getDiffChangeStr(diff.hp -  beatmap.drain)}">▲1.20</span>
-                <div>
+                <div class="spec-item">
                     <span class="spec-label">HP</span>
-
                     <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 2)}">5.00</span>
                 </div>
                 <span class="spec-sub">qwq</span>
             </div>
             <div class="spec-group">
-                <span class="spec-diff" th:if="${diff.isModded()}"
+                <span class="spec-diff"
                       th:classappend="${diff.getDiffChangeClass(diff.getOd() - beatmap.getAccuracy())}"
                       th:text="${diff.getDiffChangeStr(diff.getOd() -  beatmap.getAccuracy())}">▲1.20</span>
-                <div>
+                <div class="spec-item">
                     <span class="spec-label">OD</span>
                     <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getOd(), 1, 2)}">5.00</span>
                 </div>
@@ -535,11 +536,9 @@
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:if="${diff.isModded()}"
                       th:classappend="${diff.getDiffChangeClass(diff.getAr() - beatmap.getAr())}"
                       th:text="${diff.getDiffChangeStr(diff.getAr() -  beatmap.getAr())}">▲1.20</span>
-                <div>
-
+                <div class="spec-item">
                     <span class="spec-label">AR</span>
                     <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getAr(), 1, 2)}">5.00</span>
                 </div>
