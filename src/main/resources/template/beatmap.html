@@ -14,7 +14,7 @@
         body {
             background-color: #1a1a2e;
             color: #ffffff;
-            font-family: 'Dajavu Sans', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Dejavu Sans', Tahoma, Geneva, Verdana, sans-serif !important;
             padding: 30px;
             width: fit-content;
         }
@@ -389,7 +389,9 @@
 <body>
 <div class="root">
     <div class="rank-status" th:text="${beatmap.status}"
-          th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">Ranked</div>
+         th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">
+        Ranked
+    </div>
     <div class="badges">
         <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
     </div>
@@ -397,11 +399,13 @@
          src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
 
     <div class="meta">
-        <div class="song-title" id="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title That Is Too Long
+        <div class="song-title" id="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title That
+            Is Too Long
         </div>
         <div class="title-sub">
             <div class="song-artist" th:text="${beatmap.beatmapset.artist}">This Is An Example Artist</div>
-            <div class="beatmap-id" th:text="${'MS' + beatmap.beatmapset.id + ' - M' + beatmap.id}">MS123465 - M987654</div>
+            <div class="beatmap-id" th:text="${'MS' + beatmap.beatmapset.id + ' - M' + beatmap.id}">MS123465 - M987654
+            </div>
         </div>
         <div class="diff">
             <div class="diff-badge" th:style="'background: ' + ${beatmap.diffColor} + ';'">

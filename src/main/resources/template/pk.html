@@ -14,7 +14,7 @@
         body {
             background-color: #1a1a2e;
             color: #ffffff;
-            font-family: 'Dajavu Sans', sans-serif !important;
+            font-family: 'Dejavu Sans', Tahoma, Geneva, Verdana, sans-serif !important;
             padding: 30px;
             width: fit-content;
         }
@@ -336,7 +336,9 @@
                          th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.72
                     </div>
                 </div>
-                <div class="pk-map-diff" th:text="${beatmap.version}" th:style="'color: ' + ${beatmap.getDiffColor()} + ';'">ExampleVersion</div>
+                <div class="pk-map-diff" th:text="${beatmap.version}"
+                     th:style="'color: ' + ${beatmap.getDiffColor()} + ';'">ExampleVersion
+                </div>
                 <div class="pk-mapper">
                     <span>By</span>
                     <span th:text="${beatmap.ownersString}">ExampleMapper</span>
@@ -348,10 +350,13 @@
     <div class="pk-content">
         <div class="pk-subtitle">
             <div>Group PK Leaderboard</div>
-            <div class="pk-id" th:text="'MS' + ${beatmap.beatmapset.id} + ' - M' + ${beatmap.id}">MS123456 - M1234567</div>
+            <div class="pk-id" th:text="'MS' + ${beatmap.beatmapset.id} + ' - M' + ${beatmap.id}">MS123456 - M1234567
+            </div>
         </div>
 
-        <div class="pk-not-available" th:if="${!beatmap.hasLeaderboard()}">Leaderboard is not available for this map...</div>
+        <div class="pk-not-available" th:if="${!beatmap.hasLeaderboard()}">Leaderboard is not available for this
+            map...
+        </div>
 
         <div class="pk-list">
             <div class="pk-row"
@@ -367,7 +372,9 @@
                     </div>
                     <span class="pk-mods" th:if="${placement.score.mods != 'NM'}"
                           th:text="${placement.score.modString}">[HDHRDT]</span>
-                    <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">U25234487965 // S1234234567896</div>
+                    <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">U25234487965
+                        // S1234234567896
+                    </div>
                 </div>
 
                 <div class="pk-rank-box">

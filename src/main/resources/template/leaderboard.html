@@ -13,7 +13,7 @@
         body {
             background-color: #1a1a2e;
             color: #ffffff;
-            font-family: 'Dajavu Sans', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Dejavu Sans', Tahoma, Geneva, Verdana, sans-serif !important;
             padding: 30px;
             width: fit-content;
         }
@@ -226,7 +226,9 @@
                 </div>
 
                 <div class="lb-score-box">
-                    <div class="lb-pp" th:text="${!user.doHavePp() ? '--' : #numbers.formatDecimal(user.getStatisticsRulesets().getOsu().getPp(), 1, 1)} + ' PP'">340 PP
+                    <div class="lb-pp"
+                         th:text="${!user.doHavePp() ? '--' : #numbers.formatDecimal(user.getStatisticsRulesets().getOsu().getPp(), 1, 1)} + ' PP'">
+                        340 PP
                     </div>
                     <div class="lb-diff"
                          th:if="${iterStat.index != 0 && user.doHavePp()}"
