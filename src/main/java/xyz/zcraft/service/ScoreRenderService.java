@@ -44,6 +44,22 @@ public class ScoreRenderService {
         playwright = Playwright.create();
         browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
 
+        try (Playwright playwright = Playwright.create()) {
+            Browser browser = playwright.chromium().launch();
+            Page page = browser.newPage();
+
+            // Load your HTML or navigate to your page
+            page.setContent("<html><head><style>body{font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}</style></head><body>Dandelions & abcdefg</body></html>");
+
+            // Evaluate JS to get the computed font-family of the body (or any specific element)
+            String fontFamily = (String) page.locator("body")
+                    .evaluate("element => window.getComputedStyle(element).fontFamily");
+
+            System.out.println("The computed font family is: " + fontFamily);
+
+            browser.close();
+        }
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             browser.close();
             playwright.close();
