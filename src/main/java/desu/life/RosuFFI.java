@@ -13,6 +13,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.ptr.PointerByReference;
+import xyz.zcraft.service.BeatmapCacheService;
 
 @SuppressWarnings("ALL")
 public class RosuFFI {
@@ -130,7 +131,15 @@ public class RosuFFI {
             tempFile.deleteOnExit();
             // 将资源写入临时文件
             Files.copy(input, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
+            var lib = com.sun.jna.NativeLibrary.getInstance(tempFile.getAbsolutePath());
+            var f = lib.getFunction("beatmap_bpm");
+            double bpm = 0;
+            try {
+                bpm = f.invokeDouble(new Object[]{ new Beatmap(new BeatmapCacheService().getRosuBeatmapBytes("738063", true)) });
+            } catch (FFIException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println("bpm via Function = " + bpm);
             System.out.println("Extracted to: " + tempFile);
             System.out.println("Extracted size: " + Files.size(tempFile.toPath()));
             input.close();
