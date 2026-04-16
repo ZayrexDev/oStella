@@ -27,7 +27,8 @@ Here are some demo:
 
 
 ### Group Leaderboard
-<img width="400" alt="image" src="https://github.com/user-attachments/assets/4a229779-c674-4172-8d6b-6accdabb5a5e" />
+<img width="400" alt="Image_1776309880126_865" src="https://github.com/user-attachments/assets/720e2cbb-8b04-4711-8bbd-91e9a330788d" />
+
 
 
 
