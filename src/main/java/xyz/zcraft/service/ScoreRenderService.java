@@ -33,7 +33,7 @@ public class ScoreRenderService {
         LOG.info("Initializing template resolver");
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setTemplateMode(TemplateMode.HTML);
-        resolver.setPrefix("/templates/"); // Looks in src/main/resources/templates/
+        resolver.setPrefix("/template/"); // Looks in src/main/resources/templates/
         resolver.setSuffix(".html");
 
         templateEngine = new TemplateEngine();

@@ -25,12 +25,8 @@ Here are some demo:
 ### Beatmap Card
 <img width="400" alt="Image_1776274447088_586" src="https://github.com/user-attachments/assets/43f8c0d7-5ea3-4171-a0e8-8f347fc4d380" />
 
-
 ### Group Leaderboard
 <img width="400" alt="Image_1776309880126_865" src="https://github.com/user-attachments/assets/720e2cbb-8b04-4711-8bbd-91e9a330788d" />
-
-
-
 
 ## Prerequisites
 
@@ -42,8 +38,9 @@ Here are some demo:
 
 1. Create `.env` in the project root.
 2. Build the project.
-3. Run the fat jar.
-4. Call an endpoint.
+3. Install Playwright dependencies if not already present.
+4. Run the fat jar.
+5. Call an endpoint.
 
 ### 1) Create `.env`
 
@@ -62,13 +59,19 @@ OSTELLA_DEBUG=false
 mvn clean package
 ```
 
-### 3) Run
+### 3) Install Playwright Dependencies
+
+```shell
+mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install-deps"
+```
+
+### 4) Run
 
 ```shell
 java -jar target/oStella-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
-### 4) Call an Endpoint
+### 5) Call an Endpoint
 
 ```shell
 curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
