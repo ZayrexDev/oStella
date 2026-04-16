@@ -65,6 +65,10 @@ public class ScoreRenderService {
 
         Page page = browser.newPage();
 
+        page.addStyleTag(new Page.AddStyleTagOptions()
+                .setContent("@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap');")
+        );
+
         page.setViewportSize(1400, 1000);
 
         page.setContent(finalHtml);
@@ -91,6 +95,10 @@ public class ScoreRenderService {
 
         Page page = browser.newPage();
 
+        page.addStyleTag(new Page.AddStyleTagOptions()
+                .setContent("@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap');")
+        );
+
         page.setViewportSize(760, 400);
 
         page.setContent(finalHtml);
@@ -114,6 +122,10 @@ public class ScoreRenderService {
         String finalHtml = templateEngine.process("leaderboard", ctx);
 
         Page page = browser.newPage();
+
+        page.addStyleTag(new Page.AddStyleTagOptions()
+                .setContent("@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap');")
+        );
 
         page.setViewportSize(760, 400);
 
@@ -140,6 +152,10 @@ public class ScoreRenderService {
 
         Page page = browser.newPage();
 
+        page.addStyleTag(new Page.AddStyleTagOptions()
+                .setContent("@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap');")
+        );
+
         page.setViewportSize(960, 760);
 
         page.setContent(finalHtml);
@@ -159,6 +175,10 @@ public class ScoreRenderService {
         String finalHtml = templateEngine.process("fonts", new Context());
 
         Page page = browser.newPage();
+
+        page.addStyleTag(new Page.AddStyleTagOptions()
+                .setContent("@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap');")
+        );
 
         page.setViewportSize(960, 760);
 
