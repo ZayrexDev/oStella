@@ -1,9 +1,8 @@
 package xyz.zcraft.service;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,17 +44,52 @@ public class ScoreRenderService {
         browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
 
         try (Playwright playwright = Playwright.create()) {
+            // CDP requires Chromium
             Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
 
-            // Load your HTML or navigate to your page
-            page.setContent("<html><head><style>body{font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}</style></head><body>Dandelions & abcdefg</body></html>");
+            // Setup a scenario where the first font fails, forcing a fallback to Arial or system sans-serif
+            page.setContent("<html><body style=\"font-family: 'FakeFontThatDoesNotExist', Arial, sans-serif;\">" +
+                    "<h1 id='target-element'>Hello World</h1>" +
+                    "</body></html>");
 
-            // Evaluate JS to get the computed font-family of the body (or any specific element)
-            String fontFamily = (String) page.locator("body")
-                    .evaluate("element => window.getComputedStyle(element).fontFamily");
+            // 1. Create a CDP Session attached to the current page
+            CDPSession session = page.context().newCDPSession(page);
 
-            LOG.warn("The computed font family is: {}", fontFamily);
+            // Enable the required CDP domains
+            session.send("DOM.enable");
+            session.send("CSS.enable");
+
+            // 2. Get the root document node ID
+            JsonObject docResult = session.send("DOM.getDocument").getAsJsonObject();
+            int rootNodeId = docResult.getAsJsonObject("root").get("nodeId").getAsInt();
+
+            // 3. Find the specific node you want to check (e.g., our <h1> tag)
+            JsonObject q = new JsonObject();
+            q.addProperty("nodeId", rootNodeId);
+            q.addProperty("selector", "#target-element");
+            JsonObject queryResult = session.send("DOM.querySelector", q).getAsJsonObject();
+            int targetNodeId = queryResult.get("nodeId").getAsInt();
+
+            // 4. Ask the browser engine which physical font it actually used for this node
+            JsonObject f = new JsonObject();
+            f.addProperty("nodeId", targetNodeId);
+            JsonObject fontResult = session.send("CSS.getPlatformFontsForNode", f).getAsJsonObject();
+
+            // 5. Parse and print the results
+            JsonArray fonts = fontResult.getAsJsonArray("fonts");
+            System.out.println("Physical fonts actually used by the rendering engine:");
+
+            for (int i = 0; i < fonts.size(); i++) {
+                JsonObject font = fonts.get(i).getAsJsonObject();
+                String familyName = font.get("familyName").getAsString();
+                boolean isCustomFont = font.get("isCustomFont").getAsBoolean();
+                int glyphCount = font.get("glyphCount").getAsInt();
+
+                System.out.println("- Font Family: " + familyName);
+                System.out.println("  Is Web Font: " + isCustomFont);
+                System.out.println("  Glyphs Rendered: " + glyphCount);
+            }
 
             browser.close();
         }
