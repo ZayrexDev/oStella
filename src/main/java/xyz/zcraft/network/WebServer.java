@@ -6,6 +6,7 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.MultiplayerRoom;
@@ -47,6 +48,8 @@ public class WebServer {
         executor = new AsyncService(conf.maxThreads(), conf.delay());
         cacheService = new BeatmapCacheService();
         app = Javalin.create(cfg -> {
+            cfg.jetty.threadPool = new QueuedThreadPool(conf.maxThreads(), 1, 60000);
+
             cfg.routes
                     .get("bo", this::getBestOfN)
                     .get("daily", this::getDaily)
