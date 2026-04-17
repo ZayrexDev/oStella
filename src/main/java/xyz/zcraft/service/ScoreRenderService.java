@@ -134,6 +134,7 @@ public class ScoreRenderService {
         Context ctx = new Context();
         ctx.setVariable("beatmap", map);
         ctx.setVariable("diff", spec);
+        ctx.setVariable("diff", spec);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
         String finalHtml = templateEngine.process("beatmap", ctx);

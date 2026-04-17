@@ -53,6 +53,12 @@
             gap: 16px;
         }
 
+        .mod-badges {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+        }
+
         .badges div {
             color: white;
             padding: 4px 16px;
@@ -67,6 +73,11 @@
 
         .mod-badge {
             background: linear-gradient(135deg, #ff0000, #ff824d);
+            color: white;
+            padding: 4px 16px;
+            border-radius: 100px;
+            font-size: 1.1em;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
         }
 
         .song-cover {
@@ -420,16 +431,24 @@
 </head>
 <body>
 <div class="root">
-    <div class="rank-status" th:text="${beatmap.status}"
-         th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">
-        Ranked
+    <div class="cover-wrapper" style="position: relative;">
+        <div class="rank-status" th:text="${beatmap.status}"
+             th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">
+            Ranked
+        </div>
+        <div class="badges">
+            <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
+        </div>
+        <div class="mod-badges" th:if="${diff.modded}" th:each="amod : ${diff.getMods()}">
+            <div class="mod-badge" th:text="${amod.getAcronym()}"
+                 th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'">
+                HD
+            </div>
+        </div>
+        <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
+             src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
     </div>
-    <div class="badges">
-        <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
-        <div class="mod-badge" th:if="${diff.modded}" th:text="${diff.getModStr()}">HDHRDT</div>
-    </div>
-    <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
-         src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
+
 
     <div class="meta">
         <div class="song-title" th:text="${beatmap.beatmapset.title}">This Is An Example Song Title That

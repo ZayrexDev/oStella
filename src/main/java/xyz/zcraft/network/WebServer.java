@@ -1,7 +1,6 @@
 package xyz.zcraft.network;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import desu.life.RosuFFI;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -181,6 +180,8 @@ public class WebServer {
 
             final RosuFFI.Mods mods = RosuFFI.Mods.fromAcronyms(mod == null ? "" : mod, RosuFFI.Mode.Osu);
 
+            mods.removeUnknownMods();
+
             perf.setMods(mods);
 
             perf.setAccuracy(98.0);
@@ -267,6 +268,14 @@ public class WebServer {
             if (changingOd) {
                 diffSpec.setOd(od);
             }
+
+            final LinkedList<Mod> modList = new LinkedList<>();
+
+            for (JsonElement jsonElement : JsonParser.parseString(mods.toJson().toString()).getAsJsonArray().asList()) {
+                modList.add(new Gson().fromJson(jsonElement, Mod.class));
+            }
+
+            diffSpec.setMods(modList);
 
             final byte[] bytes = renderer.renderBeatmap(
                     beatmap,

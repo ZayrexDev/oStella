@@ -1,8 +1,10 @@
 package xyz.zcraft.model.beatmap;
 
 import lombok.Data;
+import xyz.zcraft.model.Mod;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public final class DiffSpec implements Serializable {
@@ -26,6 +28,7 @@ public final class DiffSpec implements Serializable {
     private boolean modded = false;
     private double length;
     private double totalLength;
+    private List<Mod> mods;
 
     public String getDiffColor() {
         if (star < 0.1) return "#aaaaaa";
