@@ -180,6 +180,8 @@ public class WebServer {
 
             final RosuFFI.Mods mods = RosuFFI.Mods.fromAcronyms(mod == null ? "" : mod, RosuFFI.Mode.Osu);
 
+            mods.removeUnknownMods();
+
             perf.setMods(mods);
 
             perf.setAccuracy(98.0);

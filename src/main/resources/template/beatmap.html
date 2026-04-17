@@ -54,9 +54,11 @@
         }
 
         .mod-badges {
+            display: flex;
             position: absolute;
             bottom: 12px;
             right: 12px;
+            gap: 8px;
         }
 
         .badges div {
@@ -69,6 +71,11 @@
 
         .spotlight-badge {
             background: linear-gradient(135deg, #00e5ff, #7c4dff, #ff4ecd);
+        }
+
+        .mod-badge {
+            font-size: 1.1em;
+            font-weight: bold;
         }
 
         .mod-badge {
@@ -439,10 +446,10 @@
         <div class="badges">
             <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
         </div>
-        <div class="mod-badges" th:if="${diff.modded}" th:each="amod : ${diff.getMods()}">
-            <div class="mod-badge" th:text="${amod.getAcronym()}"
+        <div class="mod-badges" th:if="${diff.modded}">
+            <div class="mod-badge" th:each="amod : ${diff.getMods()}" th:text="${amod.getAcronym()}"
                  th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'">
-                HD
+                XY
             </div>
         </div>
         <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
