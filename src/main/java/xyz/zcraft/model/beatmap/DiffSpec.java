@@ -82,7 +82,7 @@ public final class DiffSpec implements Serializable {
     public String getIntDiffChangeStr(double diff) {
         if (diff < 0.1 && diff > -0.1) return "~0";
         else if (diff > 0) return "▲" + (int) diff;
-        else return "▼" + (int) diff;
+        else return "▼" + (int) (-diff);
     }
 
     public String getDiffChangeClassSuffix(double diff) {
@@ -93,6 +93,12 @@ public final class DiffSpec implements Serializable {
 
     public String getODString() {
         return "±" + String.format("%.2f", (80 - 6 * od)) + "ms";
+    }
+
+    public String getHPString() {
+        if (hp <= 4) return "awa";
+        else if (hp <= 8) return "owo";
+        else return "qwq";
     }
 
     public String getARString() {

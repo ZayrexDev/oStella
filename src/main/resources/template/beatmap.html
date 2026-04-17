@@ -577,7 +577,7 @@
                     <span class="spec-label">HP</span>
                     <span class="spec-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 2)}">5.00</span>
                 </div>
-                <span class="spec-sub">qwq</span>
+                <span class="spec-sub" th:text="${diff.getHPString()}">qwq</span>
             </div>
         </div>
     </div>

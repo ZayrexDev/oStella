@@ -48,7 +48,9 @@ public class WebServer {
         executor = new AsyncService(conf.maxThreads(), conf.delay());
         cacheService = new BeatmapCacheService();
         app = Javalin.create(cfg -> {
-            cfg.jetty.threadPool = new QueuedThreadPool(Math.max(5, conf.maxThreads() + 3), 2, 60000);
+            final QueuedThreadPool threadPool = new QueuedThreadPool(Math.max(5, conf.maxThreads() + 3), 2, 60000);
+            threadPool.setName("ServPool");
+            cfg.jetty.threadPool = threadPool;
 
             cfg.routes
                     .get("bo", this::getBestOfN)
