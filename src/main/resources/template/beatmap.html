@@ -425,6 +425,11 @@
             margin-bottom: -4px;
         }
 
+        /*noinspection CssUnusedSymbol*/
+        .spec-star-diff.spec-diff-same {
+            display: none;
+        }
+
         .legend-item {
             display: flex;
             align-items: center;
@@ -478,9 +483,8 @@
                      th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">5.78
                 </div>
             </div>
-            <span class="spec-diff"
-                  th:if="${diff.modded}"
-                  th:classappend="${diff.getDiffChangeClass(diff.getStar() - beatmap.getDifficultyRating())}"
+            <span class="spec-diff spec-star-diff"
+                  th:classappend="${'spec-diff' + diff.getDiffChangeClassSuffix(diff.getStar() - beatmap.getDifficultyRating())}"
                   th:text="${diff.getDiffChangeStr(diff.getStar() - beatmap.getDifficultyRating())}">▲1.23
                     </span>
             <div class="diff-title" th:text="${beatmap.version}">This Is An Example Diff</div>
@@ -524,7 +528,7 @@
         <div class="spec-back">
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:classappend="${diff.getDiffChangeClass(diff.getBpm() - beatmap.getBpm())}"
+                      th:classappend="${'spec-diff' + diff.getDiffChangeClassSuffix(diff.getBpm() - beatmap.getBpm())}"
                       th:text="${diff.getIntDiffChangeStr(diff.getBpm() - beatmap.getBpm())}">▲100
                     </span>
                 <div class="spec-item">
@@ -534,7 +538,7 @@
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:classappend="${diff.getDiffChangeClass(diff.getCs() - beatmap.getCs())}"
+                      th:classappend="${'spec-diff' + diff.getDiffChangeClassSuffix(diff.getCs() - beatmap.getCs())}"
                       th:text="${diff.getDiffChangeStr(diff.getCs() -  beatmap.getCs())}">▲1.20</span>
                 <div class="spec-item">
                     <span class="spec-label">CS</span>
@@ -544,7 +548,7 @@
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:classappend="${diff.getDiffChangeClass(diff.getAr() - beatmap.getAr())}"
+                      th:classappend="${'spec-diff' + diff.getDiffChangeClassSuffix(diff.getAr() - beatmap.getAr())}"
                       th:text="${diff.getDiffChangeStr(diff.getAr() -  beatmap.getAr())}">▲1.20</span>
                 <div class="spec-item">
                     <span class="spec-label">AR</span>
@@ -554,7 +558,7 @@
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:classappend="${diff.getDiffChangeClass(diff.getOd() - beatmap.getAccuracy())}"
+                      th:classappend="${'spec-diff' + diff.getDiffChangeClassSuffix(diff.getOd() - beatmap.getAccuracy())}"
                       th:text="${diff.getDiffChangeStr(diff.getOd() -  beatmap.getAccuracy())}">▲1.20</span>
                 <div class="spec-item">
                     <span class="spec-label">OD</span>
@@ -564,7 +568,7 @@
             </div>
             <div class="spec-group">
                 <span class="spec-diff"
-                      th:classappend="${diff.getDiffChangeClass(diff.hp - beatmap.drain)}"
+                      th:classappend="${'spec-diff' + diff.getDiffChangeClassSuffix(diff.hp - beatmap.drain)}"
                       th:text="${diff.getDiffChangeStr(diff.hp -  beatmap.drain)}">▲1.20</span>
                 <div class="spec-item">
                     <span class="spec-label">HP</span>

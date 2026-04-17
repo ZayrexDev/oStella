@@ -85,10 +85,10 @@ public final class DiffSpec implements Serializable {
         else return "▼" + (int) diff;
     }
 
-    public String getDiffChangeClass(double diff) {
-        if (diff < 0.1 && diff > -0.1) return "spec-diff-same";
-        else if (diff > 0) return "spec-diff-up";
-        else return "spec-diff-down";
+    public String getDiffChangeClassSuffix(double diff) {
+        if (diff < 0.1 && diff > -0.1) return "-same";
+        else if (diff > 0) return "-up";
+        else return "-down";
     }
 
     public String getODString() {
