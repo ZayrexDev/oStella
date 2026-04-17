@@ -41,10 +41,9 @@ Here are some demo:
 ## Quick Start (5 Minutes)
 
 1. Create `.env` in the project root.
-2. Build the project.
-3. Install Playwright dependencies if not already present.
-4. Run the fat jar.
-5. Call an endpoint.
+2. Install Playwright dependencies if not already present.
+3. Run.
+4. Call an endpoint.
 
 ### 1) Create `.env`
 
@@ -57,25 +56,19 @@ OSTELLA_DELAY=1000
 OSTELLA_DEBUG=false
 ```
 
-### 2) Build
-
-```shell
-mvn clean package
-```
-
-### 3) Install Playwright Dependencies
+### 2) Install Playwright Dependencies
 
 ```shell
 mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install-deps"
 ```
 
-### 4) Run
+### 3) Run
 
 ```shell
 mvn -U clean compile exec:java
 ```
 
-### 5) Call an Endpoint
+### 4) Call an Endpoint
 
 ```shell
 curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
@@ -85,34 +78,34 @@ curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
 
 Base URL: `http://localhost:<OSTELLA_PORT>`
 
-| Endpoint  | Method | Query     | Response                                      |
-|-----------|--------|-----------|-----------------------------------------------|
-| `/status` | GET    | none      | JSON health message                           |
-| `/bo`     | GET    | `u`, `n`  | `image/png` best-of-N panel                   |
-| `/rs`     | GET    | `u`, `n`  | `image/png` recent-N panel                    |
-| `/m`      | GET    | `m`       | `image/png` beatmap card                      |
-| `/ms`     | GET    | `s`       | `image/png` beatmapset card                   |
-| `/pk`     | GET    | `m`, `u`  | `image/png` PP leaderboard card for a beatmap |
-| `/lb`     | GET    | `u`       | `image/png` user PP leaderboard               |
-| `/mp`     | GET    | none      | JSON list of top multiplayer rooms            |
-| `/daily`  | GET    | none      | JSON daily challenge room info or 404         |
+| Endpoint  | Method | Query    | Response                                      |
+|-----------|--------|----------|-----------------------------------------------|
+| `/status` | GET    | none     | JSON health message                           |
+| `/bo`     | GET    | `u`, `n` | `image/png` best-of-N panel                   |
+| `/rs`     | GET    | `u`, `n` | `image/png` recent-N panel                    |
+| `/m`      | GET    | `m`      | `image/png` beatmap card                      |
+| `/ms`     | GET    | `ms`     | `image/png` beatmapset card                   |
+| `/pk`     | GET    | `m`, `u` | `image/png` PP leaderboard card for a beatmap |
+| `/lb`     | GET    | `u`      | `image/png` user PP leaderboard               |
+| `/mp`     | GET    | none     | JSON list of top multiplayer rooms            |
+| `/daily`  | GET    | none     | JSON daily challenge room info or 404         |
 
 ## Configuration Reference
 
-| Variable              | Required | Default | Description                      |
-|-----------------------|----------|---------|----------------------------------|
-| `OSU_CLIENT_ID`       | yes      | —       | osu! OAuth client id             |
-| `OSU_CLIENT_SECRET`   | yes      | —       | osu! OAuth client secret         |
-| `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                 |
-| `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks |
-| `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests      |
+| Variable              | Required | Default | Description                           |
+|-----------------------|----------|---------|---------------------------------------|
+| `OSU_CLIENT_ID`       | yes      | —       | osu! OAuth client id                  |
+| `OSU_CLIENT_SECRET`   | yes      | —       | osu! OAuth client secret              |
+| `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                      |
+| `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks      |
+| `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests           |
 | `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/debug/bypass` |
 
 Notes:
 
 - `/bo` and `/rs` require `u` and numeric `n`; invalid params return HTTP `400`.
 - `/m` requires numeric `m`; invalid params return HTTP `400`.
-- `/ms` requires numeric `s`; invalid params return HTTP `400`.
+- `/ms` requires numeric `ms`; invalid params return HTTP `400`.
 - `/pk` requires numeric `m` and `u` as one or more usernames/ids separated by commas.
 - `/lb` requires `u` as one or more usernames/ids separated by commas.
 - Score endpoints currently call osu! API with `mode=osu`.
