@@ -20,7 +20,7 @@ import xyz.zcraft.model.user.StatisticsRuleset;
 import xyz.zcraft.model.user.User;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.BeatmapCacheService;
-import xyz.zcraft.service.ScoreRenderService;
+import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.Config;
 import xyz.zcraft.util.TokenManager;
 
@@ -33,7 +33,7 @@ import static xyz.zcraft.util.FormatUtil.isInteger;
 public class WebServer {
     private static final Logger LOG = LogManager.getLogger(WebServer.class);
 
-    private final ScoreRenderService renderer;
+    private final RenderService renderer;
     private final BeatmapCacheService cacheService;
     private final AsyncService executor;
     private final Config conf;
@@ -43,7 +43,7 @@ public class WebServer {
     public WebServer(Config conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        renderer = new ScoreRenderService();
+        renderer = new RenderService();
         executor = new AsyncService(conf.maxThreads(), conf.delay());
         cacheService = new BeatmapCacheService();
         app = Javalin.create(cfg -> {
@@ -63,13 +63,8 @@ public class WebServer {
             if (conf.debug()) {
                 LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
                 cfg.routes.get("/debug/bypass", this::bypassRequest);
-                cfg.routes.get("/debug/fonts", this::fontsDebug);
             }
         });
-    }
-
-    private void fontsDebug(@NotNull Context context) {
-        context.status(200).result(renderer.renderFonts());
     }
 
     private void getLeaderBoard(@NotNull Context context) {

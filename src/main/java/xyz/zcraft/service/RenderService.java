@@ -23,13 +23,19 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 
-public class ScoreRenderService {
-    private static final Logger LOG = LogManager.getLogger(ScoreRenderService.class);
-    private static Playwright playwright;
-    private static Browser browser;
+public class RenderService {
+    private static final Logger LOG = LogManager.getLogger(RenderService.class);
+    private static final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
+        LOG.info("Starting new Playwright instance for Thread: {}", Thread.currentThread().getName());
+        return Playwright.create();
+    });
+    private static final ThreadLocal<Browser> browserLocal = ThreadLocal.withInitial(() -> {
+        LOG.info("Launching Chromium for Thread: {}", Thread.currentThread().getName());
+        return playwrightLocal.get().chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+    });
     private static TemplateEngine templateEngine;
 
-    public ScoreRenderService() {
+    public RenderService() {
         LOG.info("Initializing template resolver");
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setTemplateMode(TemplateMode.HTML);
@@ -40,14 +46,18 @@ public class ScoreRenderService {
         templateEngine.setTemplateResolver(resolver);
 
         LOG.info("Setting up playwright");
+    }
 
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+    private byte[] takeScreenshot(String html) {
+        Browser browser = browserLocal.get();
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            browser.close();
-            playwright.close();
-        }));
+        try (BrowserContext context = browser.newContext(new Browser.NewContextOptions());
+             Page page = context.newPage()) {
+            page.setContent(html);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            page.waitForFunction("() => Array.from(document.images).every(img => img.complete)");
+            return page.locator("body").screenshot();
+        }
     }
 
     public byte[] renderScores(UserExtended user, List<Score> scores, ScoreType type) {
@@ -63,21 +73,7 @@ public class ScoreRenderService {
 
         String finalHtml = templateEngine.process("scores", ctx);
 
-        Page page = browser.newPage();
-
-        page.setViewportSize(1400, 1000);
-
-        page.setContent(finalHtml);
-
-        page.waitForLoadState(LoadState.NETWORKIDLE);
-
-        byte[] screenshotBytes = page.screenshot(
-                new Page.ScreenshotOptions().setFullPage(true)
-        );
-
-        page.close();
-
-        return screenshotBytes;
+        return takeScreenshot(finalHtml);
     }
 
     public byte[] renderPK(BeatmapExtended map, List<Placement> placements, double ppMax) {
@@ -89,21 +85,7 @@ public class ScoreRenderService {
 
         String finalHtml = templateEngine.process("pk", ctx);
 
-        Page page = browser.newPage();
-
-        page.setViewportSize(760, 400);
-
-        page.setContent(finalHtml);
-
-        page.waitForLoadState(LoadState.NETWORKIDLE);
-
-        byte[] screenshotBytes = page.screenshot(
-                new Page.ScreenshotOptions().setFullPage(true)
-        );
-
-        page.close();
-
-        return screenshotBytes;
+        return takeScreenshot(finalHtml);
     }
 
     public byte[] renderLeaderboard(List<User> users) {
@@ -113,21 +95,7 @@ public class ScoreRenderService {
 
         String finalHtml = templateEngine.process("leaderboard", ctx);
 
-        Page page = browser.newPage();
-
-        page.setViewportSize(760, 400);
-
-        page.setContent(finalHtml);
-
-        page.waitForLoadState(LoadState.NETWORKIDLE);
-
-        byte[] screenshotBytes = page.screenshot(
-                new Page.ScreenshotOptions().setFullPage(true)
-        );
-
-        page.close();
-
-        return screenshotBytes;
+        return takeScreenshot(finalHtml);
     }
 
     public byte[] renderBeatmap(BeatmapExtended map, DiffSpec spec) {
@@ -139,21 +107,7 @@ public class ScoreRenderService {
 
         String finalHtml = templateEngine.process("beatmap", ctx);
 
-        Page page = browser.newPage();
-
-        page.setViewportSize(960, 760);
-
-        page.setContent(finalHtml);
-
-        page.waitForLoadState(LoadState.NETWORKIDLE);
-
-        byte[] screenshotBytes = page.screenshot(
-                new Page.ScreenshotOptions().setFullPage(true)
-        );
-
-        page.close();
-
-        return screenshotBytes;
+        return takeScreenshot(finalHtml);
     }
 
     public byte[] renderBeatmapset(Beatmapset beatmapset) {
@@ -165,40 +119,6 @@ public class ScoreRenderService {
 
         String finalHtml = templateEngine.process("beatmapset", ctx);
 
-        Page page = browser.newPage();
-
-        page.setViewportSize(1060, 880);
-
-        page.setContent(finalHtml);
-
-        page.waitForLoadState(LoadState.NETWORKIDLE);
-
-        byte[] screenshotBytes = page.screenshot(
-                new Page.ScreenshotOptions().setFullPage(true)
-        );
-
-        page.close();
-
-        return screenshotBytes;
-    }
-
-    public byte[] renderFonts() {
-        String finalHtml = templateEngine.process("fonts", new Context());
-
-        Page page = browser.newPage();
-
-        page.setViewportSize(960, 760);
-
-        page.setContent(finalHtml);
-
-        page.waitForLoadState(LoadState.NETWORKIDLE);
-
-        byte[] screenshotBytes = page.screenshot(
-                new Page.ScreenshotOptions().setFullPage(true)
-        );
-
-        page.close();
-
-        return screenshotBytes;
+        return takeScreenshot(finalHtml);
     }
 }
