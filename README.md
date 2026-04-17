@@ -66,7 +66,7 @@ mvn clean package
 ### 3) Install Playwright Dependencies
 
 ```shell
-mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install-deps"
+mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install-deps"
 ```
 
 ### 4) Run
