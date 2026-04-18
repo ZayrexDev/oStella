@@ -79,13 +79,17 @@
             background: linear-gradient(135deg, #00e5ff, #7c4dff, #ff4ecd);
         }
 
+        .nsfw-badge {
+            background: linear-gradient(135deg, #ff0000, #ff774d);
+        }
+
         .mod-badge {
             font-size: 1.1em;
             font-weight: bold;
         }
 
         .mod-badge {
-            background: linear-gradient(135deg, #ff0000, #ff824d);
+            background: red;
             color: white;
             padding: 4px 16px;
             border-radius: 100px;
@@ -307,7 +311,7 @@
             position: relative;
             display: flex;
             text-align: end;
-            gap: 4px;
+            gap: 8px;
         }
 
         .spec-front {
@@ -456,6 +460,7 @@
         </div>
         <div class="badges">
             <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
+            <div class="nsfw-badge" th:if="${beatmap.beatmapset.getNsfw()}">NSFW</div>
         </div>
         <div class="mod-badges" th:if="${diff.modded}">
             <div class="mod-badge" th:each="amod : ${diff.getMods()}" th:text="${amod.getAcronym()}"

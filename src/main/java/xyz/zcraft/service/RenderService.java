@@ -27,7 +27,9 @@ public class RenderService {
     private static final Logger LOG = LogManager.getLogger(RenderService.class);
     private static final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
         LOG.info("Starting new Playwright instance for Thread: {}", Thread.currentThread().getName());
-        return Playwright.create();
+        final Playwright playwright = Playwright.create();
+        LOG.info("Created new Playwright instance for Thread: {}", Thread.currentThread().getName());
+        return playwright;
     });
     private static final ThreadLocal<Browser> browserLocal = ThreadLocal.withInitial(() -> {
         LOG.info("Launching Chromium for Thread: {}", Thread.currentThread().getName());
