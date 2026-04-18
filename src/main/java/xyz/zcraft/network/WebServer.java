@@ -181,6 +181,7 @@ public class WebServer {
             final RosuFFI.Mods mods = RosuFFI.Mods.fromAcronyms(mod == null ? "" : mod, RosuFFI.Mode.Osu);
 
             mods.removeUnknownMods();
+            mods.sanitize();
 
             perf.setMods(mods);
 
