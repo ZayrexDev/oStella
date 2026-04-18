@@ -1,8 +1,10 @@
 package xyz.zcraft.model.beatmap;
 
 import lombok.Data;
+import xyz.zcraft.model.Mod;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public final class DiffSpec implements Serializable {
@@ -26,6 +28,7 @@ public final class DiffSpec implements Serializable {
     private boolean modded = false;
     private double length;
     private double totalLength;
+    private List<Mod> mods;
 
     public String getDiffColor() {
         if (star < 0.1) return "#aaaaaa";
@@ -79,17 +82,23 @@ public final class DiffSpec implements Serializable {
     public String getIntDiffChangeStr(double diff) {
         if (diff < 0.1 && diff > -0.1) return "~0";
         else if (diff > 0) return "▲" + (int) diff;
-        else return "▼" + (int) diff;
+        else return "▼" + (int) (-diff);
     }
 
-    public String getDiffChangeClass(double diff) {
-        if (diff < 0.1 && diff > -0.1) return "spec-diff-same";
-        else if (diff > 0) return "spec-diff-up";
-        else return "spec-diff-down";
+    public String getDiffChangeClassSuffix(double diff) {
+        if (diff < 0.1 && diff > -0.1) return "-same";
+        else if (diff > 0) return "-up";
+        else return "-down";
     }
 
     public String getODString() {
         return "±" + String.format("%.2f", (80 - 6 * od)) + "ms";
+    }
+
+    public String getHPString() {
+        if (hp <= 4) return "awa";
+        else if (hp <= 8) return "owo";
+        else return "qwq";
     }
 
     public String getARString() {

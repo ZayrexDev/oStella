@@ -2,6 +2,7 @@ package xyz.zcraft.model.score;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
+import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
 
@@ -58,6 +59,19 @@ public class Score {
     public Long score;
     public BeatmapExtended beatmap;
     public Beatmapset beatmapset;
+    public Weight weight;
+
+    public List<Mod> getModsList() {
+        return mods.stream().map(s -> new Mod(s, null)).toList();
+    }
+
+    public String getWeightPP() {
+        if (weight != null && weight.percentage != null && weight.pp != null) {
+            return String.format("%d%% ↪%.1fpp", weight.percentage.intValue(), weight.pp);
+        } else {
+            return "--% ↪--pp";
+        }
+    }
 
     public String getRankColor() {
         return switch (rank) {
@@ -85,5 +99,11 @@ public class Score {
     }
 
     public static class ScoreStatistics extends HashMap<String, Long> {
+    }
+
+    @Data
+    public static class Weight {
+        private Double percentage;
+        private Double pp;
     }
 }

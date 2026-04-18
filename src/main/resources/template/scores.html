@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html" lang="en">
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,11 +11,14 @@
         }
 
         body {
+            margin: 0;
+            padding: 24px;
+            width: fit-content;
+            height: fit-content;
+
             background-color: #1a1a2e;
             color: white;
             font-family: 'Dejavu Sans', Tahoma, Geneva, Verdana, sans-serif !important;
-            padding: 40px 40px 10px 40px;
-            width: 1800px;
         }
 
         .profile-header {
@@ -208,7 +211,7 @@
         .card {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
-            padding: 12px;
+            padding: 12px 12px 4px 12px;
             position: relative;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             width: 400px; /* Changed to 100% to fit the grid perfectly */
@@ -216,6 +219,10 @@
             align-content: center;
             justify-content: center;
             align-items: center;
+        }
+
+        .song-cover {
+            position: relative;
         }
 
         .jacket {
@@ -229,29 +236,39 @@
 
         .rank-badge {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            bottom: 10px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+            border-radius: 6px;
             background: linear-gradient(135deg, #f1c40f, #e67e22);
             color: white;
             font-weight: 900;
-            padding: 4px 10px;
-            border-radius: 6px;
+            font-size: 1.3em;
+            text-align: center;
+            align-content: center;
+        }
+
+        .mod-badges {
+            display: flex;
+            gap: 8px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            color: white;
+            font-weight: 900;
             font-size: 1.1em;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+            justify-content: end;
+            flex-flow: wrap;
         }
 
         .mod-badge {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #f1c40f, #e67e22);
-            color: white;
-            font-weight: 900;
             padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 1.1em;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-            fill: white;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f1c40f, #e67e22);
         }
 
         .song-title {
@@ -286,7 +303,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        .score-record {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
             color: #a0a0b8;
+            margin-top: 6px;
         }
 
         .pp-number {
@@ -499,12 +524,18 @@
 
 <div class="grid-container">
     <div class="card" th:each="score : ${scores}">
-        <div class="rank-badge" th:text="${score.rank}" th:style="'background:' + ${score.getRankColor()}">SS</div>
-        <div class="mod-badge" th:if="${score.mods != null and !score.mods.isEmpty()}" th:text="${score.mods}">HD HR
-        </div>
-        <img class="jacket" th:src="${score.beatmapset.covers.slimcover}"
-             src="https://assets.ppy.sh/beatmaps/320118/covers/slimcover.jpg?1650632079"
-             alt="jacket">
+        <div class="song-cover">
+            <div class="rank-badge" th:text="${score.rank}" th:style="'background:' + ${score.getRankColor()}">SS</div>
+            <div class="mod-badges" th:if="${score.mods != null and !score.mods.isEmpty()}">
+                <div class="mod-badge" th:each="amod : ${score.getModsList()}" th:text="${amod.getAcronym()}"
+                     th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'">
+                    AA
+                </div>
+            </div>
+            <img class="jacket" th:src="${score.beatmapset.covers.slimcover}"
+                 src="https://assets.ppy.sh/beatmaps/320118/covers/slimcover.jpg?1650632079"
+                 alt="jacket"></div>
+
         <div class="song-title" th:text="${score.beatmapset.title}">This Is An Example Song Title</div>
         <div class="title-sub">
             <div class="song-artist" th:text="${score.beatmapset.artist}">This Is An Example Artist</div>
@@ -512,7 +543,8 @@
         </div>
         <div class="diff">
             <div class="diff-badge" th:style="'background: ' + ${score.beatmap.diffColor} + ';'">
-                <svg class="diff-star" th:style="'fill: ' + ${score.beatmap.diffTextColor} + ';'" viewBox="0 0 20 20">
+                <svg class="diff-star" th:style="'fill: ' + ${score.beatmap.diffTextColor} + ';'"
+                     viewBox="0 0 20 20">
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                 </svg>
                 <div class="diff-rating" th:style="'color: ' + ${score.beatmap.diffTextColor} + ';'"
@@ -531,13 +563,17 @@
                 <span class="hit-count-miss" th:text="${score.statistics.get('count_miss')}">0</span>
             </div>
             <span class="pp-number"
-                  th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 0, 0) + 'pp' : '--pp'}">222pp</span>
+                  th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 1, 1) + 'pp' : '--pp'}">222pp</span>
         </div>
         <div class="score-stats">
+                <span class="acc-number"
+                      th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '%'">100.00%</span>
             <span class="combo-number" th:text="${score.maxCombo} + 'x'">444x</span>
+            <div class="score-id" th:text="${score.getWeightPP()}">↪123.45pp</div>
+        </div>
+        <div class="score-record">
+            <div class="score-id" th:text="'S' + ${score.getId()}">S1234567890</div>
             <span class="score-time" th:text="${score.createdAt}">2026-04-11T23:30:27Z</span>
-            <span class="acc-number"
-                  th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '%'">100.00%</span>
         </div>
     </div>
 </div>

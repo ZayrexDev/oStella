@@ -1,12 +1,12 @@
 package xyz.zcraft.network;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import desu.life.RosuFFI;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.MultiplayerRoom;
@@ -21,7 +21,7 @@ import xyz.zcraft.model.user.StatisticsRuleset;
 import xyz.zcraft.model.user.User;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.BeatmapCacheService;
-import xyz.zcraft.service.ScoreRenderService;
+import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.Config;
 import xyz.zcraft.util.TokenManager;
 
@@ -34,7 +34,7 @@ import static xyz.zcraft.util.FormatUtil.isInteger;
 public class WebServer {
     private static final Logger LOG = LogManager.getLogger(WebServer.class);
 
-    private final ScoreRenderService renderer;
+    private final RenderService renderer;
     private final BeatmapCacheService cacheService;
     private final AsyncService executor;
     private final Config conf;
@@ -44,10 +44,14 @@ public class WebServer {
     public WebServer(Config conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        renderer = new ScoreRenderService();
+        renderer = new RenderService();
         executor = new AsyncService(conf.maxThreads(), conf.delay());
         cacheService = new BeatmapCacheService();
         app = Javalin.create(cfg -> {
+            final QueuedThreadPool threadPool = new QueuedThreadPool(Math.max(5, conf.maxThreads() + 3), 2, 60000);
+            threadPool.setName("ServPool");
+            cfg.jetty.threadPool = threadPool;
+
             cfg.routes
                     .get("bo", this::getBestOfN)
                     .get("daily", this::getDaily)
@@ -64,13 +68,8 @@ public class WebServer {
             if (conf.debug()) {
                 LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
                 cfg.routes.get("/debug/bypass", this::bypassRequest);
-                cfg.routes.get("/debug/fonts", this::fontsDebug);
             }
         });
-    }
-
-    private void fontsDebug(@NotNull Context context) {
-        context.status(200).result(renderer.renderFonts());
     }
 
     private void getLeaderBoard(@NotNull Context context) {
@@ -181,6 +180,9 @@ public class WebServer {
 
             final RosuFFI.Mods mods = RosuFFI.Mods.fromAcronyms(mod == null ? "" : mod, RosuFFI.Mode.Osu);
 
+            mods.removeUnknownMods();
+            mods.sanitize();
+
             perf.setMods(mods);
 
             perf.setAccuracy(98.0);
@@ -267,6 +269,14 @@ public class WebServer {
             if (changingOd) {
                 diffSpec.setOd(od);
             }
+
+            final LinkedList<Mod> modList = new LinkedList<>();
+
+            for (JsonElement jsonElement : JsonParser.parseString(mods.toJson().toString()).getAsJsonArray().asList()) {
+                modList.add(new Gson().fromJson(jsonElement, Mod.class));
+            }
+
+            diffSpec.setMods(modList);
 
             final byte[] bytes = renderer.renderBeatmap(
                     beatmap,

@@ -21,16 +21,16 @@ and also provides a standalone API for other clients to consume.
 Here are some demo:
 
 ### Best-of-N
-<img width="900" alt="image" src="https://github.com/user-attachments/assets/f4ff6ac7-b241-4c6b-956e-9c258c27faa7" />
+<img width="800" alt="5b3c818dc2ee31c34006912b94a964ec" src="https://github.com/user-attachments/assets/e327de4d-3816-401b-ba0e-366ac743f412" />
 
 ### Beatmap Card
-<img width="400" alt="88dee933d3192634cd7fe917b9906857" src="https://github.com/user-attachments/assets/7eea1908-9821-469d-873e-c9ea63f2ef78" />
+<img width="400" alt="92e9c2fbfe193288f1d548a995907224" src="https://github.com/user-attachments/assets/879d6d89-8dbf-4d49-925f-088db7d48eeb" />
 
 ### Group Leaderboard
-<img width="400" alt="1f9303d67a65a32c0d4ed531bd48eaad" src="https://github.com/user-attachments/assets/95d41c25-ce01-4587-a8f9-9450c780d8f8" />
+<img width="400" alt="4152ccfa0c05510f5271368832d150d3" src="https://github.com/user-attachments/assets/faf2e03a-3fc4-4f32-8980-b7f54f1be0ab" />
 
 ### Beatmapset Card
-<img width="400" alt="03403d77bf6c381b67d17f89da0d82f8" src="https://github.com/user-attachments/assets/be48925b-1fe4-4b8b-8890-41a34763560c" />
+<img width="400" alt="2fe68add23352fb2dd7822747ad0a8a0" src="https://github.com/user-attachments/assets/50b0395b-a3be-48e6-9c1e-024f7de7e59a" />
 
 ## Prerequisites
 
@@ -41,10 +41,9 @@ Here are some demo:
 ## Quick Start (5 Minutes)
 
 1. Create `.env` in the project root.
-2. Build the project.
-3. Install Playwright dependencies if not already present.
-4. Run the fat jar.
-5. Call an endpoint.
+2. Install Playwright dependencies if not already present.
+3. Run.
+4. Call an endpoint.
 
 ### 1) Create `.env`
 
@@ -57,25 +56,19 @@ OSTELLA_DELAY=1000
 OSTELLA_DEBUG=false
 ```
 
-### 2) Build
+### 2) Install Playwright Dependencies
 
 ```shell
-mvn clean package
+mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install-deps"
 ```
 
-### 3) Install Playwright Dependencies
-
-```shell
-mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install-deps"
-```
-
-### 4) Run
+### 3) Run
 
 ```shell
 mvn -U clean compile exec:java
 ```
 
-### 5) Call an Endpoint
+### 4) Call an Endpoint
 
 ```shell
 curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
@@ -85,34 +78,34 @@ curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
 
 Base URL: `http://localhost:<OSTELLA_PORT>`
 
-| Endpoint  | Method | Query     | Response                                      |
-|-----------|--------|-----------|-----------------------------------------------|
-| `/status` | GET    | none      | JSON health message                           |
-| `/bo`     | GET    | `u`, `n`  | `image/png` best-of-N panel                   |
-| `/rs`     | GET    | `u`, `n`  | `image/png` recent-N panel                    |
-| `/m`      | GET    | `m`       | `image/png` beatmap card                      |
-| `/ms`     | GET    | `s`       | `image/png` beatmapset card                   |
-| `/pk`     | GET    | `m`, `u`  | `image/png` PP leaderboard card for a beatmap |
-| `/lb`     | GET    | `u`       | `image/png` user PP leaderboard               |
-| `/mp`     | GET    | none      | JSON list of top multiplayer rooms            |
-| `/daily`  | GET    | none      | JSON daily challenge room info or 404         |
+| Endpoint  | Method | Query    | Response                                      |
+|-----------|--------|----------|-----------------------------------------------|
+| `/status` | GET    | none     | JSON health message                           |
+| `/bo`     | GET    | `u`, `n` | `image/png` best-of-N panel                   |
+| `/rs`     | GET    | `u`, `n` | `image/png` recent-N panel                    |
+| `/m`      | GET    | `m`      | `image/png` beatmap card                      |
+| `/ms`     | GET    | `ms`     | `image/png` beatmapset card                   |
+| `/pk`     | GET    | `m`, `u` | `image/png` PP leaderboard card for a beatmap |
+| `/lb`     | GET    | `u`      | `image/png` user PP leaderboard               |
+| `/mp`     | GET    | none     | JSON list of top multiplayer rooms            |
+| `/daily`  | GET    | none     | JSON daily challenge room info or 404         |
 
 ## Configuration Reference
 
-| Variable              | Required | Default | Description                      |
-|-----------------------|----------|---------|----------------------------------|
-| `OSU_CLIENT_ID`       | yes      | —       | osu! OAuth client id             |
-| `OSU_CLIENT_SECRET`   | yes      | —       | osu! OAuth client secret         |
-| `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                 |
-| `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks |
-| `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests      |
+| Variable              | Required | Default | Description                           |
+|-----------------------|----------|---------|---------------------------------------|
+| `OSU_CLIENT_ID`       | yes      | —       | osu! OAuth client id                  |
+| `OSU_CLIENT_SECRET`   | yes      | —       | osu! OAuth client secret              |
+| `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                      |
+| `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks      |
+| `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests           |
 | `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/debug/bypass` |
 
 Notes:
 
 - `/bo` and `/rs` require `u` and numeric `n`; invalid params return HTTP `400`.
 - `/m` requires numeric `m`; invalid params return HTTP `400`.
-- `/ms` requires numeric `s`; invalid params return HTTP `400`.
+- `/ms` requires numeric `ms`; invalid params return HTTP `400`.
 - `/pk` requires numeric `m` and `u` as one or more usernames/ids separated by commas.
 - `/lb` requires `u` as one or more usernames/ids separated by commas.
 - Score endpoints currently call osu! API with `mode=osu`.
