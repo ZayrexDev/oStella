@@ -88,7 +88,7 @@ public class Beatmapset {
 
     public List<Integer> ratings;
     public Double rating;
-    public Integer bpm;
+    public Double bpm;
 
     public String getRatingString() {
         return Optional.ofNullable(rating)
