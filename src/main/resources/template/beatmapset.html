@@ -90,6 +90,14 @@
             background: linear-gradient(135deg, #ff4e6a, #ff8a00);
         }
 
+        .badge-storyboard {
+            background: linear-gradient(135deg, #73ff00, #4dffb5);
+        }
+
+        .badge-nsfw {
+            background: linear-gradient(135deg, #ff0000, #ff774d);
+        }
+
         .set-title {
             font-size: 2.6em;
             font-weight: 900;
@@ -126,7 +134,7 @@
             border-radius: 12px;
             padding: 16px 18px;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 14px;
         }
 
@@ -152,7 +160,7 @@
         }
 
         .tags {
-            grid-column: span 4;
+            grid-column: span 5;
             color: #a0a0b8;
             font-size: 0.95em;
             line-height: 1.4;
@@ -284,6 +292,8 @@
         <div class="banner-badges">
             <span class="badge-spotlight" th:if="${beatmapset.spotlight}">SPOTLIGHT</span>
             <span class="badge-video" th:if="${beatmapset.video}">VIDEO</span>
+            <span class="badge-storyboard" th:if="${beatmapset.storyboard}">STORYBOARD</span>
+            <span class="badge-nsfw" th:if="${beatmapset.nsfw}">NSFW</span>
         </div>
         <div class="banner-overlay">
             <div class="set-title" th:text="${beatmapset.title}">No title</div>
@@ -298,6 +308,26 @@
         <div class="detail-item">
             <span class="detail-label">Creator</span>
             <span class="detail-value" th:text="${beatmapset.creator}">VINXIS</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Source</span>
+            <span class="detail-value" th:text="${beatmapset.getSourceString()}">--</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Genre</span>
+            <span class="detail-value" th:text="${beatmapset.getGenreString()}">--</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Language</span>
+            <span class="detail-value" th:text="${beatmapset.getLanguageString()}">--</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">BPM</span>
+            <span class="detail-value" th:text="${beatmapset.getBpm()}">200</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Rating</span>
+            <span class="detail-value" th:text="${beatmapset.getRatingString()}">9.23</span>
         </div>
         <div class="detail-item">
             <span class="detail-label">Play Count</span>

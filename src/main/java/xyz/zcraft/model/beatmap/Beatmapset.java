@@ -6,6 +6,7 @@ import lombok.Data;
 import xyz.zcraft.model.user.UserExtended;
 
 import java.util.List;
+import java.util.Optional;
 
 @Data
 public class Beatmapset {
@@ -35,6 +36,12 @@ public class Beatmapset {
 
     public String source;
 
+    @SerializedName("genre_id")
+    public Integer genreId;
+
+    @SerializedName("language_id")
+    public Integer languageId;
+
     public String status;
     public String tags;
 
@@ -49,6 +56,7 @@ public class Beatmapset {
     public Long userId;
 
     public Boolean video;
+    public Boolean storyboard;
 
     public List<BeatmapExtended> beatmaps;
 
@@ -79,6 +87,14 @@ public class Beatmapset {
     public List<String> packTags;
 
     public List<Integer> ratings;
+    public Double rating;
+    public Double bpm;
+
+    public String getRatingString() {
+        return Optional.ofNullable(rating)
+                .map(r -> String.format("%.2f", r))
+                .orElse("--");
+    }
 
     @SerializedName("recent_favourites")
     public List<UserExtended> recentFavourites;
@@ -90,6 +106,27 @@ public class Beatmapset {
 
     @SerializedName("track_id")
     public Long trackId;
+
+    public String getGenreString() {
+        return Optional.ofNullable(genre)
+                .map(g -> g.name)
+                .filter(s -> !s.isBlank())
+
+                .orElse("--");
+    }
+
+    public String getSourceString() {
+        return Optional.ofNullable(source)
+                .filter(s -> !s.isBlank())
+                .orElse("--");
+    }
+
+    public String getLanguageString() {
+        return Optional.ofNullable(language)
+                .map(k -> k.name)
+                .filter(s -> !s.isBlank())
+                .orElse("--");
+    }
 
     @Data
     public static class Description {

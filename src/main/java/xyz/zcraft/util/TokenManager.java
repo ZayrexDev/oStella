@@ -26,18 +26,15 @@ public class TokenManager {
     }
 
     private void renewToken() {
-        if (tokenData == null || tokenData.token() == null ||
-                System.currentTimeMillis() - tokenData.tokenGrantTime() >= tokenData.expiresIn() * 1000) {
-            tokenData = OsuAPI.getToken(conf);
-            LOG.info("Token renewed, expires in {}", tokenData.expiresIn());
+        tokenData = OsuAPI.getToken(conf);
+        LOG.info("Token renewed, expires in {}", tokenData.expiresIn());
 
-            timer.schedule(new java.util.TimerTask() {
-                @Override
-                public void run() {
-                    LOG.info("Preparing to renew token");
-                    renewToken();
-                }
-            }, (tokenData.expiresIn() - 60) * 1000);
-        }
+        timer.schedule(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                LOG.info("Preparing to renew token");
+                renewToken();
+            }
+        }, (tokenData.expiresIn() - 60) * 1000);
     }
 }
