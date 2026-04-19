@@ -63,7 +63,10 @@ public class WebServer {
                     .get("lb", this::getLeaderBoard)
                     .get("status", this::getServerStatus)
                     .before(ctx -> LOG.info("{} - {} {}", ctx.ip(), ctx.method(), ctx.path()))
-                    .exception(Exception.class, (e, ctx) -> LOG.error("An error occurred while processing request: {}", ctx.queryString(), e));
+                    .exception(Exception.class, (e, ctx) -> {
+                        ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+                        LOG.error("An error occurred while processing request: {}", ctx.queryString(), e);
+                    });
 
             if (conf.debug()) {
                 LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
