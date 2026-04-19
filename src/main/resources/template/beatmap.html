@@ -83,6 +83,11 @@
             background: linear-gradient(135deg, #ff0000, #ff774d);
         }
 
+        .storyboard-badge,
+        .video-badge {
+            background: linear-gradient(135deg, #73ff00, #4dffb5);
+        }
+
         .mod-badge {
             font-size: 1.1em;
             font-weight: bold;
@@ -459,8 +464,10 @@
             Ranked
         </div>
         <div class="badges">
-            <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
+            <div class="storyboard-badge" th:if="${beatmap.beatmapset.getStoryboard()}">STORYBOARD</div>
+            <div class="video-badge" th:if="${beatmap.beatmapset.getVideo()}">VIDEO</div>
             <div class="nsfw-badge" th:if="${beatmap.beatmapset.getNsfw()}">NSFW</div>
+            <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
         </div>
         <div class="mod-badges" th:if="${diff.modded}">
             <div class="mod-badge" th:each="amod : ${diff.getMods()}" th:text="${amod.getAcronym()}"
@@ -628,12 +635,16 @@
                 </div>
             </div>
             <div class="stat">
+                <div class="stat-label">Source</div>
+                <span th:text="${beatmap.getBeatmapset().getSourceString()}">--</span>
+            </div>
+            <div class="stat">
                 <div class="stat-label">Tags</div>
                 <span th:text="${beatmap.getTagString()}">tag tag tag tag tag tag tag tag tag tag tag tag tag tag tag</span>
             </div>
         </div>
         <div class="chart-row-layout">
-            <div class="chart-wrapper" style="flex-grow: 1; height: 60px; position: relative;">
+            <div class="chart-wrapper" style="flex-grow: 1; height: 100px; position: relative;">
                 <canvas id="failChart"></canvas>
             </div>
             <div class="side-legend">
