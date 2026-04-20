@@ -383,8 +383,8 @@
             <div class="grade-letter" th:text="${score.getRank()}" th:style="'color: ' + ${score.getRankColor()}">S
             </div>
             <div class="id-info">
-                <div th:text="${score.getBeatmapset().getId() + ' - ' + score.getBeatmap().getId()}">MS1234567 - M1234567</div>
-                <div th:text="${score.getUser().getId() + ' - ' + score.getId()}">U123456789 - S1234567890</div>
+                <div th:text="${'MS' + score.getBeatmapset().getId() + ' - ' + 'M' + score.getBeatmap().getId()}">MS1234567 - M1234567</div>
+                <div th:text="${'U' + score.getUser().getId() + ' - ' + 'S' + score.getId()}">U123456789 - S1234567890</div>
             </div>
         </div>
     </div>
