@@ -57,6 +57,24 @@ public class OsuAPI {
         }
     }
 
+    public static Score getScore(TokenData tokenData, String scoreId) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/scores/" + scoreId)
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+
+            return GSON.fromJson(body, Score.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get user!", e);
+        }
+    }
+
     public static List<Score> getUserScores(TokenData tokenData, String id, ScoreType mode, int limit, boolean includeFails) {
         try {
             final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", id, mode.name().toLowerCase(), limit, includeFails ? 1 : 0))
@@ -232,6 +250,19 @@ public class OsuAPI {
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
                 .header("Authorization", "Bearer " + tokenData.token());
+    }
+
+    public static byte[] getImageBytes(String url) {
+        try {
+            final var request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .build();
+
+            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 

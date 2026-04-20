@@ -2,17 +2,13 @@ package xyz.zcraft.model.beatmap;
 
 import lombok.Data;
 import xyz.zcraft.model.Mod;
+import xyz.zcraft.util.Colors;
 
 import java.io.Serializable;
 import java.util.List;
 
 @Data
 public final class DiffSpec implements Serializable {
-    private static final double[] STAR_THRESHOLDS = {0.1, 1.25, 2.0, 2.5, 3.3, 4.2, 4.9, 5.8, 6.7, 7.7, 9.0};
-    private static final String[] STAR_COLORS = {
-            "#4290fb", "#4fc0ff", "#4fffd5", "#7cff4f", "#f6f05c",
-            "#ff8068", "#ff4e6f", "#c645b8", "#6563de", "#18158e", "#000000"
-    };
     private double ppSS;
     private double ppFC;
     private double pp95;
@@ -31,38 +27,11 @@ public final class DiffSpec implements Serializable {
     private List<Mod> mods;
 
     public String getDiffColor() {
-        if (star < 0.1) return "#aaaaaa";
-        if (star >= 9.0) return "#000000";
-
-        for (int i = 0; i < STAR_THRESHOLDS.length - 1; i++) {
-            if (star >= STAR_THRESHOLDS[i] && star < STAR_THRESHOLDS[i + 1]) {
-                double range = STAR_THRESHOLDS[i + 1] - STAR_THRESHOLDS[i];
-                double ratio = (star - STAR_THRESHOLDS[i]) / range;
-
-                return interpolateHex(STAR_COLORS[i], STAR_COLORS[i + 1], ratio);
-            }
-        }
-        return "#000000";
+        return Colors.getBeatmapDiffColor(star);
     }
 
     public String getDiffTextColor() {
-        return star < 6.5 ? "#000000" : "#ffffff";
-    }
-
-    private String interpolateHex(String hex1, String hex2, double ratio) {
-        int r1 = Integer.valueOf(hex1.substring(1, 3), 16);
-        int g1 = Integer.valueOf(hex1.substring(3, 5), 16);
-        int b1 = Integer.valueOf(hex1.substring(5, 7), 16);
-
-        int r2 = Integer.valueOf(hex2.substring(1, 3), 16);
-        int g2 = Integer.valueOf(hex2.substring(3, 5), 16);
-        int b2 = Integer.valueOf(hex2.substring(5, 7), 16);
-
-        int r = (int) Math.round(r1 + (r2 - r1) * ratio);
-        int g = (int) Math.round(g1 + (g2 - g1) * ratio);
-        int b = (int) Math.round(b1 + (b2 - b1) * ratio);
-
-        return String.format("#%02x%02x%02x", r, g, b);
+        return Colors.getBeatmapDiffTextColor(star);
     }
 
     public String getLengthStr() {

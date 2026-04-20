@@ -471,7 +471,7 @@
                 XY
             </div>
         </div>
-        <img class="song-cover" th:src="${beatmap.beatmapset.covers.cover}"
+        <img class="song-cover" th:src="${cache.getImageBase64(beatmap.getBeatmapset().getCovers().getCover())}"
              src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
     </div>
 

@@ -11,4 +11,15 @@ public class FormatUtil {
         }
         return true;
     }
+
+    public static boolean isLong(String... str) {
+        for (String s : str) {
+            try {
+                Long.parseLong(s);
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

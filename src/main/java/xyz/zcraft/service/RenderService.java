@@ -26,6 +26,7 @@ import java.util.List;
 
 public class RenderService implements AutoCloseable{
     private static final Logger LOG = LogManager.getLogger(RenderService.class);
+    private final CacheService cacheService;
     private final LinkedList<AutoCloseable>  resources = new LinkedList<>();
     private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
         LOG.info("Starting new Playwright instance for Thread: {}", Thread.currentThread().getName());
@@ -49,11 +50,13 @@ public class RenderService implements AutoCloseable{
     });
     private final TemplateEngine templateEngine;
 
-    public RenderService() {
+    public RenderService(CacheService cacheService) {
+        this.cacheService = cacheService;
+
         LOG.info("Initializing template resolver");
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setTemplateMode(TemplateMode.HTML);
-        resolver.setPrefix("/template/"); // Looks in src/main/resources/templates/
+        resolver.setPrefix("/template/"); // Looks in src/main/resources/template/
         resolver.setSuffix(".html");
 
         templateEngine = new TemplateEngine();
@@ -76,6 +79,7 @@ public class RenderService implements AutoCloseable{
 
     public byte[] renderScores(UserExtended user, List<Score> scores, ScoreType type) {
         Context ctx = new Context();
+        ctx.setVariable("cache", cacheService);
         ctx.setVariable("user", user);
         ctx.setVariable("scores", scores);
         ctx.setVariable("type", switch (type) {
@@ -92,6 +96,7 @@ public class RenderService implements AutoCloseable{
 
     public byte[] renderPK(BeatmapExtended map, List<Placement> placements, double ppMax) {
         Context ctx = new Context();
+        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmap", map);
         ctx.setVariable("placements", placements);
         ctx.setVariable("ppMax", ppMax);
@@ -104,6 +109,7 @@ public class RenderService implements AutoCloseable{
 
     public byte[] renderLeaderboard(List<User> users) {
         Context ctx = new Context();
+        ctx.setVariable("cache", cacheService);
         ctx.setVariable("users", users);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
@@ -114,6 +120,7 @@ public class RenderService implements AutoCloseable{
 
     public byte[] renderBeatmap(BeatmapExtended map, DiffSpec spec) {
         Context ctx = new Context();
+        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmap", map);
         ctx.setVariable("diff", spec);
         ctx.setVariable("diff", spec);
@@ -124,10 +131,23 @@ public class RenderService implements AutoCloseable{
         return takeScreenshot(finalHtml);
     }
 
+    public byte[] renderScore(Score score, DiffSpec spec) {
+        Context ctx = new Context();
+        ctx.setVariable("cache", cacheService);
+        ctx.setVariable("score", score);
+        ctx.setVariable("diff", spec);
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        String finalHtml = templateEngine.process("ascore", ctx);
+
+        return takeScreenshot(finalHtml);
+    }
+
     public byte[] renderBeatmapset(Beatmapset beatmapset) {
         beatmapset.getBeatmaps().sort(Comparator.comparingDouble(Beatmap::getDifficultyRating));
 
         Context ctx = new Context();
+        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmapset", beatmapset);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 

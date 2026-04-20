@@ -319,7 +319,7 @@
 <body>
 
 <div class="pk-card">
-    <div class="pk-banner" th:style="'background-image: url(' + ${beatmap.beatmapset.covers.cover} + ');'"
+    <div class="pk-banner" th:style="'background-image: url(' + ${cache.getImageBase64(beatmap.getBeatmapset().getCovers().getCover())} + ');'"
          style="background-image: url('https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233')">
         <div class="pk-status" th:text="${beatmap.status}"
              th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'">
@@ -367,7 +367,7 @@
                  th:classappend="${iterStat.index == 0} ? 'first-place' : ''">
 
                 <div class="pk-rank" th:text="'#' + ${iterStat.count}">#1</div>
-                <img class="pk-avatar" th:src="${placement.user.avatarUrl}" alt="Avatar">
+                <img class="pk-avatar" th:src="${cache.getImageBase64(placement.getUser().getAvatarUrl())}" alt="Avatar">
 
                 <div class="pk-name-box">
                     <div class="pk-name">

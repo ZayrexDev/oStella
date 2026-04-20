@@ -21,7 +21,7 @@ import xyz.zcraft.model.user.Statistics;
 import xyz.zcraft.model.user.StatisticsRuleset;
 import xyz.zcraft.model.user.User;
 import xyz.zcraft.service.AsyncService;
-import xyz.zcraft.service.BeatmapCacheService;
+import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.Config;
 import xyz.zcraft.util.TokenManager;
@@ -31,12 +31,13 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static xyz.zcraft.util.FormatUtil.isInteger;
+import static xyz.zcraft.util.FormatUtil.isLong;
 
 public class WebServer {
     private static final Logger LOG = LogManager.getLogger(WebServer.class);
 
     private final RenderService renderer;
-    private final BeatmapCacheService cacheService;
+    private final CacheService cacheService;
     private final AsyncService executor;
     private final Config conf;
     private final TokenManager tokenManager;
@@ -46,25 +47,26 @@ public class WebServer {
     public WebServer(Config conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        renderer = new RenderService();
         executor = new AsyncService(conf.maxThreads(), conf.delay());
-        cacheService = new BeatmapCacheService();
+        cacheService = new CacheService();
+        renderer = new RenderService(cacheService);
         app = Javalin.create(cfg -> {
             final QueuedThreadPool threadPool = new QueuedThreadPool(Math.max(5, conf.maxThreads() + 3), 2, 60000);
             threadPool.setName("ServPool");
             cfg.jetty.threadPool = threadPool;
 
             cfg.routes
-                    .get("bo", this::getBestOfN)
-                    .get("daily", this::getDaily)
-                    .get("mp", this::getMultiplayerRooms)
-                    .get("rs", this::getRecentScores)
-                    .get("m", this::getBeatmap)
-                    .get("ms", this::getBeatmapset)
-                    .get("sms", this::searchBeatmapSet)
-                    .get("pk", this::getPK)
-                    .get("lb", this::getLeaderBoard)
-                    .get("status", this::getServerStatus)
+                    .get("/bo", this::getBestOfN)
+                    .get("/daily", this::getDaily)
+                    .get("/mp", this::getMultiplayerRooms)
+                    .get("/rs", this::getRecentScores)
+                    .get("/m", this::getBeatmap)
+                    .get("/ms", this::getBeatmapset)
+                    .get("/sms", this::searchBeatmapSet)
+                    .get("/s", this::getScore)
+                    .get("/pk", this::getPK)
+                    .get("/lb", this::getLeaderBoard)
+                    .get("/status", this::getServerStatus)
                     .before(ctx -> LOG.info("{} - {} {}", ctx.ip(), ctx.method(), ctx.path()))
                     .exception(Exception.class, (e, ctx) -> {
                         ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
@@ -76,6 +78,32 @@ public class WebServer {
                 cfg.routes.get("/debug/bypass", this::bypassRequest);
             }
         });
+    }
+
+    private void getScore(@NotNull Context context) throws Exception {
+        final String s = context.queryParam("s");
+
+        if (s == null || !isLong(s)) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            return;
+        }
+
+        final var scoreOptional = executor.enqueue(() -> OsuAPI.getScore(tokenManager.getTokenData(), s));
+
+        if (scoreOptional.isEmpty()) {
+            context.status(400).result(new Response(false, "No score found", null).toString());
+            return;
+        }
+
+        final Score score = scoreOptional.get();
+
+        final BeatmapExtended beatmap = score.getBeatmap();
+
+        final DiffSpec diffSpec = getDiffSpecForMap(beatmap, score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+
+        final byte[] bytes = renderer.renderScore(score, diffSpec);
+
+        context.status(200).result(bytes);
     }
 
     private void searchBeatmapSet(@NotNull Context context) {
@@ -194,7 +222,18 @@ public class WebServer {
 
         final BeatmapExtended beatmap = beatmapOptional.get();
 
-        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
+        final DiffSpec diffSpec = getDiffSpecForMap(beatmap, mod);
+
+        final byte[] bytes = renderer.renderBeatmap(
+                beatmap,
+                diffSpec
+        );
+
+        context.status(200).result(bytes);
+    }
+
+    public DiffSpec getDiffSpecForMap(BeatmapExtended beatmap, String mod) throws RosuFFI.FFIException {
+        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
 
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
              final RosuFFI.Performance perf = new RosuFFI.Performance()
@@ -301,12 +340,7 @@ public class WebServer {
 
             diffSpec.setMods(modList);
 
-            final byte[] bytes = renderer.renderBeatmap(
-                    beatmap,
-                    diffSpec
-            );
-
-            context.status(200).result(bytes);
+            return diffSpec;
         }
     }
 
