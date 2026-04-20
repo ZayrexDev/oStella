@@ -42,7 +42,6 @@ public class RenderService implements AutoCloseable{
         LOG.info("Launching Chromium for Thread: {}", Thread.currentThread().getName());
 
         final Browser browser = playwrightLocal.get().chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-        resources.add(browser);
 
         LOG.info("Chromium launched for Thread: {}", Thread.currentThread().getName());
 
