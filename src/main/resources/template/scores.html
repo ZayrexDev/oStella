@@ -430,17 +430,17 @@
 
 <div class="profile-header">
     <div class="profile-main">
-        <img class="avatar" th:src="${cache.getImageBase64(user.getAvatarUrl())}" src="https://a.ppy.sh/2" alt="avatar">
+        <img class="avatar" th:src="${cache.getImageSrc(user.getAvatarUrl())}" src="https://a.ppy.sh/2" alt="avatar">
         <div class="profile-details">
             <div class="profile-name-row">
-                <img class="flag" th:src="${cache.getImageBase64('https://assets.ppy.sh/old-flags/' + user.getCountryCode() + '.png')}"
+                <img class="flag" th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + user.getCountryCode() + '.png')}"
                      src="https://osu.ppy.sh/images/flags/AU.png" alt="flag">
                 <span class="username" th:text="${user.username}">ExampleUser</span>
                 <svg class="supporter-heart" th:if="${user.isSupporter}" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
                 <img class="teamFlag" th:if="${user.team != null}"
-                     th:src="${cache.getImageBase64(user.getTeam().getFlagUrl())}"
+                     th:src="${cache.getImageSrc(user.getTeam().getFlagUrl())}"
                      src="https://assets.ppy.sh/teams/flag/41211/7e1c4a9bf4562f0375e955d230f56e06a579ea1881691b423d0a015572abf645.png"
                      alt="team-flag">
                 <span class="teamName" th:if="${user.team != null}" th:text="${user.team.name}">Team Name</span>
@@ -532,7 +532,7 @@
                     AA
                 </div>
             </div>
-            <img class="jacket" th:src="${cache.getImageBase64(score.getBeatmapset().getCovers().getSlimcover())}"
+            <img class="jacket" th:src="${cache.getImageSrc(score.getBeatmapset().getCovers().getSlimcover())}"
                  src="https://assets.ppy.sh/beatmaps/320118/covers/slimcover.jpg?1650632079"
                  alt="jacket"></div>
 

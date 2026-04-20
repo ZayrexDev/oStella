@@ -370,7 +370,7 @@
 
 <div class="score-card">
     <div class="hero-banner"
-         th:style="'background-image: url(' + ${cache.getImageBase64(score.getBeatmapset().getCovers().getCover())} + ');'"
+         th:style="'background-image: url(' + ${cache.getImageSrc(score.getBeatmapset().getCovers().getCover())} + ');'"
          style="background-image: url('https://assets.ppy.sh/beatmaps/98842/covers/cover.jpg?1622065270');">
         <div class="hero-overlay">
             <div class="mod-badges" th:if="${diff.isModded()}">
@@ -421,7 +421,7 @@
 
         <div class="player-info">
             <div class="player-identity">
-                <img th:src="${cache.getImageBase64('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}"
+                <img th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}"
                      src="https://osu.ppy.sh/images/flags/AU.png" style="width: 32px; border-radius: 4px;" alt="flag">
 
                 <span class="player-name" th:text="${score.getUser().getUsername()}">PlayerName</span>
@@ -430,7 +430,7 @@
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
 
-                <img class="player-avatar" th:src="${cache.getImageBase64(score.getUser().getAvatarUrl())}"
+                <img class="player-avatar" th:src="${cache.getImageSrc(score.getUser().getAvatarUrl())}"
                      src="https://a.ppy.sh/2" alt="Avatar">
             </div>
             <div class="score-time">

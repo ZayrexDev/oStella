@@ -212,7 +212,7 @@
                  th:classappend="${iterStat.index == 0} ? 'first-place' : ''">
 
                 <div class="lb-rank" th:text="'#' + ${iterStat.count}">#1</div>
-                <img class="lb-avatar" th:src="${cache.getImageBase64(user.getAvatarUrl())}" alt="Avatar">
+                <img class="lb-avatar" th:src="${cache.getImageSrc(user.getAvatarUrl())}" alt="Avatar">
 
                 <div class="lb-name-box">
                     <div class="lb-name">

@@ -3,6 +3,7 @@ package xyz.zcraft.service;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.network.OsuAPI;
 
 import java.io.IOException;
@@ -12,7 +13,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 
 public class CacheService {
     private static final Logger LOG = LogManager.getLogger(CacheService.class);
@@ -88,16 +88,21 @@ public class CacheService {
         Files.write(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapBytes(id));
     }
 
+    @NotNull
     @SneakyThrows(NoSuchAlgorithmException.class)
-    public byte[] getImageBytes(String url, boolean update) {
+    private String getFileName(String url) {
         String extension = extractExtension(url);
 
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] digest = md.digest(url.getBytes(StandardCharsets.UTF_8));
 
-        String fileName = bytesToHex(digest) + "." + extension;
+        return bytesToHex(digest) + "." + extension;
+    }
 
-        if (!Files.exists(IMAGE_CACHE.resolve(fileName)) || update) {
+    public String getImageSrc(String url) {
+        final String fileName = getFileName(url);
+
+        if (!Files.exists(IMAGE_CACHE.resolve(fileName))) {
             try {
                 cacheImage(fileName, url);
                 LOG.info("Image {} cached", fileName);
@@ -108,25 +113,20 @@ public class CacheService {
         }
 
         try {
-            return Files.readAllBytes(IMAGE_CACHE.resolve(fileName));
+            return "http://ostella-cache/" + IMAGE_CACHE.resolve(getFileName(url)).toAbsolutePath().toString().replace("\\", "/");
+
         } catch (Exception e) {
             LOG.error("Failed to load image from cache!", e);
             throw new RuntimeException("Failed to load image from cache!", e);
         }
     }
 
-    public String getImageBase64(String url, boolean update) {
-        return "data:image/" + extractExtension(url).substring(1) + ";base64,"
-                + Base64.getEncoder().encodeToString(getImageBytes(url, update));
-    }
-
-    public String getImageBase64(String url) {
-        return "data:image/" + extractExtension(url).substring(1) + ";base64,"
-                + Base64.getEncoder().encodeToString(getImageBytes(url, false));
-    }
-
     private void cacheImage(String fileName, String url) throws Exception {
         Files.deleteIfExists(IMAGE_CACHE.resolve(fileName));
         Files.write(IMAGE_CACHE.resolve(fileName), OsuAPI.getImageBytes(url));
+    }
+
+    public Path getImagePathFromFilename(String filename) {
+        return IMAGE_CACHE.resolve(filename);
     }
 }

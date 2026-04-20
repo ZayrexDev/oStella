@@ -283,7 +283,7 @@
 </head>
 <body>
 <div class="set-card">
-    <div class="banner" th:style="'background-image: url(' + ${cache.getImageBase64(beatmapset.getCovers().getCover())} + ');'"
+    <div class="banner" th:style="'background-image: url(' + ${cache.getImageSrc(beatmapset.getCovers().getCover())} + ');'"
          style="background-image: url('https://assets.ppy.sh/beatmaps/320118/covers/cover.jpg?1650632079')">
         <div class="status-badge"
              th:style="'background: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? beatmapset.beatmaps[0].statusColor : '#ffffff'} + '; color: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? beatmapset.beatmaps[0].statusTextColor : '#1a1a2e'} + ';'"

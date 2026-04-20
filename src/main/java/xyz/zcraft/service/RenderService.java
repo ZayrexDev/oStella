@@ -69,6 +69,13 @@ public class RenderService implements AutoCloseable{
 
         try (BrowserContext context = browser.newContext(new Browser.NewContextOptions());
              Page page = context.newPage()) {
+            page.route("http://ostella-cache/**", route -> {
+                String url = route.request().url();
+                String filename = url.substring(url.lastIndexOf("/") + 1);
+                java.nio.file.Path imagePath = cacheService.getImagePathFromFilename(filename);
+                route.fulfill(new Route.FulfillOptions().setPath(imagePath));
+            });
+
             page.setContent(html);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             page.waitForFunction("() => Array.from(document.images).every(img => img.complete)");
