@@ -86,6 +86,7 @@ public class OsuAPI {
             final LinkedList<Score> scores = new LinkedList<>();
             JsonParser.parseString(body).getAsJsonArray().forEach(s -> {
                 final Score e = GSON.fromJson(s, Score.class);
+                e.getBeatmap().setBeatmapset(e.getBeatmapset());
                 scores.add(e);
             });
 

@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import static xyz.zcraft.util.MiscUtil.getRelativeTimeAgo;
+
 @Data
 public class Score {
     public Double accuracy;
@@ -65,6 +67,11 @@ public class Score {
     public BeatmapExtended beatmap;
     public Beatmapset beatmapset;
     public Weight weight;
+
+    public String getRelativeTime() {
+        if(createdAt == null) return "";
+        return getRelativeTimeAgo(createdAt);
+    }
 
     public List<Mod> getModsList() {
         if (mods == null) return new ArrayList<>();

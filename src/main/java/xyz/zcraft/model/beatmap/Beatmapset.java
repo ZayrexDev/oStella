@@ -55,8 +55,8 @@ public class Beatmapset {
     @SerializedName("user_id")
     public Long userId;
 
-    public Boolean video;
-    public Boolean storyboard;
+    public Boolean video = false;
+    public Boolean storyboard = false;
 
     public List<BeatmapExtended> beatmaps;
 

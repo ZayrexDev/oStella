@@ -41,8 +41,11 @@
 
         .hero-overlay {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(26,26,46,0.1) 0%, rgba(26,26,46,0.4) 60%, rgba(26,26,46,1) 100%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(26, 26, 46, 0.1) 0%, rgba(26, 26, 46, 0.4) 60%, rgba(26, 26, 46, 1) 100%);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -79,7 +82,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            padding: 0 24px 20px 24px;
+            padding: 16px 24px 20px 24px;
         }
 
         .map-info {
@@ -146,7 +149,7 @@
             width: 48px;
             height: 48px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
         .player-name {
@@ -158,6 +161,12 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            color: #a0a0b8;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .score-time-long {
             color: #a0a0b8;
             font-size: 1.1em;
             letter-spacing: 1px;
@@ -217,9 +226,21 @@
             font-size: 0.95em;
             font-weight: bold;
         }
-        .spec-diff-up { color: #f87171; }
-        .spec-diff-same { display: none; }
-        .spec-diff-down { color: #4ade80; }
+
+        /*noinspection CssUnusedSymbol*/
+        .spec-diff-up {
+            color: #f87171;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .spec-diff-same {
+            display: none;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .spec-diff-down {
+            color: #4ade80;
+        }
 
         /* --- 4. THE DATA GRID --- */
         .data-container {
@@ -302,10 +323,22 @@
             font-weight: 900;
         }
 
-        .c-300 { color: #66ffcc; }
-        .c-100 { color: #faff00; }
-        .c-50  { color: #ffb800; }
-        .c-miss { color: #ef5350; }
+        .c-300 {
+            color: #66ffcc;
+        }
+
+        .c-100 {
+            color: #faff00;
+        }
+
+        .c-50 {
+            color: #ffb800;
+        }
+
+        /*noinspection CssUnusedSymbol*/
+        .c-miss {
+            color: #ef5350;
+        }
 
         .bottom-footer {
             margin-top: 16px;
@@ -326,7 +359,9 @@
 <body>
 
 <div class="score-card">
-    <div class="hero-banner" th:style="'background-image: url(' + ${cache.getImageBase64(score.getBeatmapset().getCovers().getCover())} + ');'" style="background-image: url('https://assets.ppy.sh/beatmaps/98842/covers/cover.jpg?1622065270');">
+    <div class="hero-banner"
+         th:style="'background-image: url(' + ${cache.getImageBase64(score.getBeatmapset().getCovers().getCover())} + ');'"
+         style="background-image: url('https://assets.ppy.sh/beatmaps/98842/covers/cover.jpg?1622065270');">
         <div class="hero-overlay">
             <div class="mod-badges" th:if="${diff.isModded()}">
                 <div class="mod-badge" th:each="amod : ${score.getModsList()}" th:text="${amod.getAcronym()}"
@@ -335,7 +370,8 @@
                 </div>
             </div>
 
-            <div class="grade-letter" th:text="${score.getRank()}" th:style="'color: ' + ${score.getRankColor()}">S</div>
+            <div class="grade-letter" th:text="${score.getRank()}" th:style="'color: ' + ${score.getRankColor()}">S
+            </div>
         </div>
     </div>
 
@@ -351,23 +387,28 @@
 
             <div class="diff-row">
                 <div class="diff-badge" th:style="'background: ' + ${diff.getDiffColor()} + ';'">
-                    <svg th:styleappend="'fill: ' + ${diff.getDiffTextColor()} + ';'" style="width: 16px; height: 16px;" viewBox="0 0 20 20">
+                    <svg th:styleappend="'fill: ' + ${diff.getDiffTextColor()} + ';'" style="width: 16px; height: 16px;"
+                         viewBox="0 0 20 20">
                         <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                     </svg>
-                    <span th:style="'color: ' + ${diff.getDiffTextColor()}" th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">6.84</span>
+                    <span th:style="'color: ' + ${diff.getDiffTextColor()}"
+                          th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">6.84</span>
                 </div>
                 <span class="spec-diff"
                       th:classappend="${'spec-diff' + diff.getDiffChangeClassSuffix(diff.getStar() - score.getBeatmap().getDifficultyRating())}"
                       th:text="${diff.getDiffChangeStr(diff.getStar() - score.getBeatmap().getDifficultyRating())}">▲1.23
                 </span>
 
-                <div class="diff-name" th:style="'color: ' + ${diff.getDiffColor()}" th:text="${score.getBeatmap().getVersion()}">Example Difficulty</div>
+                <div class="diff-name" th:style="'color: ' + ${diff.getDiffColor()}"
+                     th:text="${score.getBeatmap().getVersion()}">Example Difficulty
+                </div>
             </div>
         </div>
 
         <div class="player-info">
             <div class="player-identity">
-                <img th:src="${cache.getImageBase64('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}"  src="https://osu.ppy.sh/images/flags/AU.png" style="width: 32px; border-radius: 4px;" alt="flag">
+                <img th:src="${cache.getImageBase64('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}"
+                     src="https://osu.ppy.sh/images/flags/AU.png" style="width: 32px; border-radius: 4px;" alt="flag">
 
                 <span class="player-name" th:text="${score.getUser().getUsername()}">PlayerName</span>
 
@@ -375,12 +416,14 @@
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
 
-                <img class="player-avatar" th:src="${cache.getImageBase64(score.getUser().getAvatarUrl())}" src="https://a.ppy.sh/2" alt="Avatar">
+                <img class="player-avatar" th:src="${cache.getImageBase64(score.getUser().getAvatarUrl())}"
+                     src="https://a.ppy.sh/2" alt="Avatar">
             </div>
             <div class="score-time">
-                <span th:if="${score.getHasReplay()}" class="replay-badge">▶ REPLAY</span>
-                <span th:text="${score.getCreatedAt()}">Set 15 mins ago</span>
+                <span th:if="${score.getHasReplay()}" class="replay-badge">▶</span>
+                <span th:text="${score.getRelativeTime()}">15 mins ago</span>
             </div>
+            <span class="score-time-long" th:text="${score.getCreatedAt()}">2026-04-19T16:19:16Z</span>
         </div>
     </div>
 
@@ -440,18 +483,24 @@
 
         <div class="data-block">
             <div class="data-label">Performance</div>
-            <div class="data-primary" th:text="${score.getPp() != null ? #numbers.formatDecimal(score.getPp(), 1, 1) + 'pp' : '--pp'}">340.2pp</div>
+            <div class="data-primary"
+                 th:text="${score.getPp() != null ? #numbers.formatDecimal(score.getPp(), 1, 1) + 'pp' : '--pp'}">
+                340.2pp
+            </div>
             <div class="data-sub">
-                <span th:if="${diff != null}" class="if-fc" th:text="'MAX ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">MAX 412.5pp</span>
+                <span th:if="${diff != null}" class="if-fc"
+                      th:text="'MAX ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">MAX 412.5pp</span>
             </div>
         </div>
 
         <!--suppress XmlUnresolvedReference -->
         <div class="data-block" style="align-items: flex-end; text-align: right;">
             <div class="data-label">Accuracy / Combo</div>
-            <div class="data-primary" th:text="${#numbers.formatDecimal(score.getAccuracy() * 100, 1, 2)} + '%'">98.50%</div>
+            <div class="data-primary" th:text="${#numbers.formatDecimal(score.getAccuracy() * 100, 1, 2)} + '%'">
+                98.50%
+            </div>
             <div class="data-sub">
-                <span th:text="${score.getMaxCombo()} + 'x / ' + ${score.getBeatmap().getMaxCombo()} + 'x'">850x / 908x</span>
+                <span th:text="${score.getMaxCombo()} + 'x / ' + ${diff.getMaxCombo()} + 'x'">850x / 908x</span>
                 <span th:if="${score.getIsPerfectCombo()}" class="fc-badge">PERFECT FC</span>
             </div>
         </div>
@@ -470,7 +519,8 @@
                 <span class="hit-label">MEH</span>
             </div>
             <div class="hit-item">
-                <span class="hit-value" th:classappend="${score.statistics.get('count_miss') > 0 ? 'c-miss' : ''}" th:text="${score.statistics.get('count_miss')}">1</span>
+                <span class="hit-value" th:classappend="${score.statistics.get('count_miss') > 0 ? 'c-miss' : ''}"
+                      th:text="${score.statistics.get('count_miss')}">1</span>
                 <span class="hit-label">MISS</span>
             </div>
         </div>

@@ -24,6 +24,7 @@ public final class DiffSpec implements Serializable {
     private boolean modded = false;
     private double length;
     private double totalLength;
+    private int maxCombo;
     private List<Mod> mods;
 
     public String getDiffColor() {
