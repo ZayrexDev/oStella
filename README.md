@@ -110,6 +110,18 @@ Notes:
 - `/lb` requires `u` as one or more usernames/ids separated by commas.
 - Score endpoints currently call osu! API with `mode=osu`.
 
+## Cache Behavior
+
+`oStella` caches downloaded assets on disk to reduce repeated upstream requests.
+
+- Beatmap files used for difficulty/PP calculation are cached in `data/cache/beatmap/`.
+- Remote images used by templates (avatars, covers, flags) are cached in `data/cache/image/`.
+- Image cache keys are generated from the image URL, so the same URL reuses the same cached file.
+- Cache is file-based and persists across restarts.
+- Public HTTP endpoints currently use on-demand caching (download when missing).
+
+To clear cache, stop the service and remove files under `data/cache/`; they will be re-downloaded on future requests.
+
 ## Build Artifacts
 
 `mvn clean package` generates:
