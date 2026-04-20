@@ -82,7 +82,7 @@ public class Score {
         if (weight != null && weight.percentage != null && weight.pp != null) {
             return String.format("%d%% ↪%.1fpp", weight.percentage.intValue(), weight.pp);
         } else {
-            return "--% ↪--pp";
+            return "";
         }
     }
 
