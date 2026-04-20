@@ -352,7 +352,7 @@
             text-overflow: ellipsis;
         }
 
-        .combo-number, .acc-number {
+        .acc-number {
             font-size: 1.2em;
             font-weight: bold;
             color: #fff;
@@ -433,7 +433,8 @@
         <img class="avatar" th:src="${cache.getImageSrc(user.getAvatarUrl())}" src="https://a.ppy.sh/2" alt="avatar">
         <div class="profile-details">
             <div class="profile-name-row">
-                <img class="flag" th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + user.getCountryCode() + '.png')}"
+                <img class="flag"
+                     th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + user.getCountryCode() + '.png')}"
                      src="https://osu.ppy.sh/images/flags/AU.png" alt="flag">
                 <span class="username" th:text="${user.username}">ExampleUser</span>
                 <svg class="supporter-heart" th:if="${user.isSupporter}" viewBox="0 0 24 24">
@@ -523,7 +524,7 @@
 <div class="score-type" th:text="${type}">Best of 40 Scores</div>
 
 <div class="grid-container">
-    <div class="card" th:each="score : ${scores}">
+    <div class="card" th:each="score, iterstat : ${scores}">
         <div class="song-cover">
             <div class="rank-badge" th:text="${score.rank}" th:style="'background:' + ${score.getRankColor()}">SS</div>
             <div class="mod-badges" th:if="${score.mods != null and !score.mods.isEmpty()}">
@@ -566,10 +567,9 @@
                   th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 1, 1) + 'pp' : '--pp'}">222pp</span>
         </div>
         <div class="score-stats">
-                <span class="acc-number"
-                      th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '%'">100.00%</span>
-            <span class="combo-number" th:text="${score.maxCombo} + 'x'">444x</span>
-            <div class="score-id" th:text="${score.getWeightPP()}">↪123.45pp</div>
+            <span class="acc-number"
+                  th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '% ' + ${score.maxCombo} + 'x'">100.00% 456x</span>
+            <div class="score-id" th:text="'#' + ${iterstat.index + 1} + ' ' + ${score.getWeightPP()}">#1 ↪123.45pp</div>
         </div>
         <div class="score-record">
             <div class="score-id" th:text="'S' + ${score.getId()}">S1234567890</div>
