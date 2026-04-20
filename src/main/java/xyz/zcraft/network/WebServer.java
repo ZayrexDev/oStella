@@ -199,7 +199,88 @@ public class WebServer {
         context.status(200).result(imgByte);
     }
 
+    private void getPKRef(@NotNull Context context, String of) throws Exception {
+        final String uSource = context.queryParam("us");
+        final String us = context.queryParam("u");
+
+        if (uSource == null || us == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            return;
+        }
+
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+            context.status(400).result(new Response(false,
+                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
+            );
+            return;
+        }
+
+        final String from = of.substring(0, 2);
+        final int num = Integer.parseInt(of.substring(2));
+
+        final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), uSource, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+
+        if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
+            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            return;
+        }
+
+        final Long id = scoresOptional.get().getLast().getBeatmap().getId();
+
+        final String[] u = Arrays.stream(us.split(",")).distinct().toArray(String[]::new);
+
+        final LinkedList<Placement> placements = new LinkedList<>();
+        for (String s : u) {
+            final var userScore = executor.enqueue(() -> OsuAPI.getUserScore(tokenManager.getTokenData(), s, String.valueOf(id)));
+            if (userScore.isEmpty() || userScore.get().getPp() == null) continue;
+
+            final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), s));
+            if (user.isEmpty()) continue;
+
+
+            final Placement placement = new Placement();
+            placement.setScore(userScore.get());
+            placement.setUser(user.get());
+
+            placements.add(placement);
+        }
+
+        placements.sort((a, b) -> (int) (b.score.pp - a.score.pp));
+
+        final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(id)));
+
+        if (beatmap.isEmpty()) {
+            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            return;
+        }
+
+        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(id), false);
+
+        renderPKFinal(context, placements, beatmap.get(), rosuBeatmapPath);
+    }
+
+    private void renderPKFinal(@NotNull Context context, LinkedList<Placement> placements, BeatmapExtended beatmap, String rosuBeatmapPath) throws RosuFFI.FFIException {
+        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
+             final RosuFFI.Performance perfSS = new RosuFFI.Performance()
+        ) {
+            perfSS.setAccuracy(100.0);
+            perfSS.setMisses(0);
+            perfSS.setCombo(beatmap.getMaxCombo());
+
+            final byte[] imgByte = renderer.renderPK(beatmap, placements, perfSS.calculate(rosuBeatmap).osu.t.pp);
+
+            context.status(200).result(imgByte);
+        }
+    }
+
     private void getPK(@NotNull Context context) throws Exception {
+        final String of = context.queryParam("of");
+
+        if (of != null) {
+            getPKRef(context, of);
+            return;
+        }
+
         final String m = context.queryParam("m");
         final String us = context.queryParam("u");
 
@@ -237,17 +318,7 @@ public class WebServer {
 
         final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
 
-        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
-             final RosuFFI.Performance perfSS = new RosuFFI.Performance()
-        ) {
-            perfSS.setAccuracy(100.0);
-            perfSS.setMisses(0);
-            perfSS.setCombo(beatmap.get().getMaxCombo());
-
-            final byte[] imgByte = renderer.renderPK(beatmap.get(), placements, perfSS.calculate(rosuBeatmap).osu.t.pp);
-
-            context.status(200).result(imgByte);
-        }
+        renderPKFinal(context, placements, beatmap.get(), rosuBeatmapPath);
     }
 
     private void getBeatmapRef(@NotNull Context context, String of) {
