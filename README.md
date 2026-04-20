@@ -21,16 +21,19 @@ and also provides a standalone API for other clients to consume.
 Here are some demo:
 
 ### Best-of-N
-<img width="800" alt="5b3c818dc2ee31c34006912b94a964ec" src="https://github.com/user-attachments/assets/e327de4d-3816-401b-ba0e-366ac743f412" />
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/a10742b8-148d-4fab-90b3-3ecd6882e2ae" />
 
 ### Beatmap Card
-<img width="400" alt="92e9c2fbfe193288f1d548a995907224" src="https://github.com/user-attachments/assets/879d6d89-8dbf-4d49-925f-088db7d48eeb" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/41f36596-94c7-4407-af82-490efccf6704" />
 
 ### Group Leaderboard
-<img width="400" alt="4152ccfa0c05510f5271368832d150d3" src="https://github.com/user-attachments/assets/faf2e03a-3fc4-4f32-8980-b7f54f1be0ab" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/cbc361a4-61e0-440d-908e-f1d52009373e" />
+
+### Score Card
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/c3ac7fde-adea-427b-be0a-9871a45ca8ad" />
 
 ### Beatmapset Card
-<img width="400" alt="2fe68add23352fb2dd7822747ad0a8a0" src="https://github.com/user-attachments/assets/50b0395b-a3be-48e6-9c1e-024f7de7e59a" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/2bb887d6-5fff-429b-b39e-963235ec463e" />
 
 ## Prerequisites
 
@@ -141,19 +144,6 @@ Log files are written to `logs/`:
 - `latest.log` (application logs)
 - `javalin-server.log` (Javalin/Jetty logs)
 - rolled `*.log.gz` archives
-
-## Key Source Files
-
-- `src/main/java/xyz/zcraft/oStella.java` - app bootstrap
-- `src/main/java/xyz/zcraft/network/WebServer.java` - routes/handlers
-- `src/main/java/xyz/zcraft/network/OsuAPI.java` - osu! API requests
-- `src/main/java/xyz/zcraft/util/TokenManager.java` - OAuth token lifecycle
-- `src/main/java/xyz/zcraft/service/ScoreRenderService.java` - HTML to PNG rendering
-- `src/main/resources/template/scores.html` - score panel template
-- `src/main/resources/template/beatmap.html` - beatmap card template
-- `src/main/resources/template/beatmapset.html` - beatmapset card template
-- `src/main/resources/template/pk.html` - beatmap PP leaderboard template
-- `src/main/resources/template/leaderboard.html` - user PP leaderboard template
 
 ## Troubleshooting
 
