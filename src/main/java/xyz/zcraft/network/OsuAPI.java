@@ -16,9 +16,11 @@ import xyz.zcraft.util.Config;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -55,6 +57,24 @@ public class OsuAPI {
         }
     }
 
+    public static Score getScore(TokenData tokenData, String scoreId) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/scores/" + scoreId)
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+
+            return GSON.fromJson(body, Score.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get user!", e);
+        }
+    }
+
     public static List<Score> getUserScores(TokenData tokenData, String id, ScoreType mode, int limit, boolean includeFails) {
         try {
             final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", id, mode.name().toLowerCase(), limit, includeFails ? 1 : 0))
@@ -66,6 +86,7 @@ public class OsuAPI {
             final LinkedList<Score> scores = new LinkedList<>();
             JsonParser.parseString(body).getAsJsonArray().forEach(s -> {
                 final Score e = GSON.fromJson(s, Score.class);
+                e.getBeatmap().setBeatmapset(e.getBeatmapset());
                 scores.add(e);
             });
 
@@ -125,6 +146,25 @@ public class OsuAPI {
             return userList;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get user!", e);
+        }
+    }
+
+    public static List<Beatmapset> searchBeatmapset(TokenData tokenData, String queryString) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/beatmapsets/search?q=" + URLEncoder.encode(queryString, StandardCharsets.UTF_8))
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            final LinkedList<Beatmapset> beatmapsets = new LinkedList<>();
+
+            JsonParser.parseString(body).getAsJsonObject().get("beatmapsets").getAsJsonArray()
+                    .forEach(e -> beatmapsets.add(GSON.fromJson(e, Beatmapset.class)));
+
+            return beatmapsets;
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -211,6 +251,19 @@ public class OsuAPI {
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
                 .header("Authorization", "Bearer " + tokenData.token());
+    }
+
+    public static byte[] getImageBytes(String url) {
+        try {
+            final var request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .build();
+
+            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 

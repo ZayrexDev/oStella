@@ -55,8 +55,8 @@ public class Beatmapset {
     @SerializedName("user_id")
     public Long userId;
 
-    public Boolean video;
-    public Boolean storyboard;
+    public Boolean video = false;
+    public Boolean storyboard = false;
 
     public List<BeatmapExtended> beatmaps;
 
@@ -126,6 +126,24 @@ public class Beatmapset {
                 .map(k -> k.name)
                 .filter(s -> !s.isBlank())
                 .orElse("--");
+    }
+
+    public double getMaxStar() {
+        if(beatmaps == null || beatmaps.isEmpty()) return 0;
+        double result = beatmaps.getFirst().getDifficultyRating();
+        for (BeatmapExtended beatmap : beatmaps) {
+            result = Math.max(beatmap.getDifficultyRating(), result);
+        }
+        return result;
+    }
+
+    public double getMinStar() {
+        if(beatmaps == null || beatmaps.isEmpty()) return 0;
+        double result = beatmaps.getFirst().getDifficultyRating();
+        for (BeatmapExtended beatmap : beatmaps) {
+            result = Math.min(beatmap.getDifficultyRating(), result);
+        }
+        return result;
     }
 
     @Data

@@ -5,9 +5,14 @@ import lombok.Data;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
+import xyz.zcraft.model.user.User;
+import xyz.zcraft.util.Colors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import static xyz.zcraft.util.MiscUtil.getRelativeTimeAgo;
 
 @Data
 public class Score {
@@ -22,7 +27,7 @@ public class Score {
     public Long classicTotalScore;
     @SerializedName("ended_at")
     public String endedAt;
-    @SerializedName("has_replay")
+    @SerializedName("replay")
     public Boolean hasReplay;
     public Long id;
     @SerializedName("is_perfect_combo")
@@ -56,12 +61,20 @@ public class Score {
     public String type;
     @SerializedName("user_id")
     public Long userId;
+    @SerializedName("user")
+    public User user;
     public Long score;
     public BeatmapExtended beatmap;
     public Beatmapset beatmapset;
     public Weight weight;
 
+    public String getRelativeTime() {
+        if(createdAt == null) return "";
+        return getRelativeTimeAgo(createdAt);
+    }
+
     public List<Mod> getModsList() {
+        if (mods == null) return new ArrayList<>();
         return mods.stream().map(s -> new Mod(s, null)).toList();
     }
 
@@ -74,16 +87,7 @@ public class Score {
     }
 
     public String getRankColor() {
-        return switch (rank) {
-            case "X", "XH" -> "#de31ae";
-            case "SH", "S" -> "#00a8b5";
-            case "A" -> "#88da20";
-            case "B" -> "#ebbd48";
-            case "C" -> "#ff8e5d";
-            case "D" -> "#ff5a5a";
-            case "F" -> "#fe004f";
-            default -> "#FFFFFF";
-        };
+        return Colors.getScoreRankColor(rank);
     }
 
     public String getModString() {

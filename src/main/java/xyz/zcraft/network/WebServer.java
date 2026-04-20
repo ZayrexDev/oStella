@@ -13,6 +13,7 @@ import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.beatmap.DiffSpec;
+import xyz.zcraft.model.beatmap.SearchResultItem;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
@@ -20,7 +21,7 @@ import xyz.zcraft.model.user.Statistics;
 import xyz.zcraft.model.user.StatisticsRuleset;
 import xyz.zcraft.model.user.User;
 import xyz.zcraft.service.AsyncService;
-import xyz.zcraft.service.BeatmapCacheService;
+import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.Config;
 import xyz.zcraft.util.TokenManager;
@@ -29,39 +30,43 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static xyz.zcraft.util.FormatUtil.isInteger;
+import static xyz.zcraft.util.MiscUtil.isInteger;
+import static xyz.zcraft.util.MiscUtil.isLong;
 
 public class WebServer {
     private static final Logger LOG = LogManager.getLogger(WebServer.class);
 
     private final RenderService renderer;
-    private final BeatmapCacheService cacheService;
+    private final CacheService cacheService;
     private final AsyncService executor;
     private final Config conf;
     private final TokenManager tokenManager;
     private final Javalin app;
+    private final Gson GSON = new Gson();
 
     public WebServer(Config conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        renderer = new RenderService();
         executor = new AsyncService(conf.maxThreads(), conf.delay());
-        cacheService = new BeatmapCacheService();
+        cacheService = new CacheService();
+        renderer = new RenderService(cacheService);
         app = Javalin.create(cfg -> {
             final QueuedThreadPool threadPool = new QueuedThreadPool(Math.max(5, conf.maxThreads() + 3), 2, 60000);
             threadPool.setName("ServPool");
             cfg.jetty.threadPool = threadPool;
 
             cfg.routes
-                    .get("bo", this::getBestOfN)
-                    .get("daily", this::getDaily)
-                    .get("mp", this::getMultiplayerRooms)
-                    .get("rs", this::getRecentScores)
-                    .get("m", this::getBeatmap)
-                    .get("ms", this::getBeatmapset)
-                    .get("pk", this::getPK)
-                    .get("lb", this::getLeaderBoard)
-                    .get("status", this::getServerStatus)
+                    .get("/bo", this::getBestOfN)
+                    .get("/daily", this::getDaily)
+                    .get("/mp", this::getMultiplayerRooms)
+                    .get("/rs", this::getRecentScores)
+                    .get("/m", this::getBeatmap)
+                    .get("/ms", this::getBeatmapset)
+                    .get("/sms", this::searchBeatmapSet)
+                    .get("/s", this::getScore)
+                    .get("/pk", this::getPK)
+                    .get("/lb", this::getLeaderBoard)
+                    .get("/status", this::getServerStatus)
                     .before(ctx -> LOG.info("{} - {} {}", ctx.ip(), ctx.method(), ctx.path()))
                     .exception(Exception.class, (e, ctx) -> {
                         ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
@@ -73,6 +78,95 @@ public class WebServer {
                 cfg.routes.get("/debug/bypass", this::bypassRequest);
             }
         });
+    }
+
+    private void getScoreRef(@NotNull Context context, String of) {
+        final String u = context.queryParam("u");
+
+        if (u == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
+            return;
+        }
+
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+            context.status(400).result(new Response(false,
+                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
+            );
+            return;
+        }
+
+        final String from = of.substring(0, 2);
+        final int num = Integer.parseInt(of.substring(2));
+
+        final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+
+        if (rs.isEmpty() || rs.get().size() < num) {
+            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            return;
+        }
+
+        final var scoreId = rs.get().getLast().getId();
+        executor.enqueue(() -> OsuAPI.getScore(tokenManager.getTokenData(), String.valueOf(scoreId)))
+                .ifPresentOrElse(score -> {
+                    try {
+                        final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+                        final byte[] bytes = renderer.renderScore(score, diffSpec);
+                        context.status(200).result(bytes);
+                    } catch (Exception e) {
+                        context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+                        LOG.error("An error occurred while processing request: {}", context.queryString(), e);
+                    }
+                }, () -> context.status(400).result(new Response(false, "No score found", null).toString()));
+    }
+
+    private void getScore(@NotNull Context context) throws Exception {
+        final String of = context.queryParam("of");
+
+        if (of != null) {
+            getScoreRef(context, of);
+            return;
+        }
+
+        final String s = context.queryParam("s");
+
+        if (s == null || !isLong(s)) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            return;
+        }
+
+        final var scoreOptional = executor.enqueue(() -> OsuAPI.getScore(tokenManager.getTokenData(), s));
+
+        if (scoreOptional.isEmpty()) {
+            context.status(400).result(new Response(false, "No score found", null).toString());
+            return;
+        }
+
+        final Score score = scoreOptional.get();
+
+        final BeatmapExtended beatmap = score.getBeatmap();
+
+        final DiffSpec diffSpec = getDiffSpecForMap(beatmap, score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+
+        final byte[] bytes = renderer.renderScore(score, diffSpec);
+
+        context.status(200).result(bytes);
+    }
+
+    private void searchBeatmapSet(@NotNull Context context) {
+        final String query = context.queryParam("q");
+
+        if (query == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            return;
+        }
+
+        executor.enqueue(() -> OsuAPI.searchBeatmapset(tokenManager.getTokenData(), query)).ifPresentOrElse(
+                result -> {
+                    final List<SearchResultItem> list = result.stream().map(SearchResultItem::fromBeatmapset).toList();
+                    context.status(200).result(new Response(true, "Query successful", GSON.toJsonTree(list)).toString());
+                },
+                () -> context.status(400).result(new Response(false, "No beatmapset found", null).toString())
+        );
     }
 
     private void getLeaderBoard(@NotNull Context context) {
@@ -105,7 +199,7 @@ public class WebServer {
         context.status(200).result(imgByte);
     }
 
-    private void getPK(@NotNull Context context) throws RosuFFI.FFIException {
+    private void getPK(@NotNull Context context) throws Exception {
         final String m = context.queryParam("m");
         final String us = context.queryParam("u");
 
@@ -156,7 +250,54 @@ public class WebServer {
         }
     }
 
-    private void getBeatmap(@NotNull Context context) throws RosuFFI.FFIException {
+    private void getBeatmapRef(@NotNull Context context, String of) {
+        final String u = context.queryParam("u");
+
+        if (u == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
+            return;
+        }
+
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+            context.status(400).result(new Response(false,
+                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
+            );
+            return;
+        }
+
+        final String from = of.substring(0, 2);
+        final int num = Integer.parseInt(of.substring(2));
+
+        final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+
+        if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
+            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            return;
+        }
+
+        final List<Score> scores = scoresOptional.get();
+        final var beatmapId = scores.getLast().getBeatmap().getId();
+        executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(beatmapId)))
+                .ifPresentOrElse(beatmap -> {
+                    try {
+                        final DiffSpec diffSpec = getDiffSpecForMap(beatmap, scores.getLast().getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+                        final byte[] bytes = renderer.renderBeatmap(beatmap, diffSpec);
+                        context.status(200).result(bytes);
+                    } catch (Exception e) {
+                        context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+                        LOG.error("An error occurred while processing request: {}", context.queryString(), e);
+                    }
+                }, () -> context.status(400).result(new Response(false, "No beatmap found", null).toString()));
+    }
+
+    private void getBeatmap(@NotNull Context context) throws Exception {
+        final String of = context.queryParam("of");
+
+        if (of != null) {
+            getBeatmapRef(context, of);
+            return;
+        }
+
         final String m = context.queryParam("m");
         final String mod = context.queryParam("mod");
 
@@ -174,7 +315,18 @@ public class WebServer {
 
         final BeatmapExtended beatmap = beatmapOptional.get();
 
-        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
+        final DiffSpec diffSpec = getDiffSpecForMap(beatmap, mod);
+
+        final byte[] bytes = renderer.renderBeatmap(
+                beatmap,
+                diffSpec
+        );
+
+        context.status(200).result(bytes);
+    }
+
+    public DiffSpec getDiffSpecForMap(BeatmapExtended beatmap, String mod) throws RosuFFI.FFIException {
+        final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
 
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
              final RosuFFI.Performance perf = new RosuFFI.Performance()
@@ -190,7 +342,6 @@ public class WebServer {
 
             perf.setAccuracy(98.0);
             perf.setMisses(0);
-            perf.setCombo(beatmap.getMaxCombo());
 
             var calc = perf.calculate(rosuBeatmap);
             diffSpec.setPpFC(calc.osu.t.pp);
@@ -203,10 +354,11 @@ public class WebServer {
 
             perf.setAccuracy(100.0);
             perf.setMisses(0);
-            perf.setCombo(beatmap.getMaxCombo());
 
             calc = perf.calculate(rosuBeatmap);
             diffSpec.setPpSS(calc.osu.t.pp);
+
+            final RosuFFI.RosuPPLib.ScoreState scoreState = perf.generateState(rosuBeatmap);
 
             final var attr = calc.osu.t.difficulty;
             diffSpec.setAim(attr.aim);
@@ -276,21 +428,62 @@ public class WebServer {
             final LinkedList<Mod> modList = new LinkedList<>();
 
             for (JsonElement jsonElement : JsonParser.parseString(mods.toJson().toString()).getAsJsonArray().asList()) {
-                modList.add(new Gson().fromJson(jsonElement, Mod.class));
+                modList.add(GSON.fromJson(jsonElement, Mod.class));
             }
 
             diffSpec.setMods(modList);
+            diffSpec.setMaxCombo(scoreState.max_combo);
 
-            final byte[] bytes = renderer.renderBeatmap(
-                    beatmap,
-                    diffSpec
-            );
-
-            context.status(200).result(bytes);
+            return diffSpec;
         }
     }
 
+    private void getBeatmapsetRef(@NotNull Context context, String of) {
+        final String u = context.queryParam("u");
+
+        if (u == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
+            return;
+        }
+
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+            context.status(400).result(new Response(false,
+                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
+            );
+            return;
+        }
+
+        final String from = of.substring(0, 2);
+        final int num = Integer.parseInt(of.substring(2));
+
+        final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+
+        if (rs.isEmpty() || rs.get().size() < num) {
+            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            return;
+        }
+
+        final var beatmapsetId = rs.get().getLast().getBeatmapset().getId();
+        executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(beatmapsetId)))
+                .ifPresentOrElse(beatmapset -> {
+                    try {
+                        final byte[] bytes = renderer.renderBeatmapset(beatmapset);
+                        context.status(200).result(bytes);
+                    } catch (Exception e) {
+                        context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+                        LOG.error("An error occurred while processing request: {}", context.queryString(), e);
+                    }
+                }, () -> context.status(400).result(new Response(false, "No beatmapset found", null).toString()));
+    }
+
     private void getBeatmapset(@NotNull Context context) {
+        final String of = context.queryParam("of");
+
+        if (of != null) {
+            getBeatmapsetRef(context, of);
+            return;
+        }
+
         final String ms = context.queryParam("ms");
 
         if (ms == null || !isInteger(ms)) {
@@ -316,27 +509,17 @@ public class WebServer {
                 .ifPresent(r -> context.status(200).result(new Response(true, "Success", r).toString()));
     }
 
-    public void start() {
-        app.start(conf.port());
-        LOG.info("Started web server on port {}", conf.port());
-    }
-
-    public void close() {
-        app.stop();
-        executor.close();
-    }
-
     private void getServerStatus(@NotNull Context context) {
         LOG.info("{} - status", context.ip());
         context.status(200).result(new Response(true, "Server is running!", null).toString());
     }
 
-    private void getRecentScores(@NotNull Context ctx) throws Exception {
-        final String u = ctx.queryParam("u");
-        final String n = ctx.queryParam("n");
+    private void getRecentScores(@NotNull Context context) throws Exception {
+        final String u = context.queryParam("u");
+        final String n = context.queryParam("n");
 
         if (u == null || n == null || !isInteger(n)) {
-            ctx.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
 
@@ -351,13 +534,13 @@ public class WebServer {
         final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), u));
 
         if (user.isEmpty()) {
-            ctx.status(400).result(new Response(false, "No user found", null).toString());
+            context.status(400).result(new Response(false, "No user found", null).toString());
             return;
         }
 
         final byte[] bytes = renderer.renderScores(user.get(), scores, ScoreType.RECENT);
 
-        ctx.status(200).result(bytes);
+        context.status(200).result(bytes);
     }
 
     private void getMultiplayerRooms(@NotNull Context context) {
@@ -409,12 +592,12 @@ public class WebServer {
         context.status(200).result(new Response(true, "Success", data).toString());
     }
 
-    private void getBestOfN(@NotNull Context ctx) {
-        final String u = ctx.queryParam("u");
-        final String n = ctx.queryParam("n");
+    private void getBestOfN(@NotNull Context context) {
+        final String u = context.queryParam("u");
+        final String n = context.queryParam("n");
 
         if (u == null || n == null || !isInteger(n)) {
-            ctx.status(400)
+            context.status(400)
                     .result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
@@ -428,18 +611,29 @@ public class WebServer {
         ));
 
         if (scores.isEmpty()) {
-            ctx.status(400).result(new Response(false, "No user found", null).toString());
+            context.status(400).result(new Response(false, "No user found", null).toString());
             return;
         }
 
         final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), u));
 
         if (user.isEmpty()) {
-            ctx.status(400).result(new Response(false, "No user found", null).toString());
+            context.status(400).result(new Response(false, "No user found", null).toString());
             return;
         }
 
         final byte[] bytes = renderer.renderScores(user.get(), scores.get(), ScoreType.BEST);
-        ctx.status(200).result(bytes);
+        context.status(200).result(bytes);
+    }
+
+    public void start() {
+        app.start(conf.port());
+        LOG.info("Started web server on port {}", conf.port());
+    }
+
+    public void close() {
+        app.stop();
+        executor.close();
+        renderer.close();
     }
 }
