@@ -13,6 +13,7 @@ import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.beatmap.DiffSpec;
+import xyz.zcraft.model.beatmap.SearchResultItem;
 import xyz.zcraft.model.score.Placement;
 import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
@@ -40,6 +41,7 @@ public class WebServer {
     private final Config conf;
     private final TokenManager tokenManager;
     private final Javalin app;
+    private final Gson GSON = new Gson();
 
     public WebServer(Config conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
@@ -59,6 +61,7 @@ public class WebServer {
                     .get("rs", this::getRecentScores)
                     .get("m", this::getBeatmap)
                     .get("ms", this::getBeatmapset)
+                    .get("sms", this::searchBeatmapSet)
                     .get("pk", this::getPK)
                     .get("lb", this::getLeaderBoard)
                     .get("status", this::getServerStatus)
@@ -73,6 +76,23 @@ public class WebServer {
                 cfg.routes.get("/debug/bypass", this::bypassRequest);
             }
         });
+    }
+
+    private void searchBeatmapSet(@NotNull Context context) {
+        final String query = context.queryParam("q");
+
+        if (query == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            return;
+        }
+
+        executor.enqueue(() -> OsuAPI.searchBeatmapset(tokenManager.getTokenData(), query)).ifPresentOrElse(
+                result -> {
+                    final List<SearchResultItem> list = result.stream().map(SearchResultItem::fromBeatmapset).toList();
+                    context.status(200).result(new Response(true, "Query successful", GSON.toJsonTree(list)).toString());
+                },
+                () -> context.status(400).result(new Response(false, "No beatmapset found", null).toString())
+        );
     }
 
     private void getLeaderBoard(@NotNull Context context) {
@@ -105,7 +125,7 @@ public class WebServer {
         context.status(200).result(imgByte);
     }
 
-    private void getPK(@NotNull Context context) throws RosuFFI.FFIException {
+    private void getPK(@NotNull Context context) throws Exception {
         final String m = context.queryParam("m");
         final String us = context.queryParam("u");
 
@@ -156,7 +176,7 @@ public class WebServer {
         }
     }
 
-    private void getBeatmap(@NotNull Context context) throws RosuFFI.FFIException {
+    private void getBeatmap(@NotNull Context context) throws Exception {
         final String m = context.queryParam("m");
         final String mod = context.queryParam("mod");
 
@@ -276,7 +296,7 @@ public class WebServer {
             final LinkedList<Mod> modList = new LinkedList<>();
 
             for (JsonElement jsonElement : JsonParser.parseString(mods.toJson().toString()).getAsJsonArray().asList()) {
-                modList.add(new Gson().fromJson(jsonElement, Mod.class));
+                modList.add(GSON.fromJson(jsonElement, Mod.class));
             }
 
             diffSpec.setMods(modList);
@@ -314,16 +334,6 @@ public class WebServer {
     private void bypassRequest(@NotNull Context context) {
         executor.enqueue(() -> OsuAPI.byPassRequest(tokenManager.getTokenData(), context.queryString()))
                 .ifPresent(r -> context.status(200).result(new Response(true, "Success", r).toString()));
-    }
-
-    public void start() {
-        app.start(conf.port());
-        LOG.info("Started web server on port {}", conf.port());
-    }
-
-    public void close() {
-        app.stop();
-        executor.close();
     }
 
     private void getServerStatus(@NotNull Context context) {
@@ -441,5 +451,16 @@ public class WebServer {
 
         final byte[] bytes = renderer.renderScores(user.get(), scores.get(), ScoreType.BEST);
         ctx.status(200).result(bytes);
+    }
+
+    public void start() {
+        app.start(conf.port());
+        LOG.info("Started web server on port {}", conf.port());
+    }
+
+    public void close() {
+        app.stop();
+        executor.close();
+        renderer.close();
     }
 }

@@ -16,9 +16,11 @@ import xyz.zcraft.util.Config;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -125,6 +127,25 @@ public class OsuAPI {
             return userList;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get user!", e);
+        }
+    }
+
+    public static List<Beatmapset> searchBeatmapset(TokenData tokenData, String queryString) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/beatmapsets/search?q=" + URLEncoder.encode(queryString, StandardCharsets.UTF_8))
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            final LinkedList<Beatmapset> beatmapsets = new LinkedList<>();
+
+            JsonParser.parseString(body).getAsJsonObject().get("beatmapsets").getAsJsonArray()
+                    .forEach(e -> beatmapsets.add(GSON.fromJson(e, Beatmapset.class)));
+
+            return beatmapsets;
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 

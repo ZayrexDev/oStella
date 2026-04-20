@@ -128,6 +128,24 @@ public class Beatmapset {
                 .orElse("--");
     }
 
+    public double getMaxStar() {
+        if(beatmaps == null || beatmaps.isEmpty()) return 0;
+        double result = beatmaps.getFirst().getDifficultyRating();
+        for (BeatmapExtended beatmap : beatmaps) {
+            result = Math.max(beatmap.getDifficultyRating(), result);
+        }
+        return result;
+    }
+
+    public double getMinStar() {
+        if(beatmaps == null || beatmaps.isEmpty()) return 0;
+        double result = beatmaps.getFirst().getDifficultyRating();
+        for (BeatmapExtended beatmap : beatmaps) {
+            result = Math.min(beatmap.getDifficultyRating(), result);
+        }
+        return result;
+    }
+
     @Data
     public static class Description {
         public String description;

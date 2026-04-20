@@ -6,6 +6,7 @@ import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -62,6 +63,7 @@ public class Score {
     public Weight weight;
 
     public List<Mod> getModsList() {
+        if (mods == null) return new ArrayList<>();
         return mods.stream().map(s -> new Mod(s, null)).toList();
     }
 

@@ -21,21 +21,33 @@ import xyz.zcraft.model.user.UserExtended;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 
-public class RenderService {
+public class RenderService implements AutoCloseable{
     private static final Logger LOG = LogManager.getLogger(RenderService.class);
-    private static final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
+    private final LinkedList<AutoCloseable>  resources = new LinkedList<>();
+    private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
         LOG.info("Starting new Playwright instance for Thread: {}", Thread.currentThread().getName());
+
         final Playwright playwright = Playwright.create();
-        LOG.info("Created new Playwright instance for Thread: {}", Thread.currentThread().getName());
+        resources.add(playwright);
+
+        LOG.info("Playwright instance created for Thread: {}", Thread.currentThread().getName());
+
         return playwright;
     });
-    private static final ThreadLocal<Browser> browserLocal = ThreadLocal.withInitial(() -> {
+    private final ThreadLocal<Browser> browserLocal = ThreadLocal.withInitial(() -> {
         LOG.info("Launching Chromium for Thread: {}", Thread.currentThread().getName());
-        return playwrightLocal.get().chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+
+        final Browser browser = playwrightLocal.get().chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+        resources.add(browser);
+
+        LOG.info("Chromium launched for Thread: {}", Thread.currentThread().getName());
+
+        return browser;
     });
-    private static TemplateEngine templateEngine;
+    private final TemplateEngine templateEngine;
 
     public RenderService() {
         LOG.info("Initializing template resolver");
@@ -122,5 +134,17 @@ public class RenderService {
         String finalHtml = templateEngine.process("beatmapset", ctx);
 
         return takeScreenshot(finalHtml);
+    }
+
+    @Override
+    public void close() {
+        LOG.info("Closing RenderService resources");
+        for (AutoCloseable resource : resources) {
+            try {
+                resource.close();
+            } catch (Exception e) {
+                LOG.error("Failed to close resource: {}", resource.getClass().getSimpleName(), e);
+            }
+        }
     }
 }
