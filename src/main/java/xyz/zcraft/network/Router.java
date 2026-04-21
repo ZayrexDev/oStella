@@ -899,7 +899,7 @@ public class Router implements Closeable {
                             "status", "failed",
                             "id", jobId
                     ))).toString());
-            case "queued", "rendering" -> context.status(202).result(new Response(false, "Render waiting",
+            case "queued", "rendering" -> context.status(202).result(new Response(true, "Render waiting",
                     GSON.toJsonTree(Map.of(
                             "status", status,
                             "id", jobId
