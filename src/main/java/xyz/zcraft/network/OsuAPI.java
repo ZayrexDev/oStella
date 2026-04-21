@@ -151,7 +151,7 @@ public class OsuAPI {
 
     public static List<Beatmapset> searchBeatmapset(TokenData tokenData, String queryString) {
         try {
-            final var request = newRequestBuilder(tokenData, "/beatmapsets/search?q=" + URLEncoder.encode(queryString, StandardCharsets.UTF_8))
+            final var request = newRequestBuilder(tokenData, "/beatmapsets/search?m=0&q=" + URLEncoder.encode(queryString, StandardCharsets.UTF_8))
                     .GET()
                     .build();
 
