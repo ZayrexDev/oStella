@@ -142,7 +142,7 @@ public class CacheService {
         try (Stream<Path> list = Files.list(DANSER_CACHE)) {
             if (list.map(Path::getFileName)
                     .map(Path::toString)
-                    .anyMatch(p -> p.startsWith(id + " ") || p.equals(id + ".osz"))
+                    .anyMatch(p -> p.equals(id) || p.startsWith(id + " ") || p.equals(id + ".osz"))
             ) {
                 LOG.info("Beatmapset {} is already cached, skipping", id);
                 return;
@@ -151,16 +151,43 @@ public class CacheService {
 
         Path beatmapsetPath = DANSER_CACHE.resolve(id + ".osz");
 
-        try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build()) {
-            final var request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.nerinyan.moe/d/" + id + "?nv=true"))
+        LOG.info("Downloading beatmapset {}", id);
+        try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()) {
+            String initialUrl = "https://dl.sayobot.cn/beatmaps/download/novideo/" + id;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(initialUrl))
                     .GET()
                     .build();
 
-            final InputStream body = client.send(request, HttpResponse.BodyHandlers.ofInputStream()).body();
-            Files.copy(body, beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
-            LOG.info("Beatmapset {} cached", beatmapsetPath);
+            HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+
+            if (response.statusCode() == 301 || response.statusCode() == 302) {
+                String dirtyLocation = response.headers().firstValue("Location")
+                        .orElseThrow(() -> new RuntimeException("Sayobot redirected without a Location header"));
+
+                String cleanLocation = dirtyLocation
+                        .replace(" ", "%20")
+                        .replace("[", "%5B")
+                        .replace("]", "%5D")
+                        .replace("^", "%5E");
+
+                HttpRequest actualDownloadRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(cleanLocation))
+                        .GET()
+                        .build();
+
+                HttpResponse<InputStream> fileResponse = client.send(actualDownloadRequest, HttpResponse.BodyHandlers.ofInputStream());
+
+                if (fileResponse.statusCode() == 200) {
+                    Files.copy(fileResponse.body(), beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
+                    LOG.info("Beatmapset {} cached", beatmapsetPath);
+                } else {
+                    LOG.error("Failed to download beatmapset! Sayobot responded with status code: {}", fileResponse.statusCode());
+                    throw new RuntimeException("Failed to download beatmapset! Sayobot responded with status code: " + fileResponse.statusCode());
+                }
+            }
         } catch (IOException | InterruptedException e) {
+            LOG.error("Failed to download beatmapset!", e);
             throw new RuntimeException(e);
         }
     }

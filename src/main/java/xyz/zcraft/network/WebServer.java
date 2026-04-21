@@ -53,7 +53,6 @@ public class WebServer implements Closeable {
             }
 
             cfg.routes
-                    .before(ctx -> LOG.info("{} - {} {} {}", ctx.ip(), ctx.method(), ctx.path(), ctx.queryString()))
                     .exception(Exception.class, (e, ctx) -> {
                         ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
                         LOG.error("An error occurred while processing request: {}", ctx.queryString(), e);
