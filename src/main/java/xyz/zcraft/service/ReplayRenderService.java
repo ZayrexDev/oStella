@@ -94,13 +94,27 @@ public class ReplayRenderService {
             final String fileName = "highlight_" + System.currentTimeMillis();
             String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
 
+            String jsonContent = """
+                    {
+                        "General": {
+                            "OsuSongsDir": "%s"
+                        },
+                        "Recording": {
+                            "FrameWidth": 960,
+                            "FrameHeight": 540,
+                            "FPS": 30
+                        }
+                    }
+                    """.formatted(safeSongPath);
+            Path settingsDir = danserPath.getParent().resolve("settings");
+            Files.createDirectories(settingsDir);
+            String tempProfileName = "ostella_temp_" + UUID.randomUUID().toString().substring(0, 8);
+            Path tempSettingsFile = settingsDir.resolve(tempProfileName + ".json");
+            Files.writeString(tempSettingsFile, jsonContent);
+
             ProcessBuilder builder = new ProcessBuilder(
                     danserPath.toAbsolutePath().toString(),
-                    "-sPatch={\\\"General\\\":" +
-                            "{\\\"OsuSongsDir\\\":\\\"" + safeSongPath + "\\\"}" +
-                            ",\\\"Recording\\\":" +
-                            "{\\\"FrameWidth\\\":960,\\\"FrameHeight\\\":540,\\\"FPS\\\":30}" +
-                            "}",
+                    "-settings=" + tempProfileName,
                     "-noupdatecheck",
                     "-quickstart",
                     "-record",
