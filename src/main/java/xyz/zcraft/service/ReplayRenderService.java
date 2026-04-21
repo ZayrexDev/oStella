@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -90,6 +91,7 @@ public class ReplayRenderService {
 
     private void render(Path osrPath, String jobId) {
         jobStatus.put(jobId, "rendering");
+        Path tempSettingsFile = null;
         try {
             final String fileName = "highlight_" + System.currentTimeMillis();
             String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
@@ -109,7 +111,7 @@ public class ReplayRenderService {
             Path settingsDir = danserPath.getParent().resolve("settings");
             Files.createDirectories(settingsDir);
             String tempProfileName = "ostella_temp_" + UUID.randomUUID().toString().substring(0, 8);
-            Path tempSettingsFile = settingsDir.resolve(tempProfileName + ".json");
+            tempSettingsFile = settingsDir.resolve(tempProfileName + ".json");
             Files.writeString(tempSettingsFile, jsonContent);
 
             ProcessBuilder builder = new ProcessBuilder(
@@ -144,6 +146,14 @@ public class ReplayRenderService {
         } catch (Exception e) {
             jobStatus.put(jobId, "failed");
             LOG.error("Danser failed to render video", e);
+        } finally {
+            if (tempSettingsFile != null) {
+                try {
+                    Files.deleteIfExists(tempSettingsFile);
+                } catch (IOException e) {
+                    LOG.error("Failed to delete temp settings file", e);
+                }
+            }
         }
     }
 }
