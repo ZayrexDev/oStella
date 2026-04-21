@@ -288,7 +288,8 @@ public class Router implements Closeable {
         renderPKFinal(context, placements, beatmap.get(), rosuBeatmapPath);
     }
 
-    protected void getBeatmapRef(@NotNull Context context, String of) {
+    protected void getBeatmapRef(@NotNull Context context) {
+        final String of = Objects.requireNonNull(context.queryParam("of"));
         final String u = context.queryParam("u");
 
         if (u == null) {
@@ -328,14 +329,58 @@ public class Router implements Closeable {
                 }, () -> context.status(400).result(new Response(false, "No beatmap found", null).toString()));
     }
 
-    protected void getBeatmap(@NotNull Context context) throws Exception {
-        final String of = context.queryParam("of");
+    protected void getBeatmapOfSet(@NotNull Context context) throws Exception {
+        final String ms = context.queryParam("ms");
+        final String iStr = context.queryParam("i");
+        final String mod = context.queryParam("mod");
 
-        if (of != null) {
-            getBeatmapRef(context, of);
+        if (iStr == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter! Missing i", null).toString());
             return;
         }
 
+        if (!isInteger(ms, iStr)) {
+            context.status(400).result(new Response(false,
+                    "Invalid query parameter! 'ms' and 'i' should be a number!", null).toString()
+            );
+            return;
+        }
+
+        final int i = Integer.parseInt(iStr);
+
+        final Optional<Beatmapset> enqueue = executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms));
+
+        if (enqueue.isEmpty() || enqueue.get().getBeatmaps().size() < i) {
+            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            return;
+        }
+
+        final List<BeatmapExtended> beatmaps = enqueue.get().getBeatmaps();
+
+        beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
+
+        final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
+        beatmapExtended.setBeatmapset(enqueue.get());
+
+        DiffSpec spec = getDiffSpecForMap(beatmapExtended, mod);
+        final byte[] bytes = renderer.renderBeatmap(beatmapExtended, spec);
+        context.status(200).result(bytes);
+    }
+
+    protected void getBeatmap(@NotNull Context context) throws Exception {
+        final String of = context.queryParam("of");
+        final String ms = context.queryParam("ms");
+
+        if (of != null) {
+            getBeatmapRef(context);
+        } else if (ms != null) {
+            getBeatmapOfSet(context);
+        } else {
+            getBeatmapOfId(context);
+        }
+    }
+
+    private void getBeatmapOfId(@NotNull Context context) throws RosuFFI.FFIException {
         final String m = context.queryParam("m");
         final String mod = context.queryParam("mod");
 
