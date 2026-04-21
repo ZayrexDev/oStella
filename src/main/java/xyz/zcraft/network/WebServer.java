@@ -36,23 +36,28 @@ public class WebServer implements Closeable {
                     .get("/s", router::getScore)
                     .get("/pk", router::getPK)
                     .get("/lb", router::getLeaderBoard)
+                    .get("/status", router::getServerStatus);
 
-                    .get("/replay/render", router::queueReplayRender)
-                    .get("/replay/status/{jobId}", router::getReplayRenderStatus)
-                    .get("/replay/video/{jobId}", router::getReplayRenderResult)
-                    .delete("/replay/video/{jobId}", router::deleteReplayRenderResult)
-
-                    .get("/status", router::getServerStatus)
-                    .before(ctx -> LOG.info("{} - {} {} {}", ctx.ip(), ctx.method(), ctx.path(), ctx.queryString()))
-                    .exception(Exception.class, (e, ctx) -> {
-                        ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
-                        LOG.error("An error occurred while processing request: {}", ctx.queryString(), e);
-                    });
+            if(conf.danserPath() != null) {
+                cfg.routes.get("/replay/render", router::queueReplayRender)
+                        .get("/replay/status/{jobId}", router::getReplayRenderStatus)
+                        .get("/replay/video/{jobId}", router::getReplayRenderResult)
+                        .delete("/replay/video/{jobId}", router::deleteReplayRenderResult);
+            } else {
+                LOG.info("No danser path found, replay rendering will be disabled.");
+            }
 
             if (conf.debug()) {
                 LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
                 cfg.routes.get("/debug/bypass", router::bypassRequest);
             }
+
+            cfg.routes
+                    .before(ctx -> LOG.info("{} - {} {} {}", ctx.ip(), ctx.method(), ctx.path(), ctx.queryString()))
+                    .exception(Exception.class, (e, ctx) -> {
+                        ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+                        LOG.error("An error occurred while processing request: {}", ctx.queryString(), e);
+                    });
         });
     }
 

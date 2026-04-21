@@ -49,7 +49,11 @@ public class Router implements Closeable {
         this.executor = new AsyncService(conf.maxThreads(), conf.delay());
         this.cacheService = new CacheService();
         this.renderer = new RenderService(cacheService);
-        this.replayRenderService = new ReplayRenderService(Path.of(conf.danserPath()), cacheService.getDanserCache());
+        if(conf.danserPath() != null) {
+            this.replayRenderService = new ReplayRenderService(Path.of(conf.danserPath()), cacheService.getDanserCache());
+        } else {
+            this.replayRenderService = null;
+        }
     }
 
     protected void getScoreRef(@NotNull Context context) {
