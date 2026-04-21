@@ -374,7 +374,7 @@
                 <span>BPM <b th:text="${#numbers.formatDecimal(bm.bpm, 1, 0)}">200</b></span>
             </div>
 
-            <div class="diff-i" th:text="'#' + ${iterStat.index}">#1</div>
+            <div class="diff-i" th:text="'#' + ${iterStat.index + 1}">#1</div>
             <div class="diff-id" th:text="${'M' + bm.id}">M712376</div>
         </div>
     </div>
