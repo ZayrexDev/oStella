@@ -36,6 +36,12 @@ public class WebServer implements Closeable {
                     .get("/s", router::getScore)
                     .get("/pk", router::getPK)
                     .get("/lb", router::getLeaderBoard)
+
+                    .get("/replay/render", router::queueReplayRender)
+                    .get("/replay/status/{jobId}", router::getReplayRenderStatus)
+                    .get("/replay/video/{jobId}", router::getReplayRenderResult)
+                    .delete("/replay/video/{jobId}", router::deleteReplayRenderResult)
+
                     .get("/status", router::getServerStatus)
                     .before(ctx -> LOG.info("{} - {} {} {}", ctx.ip(), ctx.method(), ctx.path(), ctx.queryString()))
                     .exception(Exception.class, (e, ctx) -> {

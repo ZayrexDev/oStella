@@ -4,28 +4,36 @@ import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import xyz.zcraft.model.TokenData;
 import xyz.zcraft.network.OsuAPI;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.stream.Stream;
 
 public class CacheService {
     private static final Logger LOG = LogManager.getLogger(CacheService.class);
     private static final Path BEATMAP_CACHE = Paths.get("data", "cache", "beatmap");
     private static final Path IMAGE_CACHE = Paths.get("data", "cache", "image");
+    private static final Path REPLAY_CACHE = Paths.get("data", "cache", "replay");
+    private static final Path DANSER_CACHE = Paths.get("data", "cache", "danser");
 
     public CacheService() throws IOException {
-        if (!Files.exists(BEATMAP_CACHE)) {
-            Files.createDirectories(BEATMAP_CACHE);
-        }
-        if (!Files.exists(IMAGE_CACHE)) {
-            Files.createDirectories(IMAGE_CACHE);
-        }
+        Files.createDirectories(BEATMAP_CACHE);
+        Files.createDirectories(IMAGE_CACHE);
+        Files.createDirectories(REPLAY_CACHE);
+        Files.createDirectories(DANSER_CACHE);
     }
 
     private static String bytesToHex(byte[] bytes) {
@@ -128,5 +136,48 @@ public class CacheService {
 
     public Path getImagePathFromFilename(String filename) {
         return IMAGE_CACHE.resolve(filename);
+    }
+
+    public void cacheBeatmapset(String id) throws Exception {
+        try (Stream<Path> list = Files.list(DANSER_CACHE)) {
+            if (list.map(Path::getFileName)
+                    .map(Path::toString)
+                    .anyMatch(p -> p.startsWith(id + " ") || p.equals(id + ".osz"))
+            ) {
+                LOG.info("Beatmapset {} is already cached, skipping", id);
+                return;
+            }
+        }
+
+        Path beatmapsetPath = DANSER_CACHE.resolve(id + ".osz");
+
+        try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build()) {
+            final var request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.nerinyan.moe/d/" + id + "?nv=true"))
+                    .GET()
+                    .build();
+
+            final InputStream body = client.send(request, HttpResponse.BodyHandlers.ofInputStream()).body();
+            Files.copy(body, beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
+            LOG.info("Beatmapset {} cached", beatmapsetPath);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Path getReplay(TokenData tokenData, String id) throws Exception {
+        Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
+
+        if (Files.exists(beatmapsetPath)) {
+            LOG.info("Replay {} already cached", id);
+        } else {
+            Files.write(beatmapsetPath, OsuAPI.getReplayBytes(tokenData, id));
+        }
+
+        return beatmapsetPath;
+    }
+
+    public Path getDanserCache() {
+        return DANSER_CACHE;
     }
 }

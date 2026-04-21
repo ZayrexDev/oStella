@@ -281,5 +281,17 @@ public class OsuAPI {
             throw new RuntimeException(e);
         }
     }
+
+    public static byte[] getReplayBytes(TokenData tokenData, String id) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/scores/" + id + "/download")
+                    .GET()
+                    .build();
+
+            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
 

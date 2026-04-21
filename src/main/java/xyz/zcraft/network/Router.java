@@ -21,11 +21,14 @@ import xyz.zcraft.model.user.User;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
+import xyz.zcraft.service.ReplayRenderService;
 import xyz.zcraft.util.Config;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -39,12 +42,14 @@ public class Router implements Closeable {
     private final CacheService cacheService;
     private final AsyncService executor;
     private final TokenManager tokenManager;
+    private final ReplayRenderService replayRenderService;
 
     public Router(Config conf, TokenManager tokenManager) throws IOException {
         this.tokenManager = tokenManager;
-        executor = new AsyncService(conf.maxThreads(), conf.delay());
-        cacheService = new CacheService();
-        renderer = new RenderService(cacheService);
+        this.executor = new AsyncService(conf.maxThreads(), conf.delay());
+        this.cacheService = new CacheService();
+        this.renderer = new RenderService(cacheService);
+        this.replayRenderService = new ReplayRenderService(Path.of(conf.danserPath()), cacheService.getDanserCache());
     }
 
     protected void getScoreRef(@NotNull Context context) {
@@ -53,13 +58,13 @@ public class Router implements Closeable {
         final String u = context.queryParam("u");
 
         if (u == null || iStr == null || of == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter! Missing u", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
-            context.status(400).result(new Response(false,
-                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
+            context.status(400).result(
+                    Response.error("Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", ErrorCode.ILLEGAL_ARGUMENT).toString()
             );
             return;
         }
@@ -69,7 +74,7 @@ public class Router implements Closeable {
         final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (rs.isEmpty() || rs.get().size() < num) {
-            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            context.status(400).result(Response.error("No scores found!", ErrorCode.NO_SCORE_FOUND).toString());
             return;
         }
 
@@ -81,10 +86,10 @@ public class Router implements Closeable {
                         final byte[] bytes = renderer.renderScore(score, diffSpec);
                         context.status(200).result(bytes);
                     } catch (Exception e) {
-                        context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+                        context.status(500).result(Response.error("An error occurred while processing the request!", ErrorCode.SCORE_FETCH_FAILED).toString());
                         LOG.error("An error occurred while processing request: {}", context.queryString(), e);
                     }
-                }, () -> context.status(400).result(new Response(false, "No score found", null).toString()));
+                }, () -> context.status(400).result(Response.error("No scores found!", ErrorCode.NO_SCORE_FOUND).toString()));
     }
 
     protected void getScore(@NotNull Context context) throws Exception {
@@ -99,14 +104,15 @@ public class Router implements Closeable {
         final String s = context.queryParam("s");
 
         if (s == null || !isLong(s)) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         final var scoreOptional = executor.enqueue(() -> OsuAPI.getScore(tokenManager.getTokenData(), s));
 
         if (scoreOptional.isEmpty()) {
-            context.status(400).result(new Response(false, "No score found", null).toString());
+            context.status(400).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
+
             return;
         }
 
@@ -125,7 +131,7 @@ public class Router implements Closeable {
         final String query = context.queryParam("q");
 
         if (query == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
@@ -134,7 +140,7 @@ public class Router implements Closeable {
                     final List<SearchResultItem> list = result.stream().map(SearchResultItem::fromBeatmapset).toList();
                     context.status(200).result(new Response(true, "Query successful", GSON.toJsonTree(list)).toString());
                 },
-                () -> context.status(400).result(new Response(false, "No beatmapset found", null).toString())
+                () -> context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAP_FOUND).toString())
         );
     }
 
@@ -142,7 +148,7 @@ public class Router implements Closeable {
         final String us = context.queryParam("u");
 
         if (us == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
@@ -175,14 +181,12 @@ public class Router implements Closeable {
         final String us = context.queryParam("u");
 
         if (uSource == null || us == null || of == null || iStr == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
-            context.status(400).result(new Response(false,
-                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
-            );
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
@@ -191,7 +195,7 @@ public class Router implements Closeable {
         final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), uSource, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
-            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
             return;
         }
 
@@ -220,7 +224,7 @@ public class Router implements Closeable {
         final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(id)));
 
         if (beatmap.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
             return;
         }
 
@@ -256,7 +260,7 @@ public class Router implements Closeable {
         final String us = context.queryParam("u");
 
         if (m == null || us == null || !isInteger(m)) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
@@ -283,7 +287,7 @@ public class Router implements Closeable {
         final var beatmap = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
 
         if (beatmap.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
             return;
         }
 
@@ -298,13 +302,13 @@ public class Router implements Closeable {
         final String u = context.queryParam("u");
 
         if (u == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
-            context.status(400).result(new Response(false,
-                    "Invalid query parameter!", null).toString()
+            context.status(400).result(Response.error(
+                    "Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString()
             );
             return;
         }
@@ -314,7 +318,7 @@ public class Router implements Closeable {
         final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
-            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
             return;
         }
 
@@ -324,7 +328,7 @@ public class Router implements Closeable {
         final Optional<Beatmapset> enqueue = executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(beatmapsetId)));
 
         if (enqueue.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            context.status(400).result(Response.error("No beatmapset found!", ErrorCode.NO_BEATMAPSET_FOUND).toString());
             return;
         }
 
@@ -335,7 +339,7 @@ public class Router implements Closeable {
                 .findFirst();
 
         if (beatmapOptional.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            context.status(400).result(Response.error("No beatmap found!", ErrorCode.NO_BEATMAP_FOUND).toString());
             return;
         }
 
@@ -348,7 +352,7 @@ public class Router implements Closeable {
             final byte[] bytes = renderer.renderBeatmap(beatmapExtended, diffSpec);
             context.status(200).result(bytes);
         } catch (Exception e) {
-            context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+            context.status(500).result(Response.error("An error occurred while processing the request!", ErrorCode.BEATMAP_FETCH_FAILED).toString());
             LOG.error("An error occurred while processing request: {}", context.queryString(), e);
         }
     }
@@ -359,13 +363,13 @@ public class Router implements Closeable {
         final String mod = context.queryParam("mod");
 
         if (iStr == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter! Missing i", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter! Missing i", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         if (!isInteger(ms, iStr)) {
-            context.status(400).result(new Response(false,
-                    "Invalid query parameter! 'ms' and 'i' should be a number!", null).toString()
+            context.status(400).result(Response.error(
+                    "Invalid query parameter! 'ms' and 'i' should be a number!", ErrorCode.ILLEGAL_ARGUMENT).toString()
             );
             return;
         }
@@ -375,7 +379,7 @@ public class Router implements Closeable {
         final Optional<Beatmapset> enqueue = executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms));
 
         if (enqueue.isEmpty() || enqueue.get().getBeatmaps().size() < i) {
-            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
             return;
         }
 
@@ -406,14 +410,14 @@ public class Router implements Closeable {
         final String mod = context.queryParam("mod");
 
         if (m == null || !isInteger(m)) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         final var beatmapsetOptional = executor.enqueue(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m));
 
         if (beatmapsetOptional.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString());
             return;
         }
 
@@ -424,7 +428,7 @@ public class Router implements Closeable {
                 .findFirst();
 
         if (optional.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
             return;
         }
 
@@ -561,13 +565,13 @@ public class Router implements Closeable {
         final String iStr = context.queryParam("i");
 
         if (u == null || iStr == null || of == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter! Missing u", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
-            context.status(400).result(new Response(false,
-                    "Invalid query parameter!", null).toString()
+            context.status(400).result(Response.error(
+                    "Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString()
             );
             return;
         }
@@ -577,7 +581,7 @@ public class Router implements Closeable {
         final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (rs.isEmpty() || rs.get().size() < num) {
-            context.status(400).result(new Response(false, "No scores found for user!", null).toString());
+            context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
             return;
         }
 
@@ -588,24 +592,24 @@ public class Router implements Closeable {
                         final byte[] bytes = renderer.renderBeatmapset(beatmapset);
                         context.status(200).result(bytes);
                     } catch (Exception e) {
-                        context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+                        context.status(500).result(Response.error("An error occurred while processing the request!", ErrorCode.BEATMAPSET_FETCH_FAILED).toString());
                         LOG.error("An error occurred while processing request: {}", context.queryString(), e);
                     }
-                }, () -> context.status(400).result(new Response(false, "No beatmapset found", null).toString()));
+                }, () -> context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString()));
     }
 
     private void getBeatmapsetOfMap(@NotNull Context context) {
         final String m = context.queryParam("m");
 
         if (m == null) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         final var beatmapsetOptional = executor.enqueue(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m));
 
         if (beatmapsetOptional.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString());
             return;
         }
 
@@ -629,14 +633,14 @@ public class Router implements Closeable {
         final String ms = context.queryParam("ms");
 
         if (ms == null || !isInteger(ms)) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
         final var beatmapsetOptional = executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms));
 
         if (beatmapsetOptional.isEmpty()) {
-            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString());
             return;
         }
 
@@ -661,7 +665,7 @@ public class Router implements Closeable {
         final String n = context.queryParam("n");
 
         if (u == null || n == null || !isInteger(n)) {
-            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
             return;
         }
 
@@ -676,7 +680,7 @@ public class Router implements Closeable {
         final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), u));
 
         if (user.isEmpty()) {
-            context.status(400).result(new Response(false, "No user found", null).toString());
+            context.status(400).result(Response.error("No user found", ErrorCode.NO_USER_FOUND).toString());
             return;
         }
 
@@ -688,7 +692,7 @@ public class Router implements Closeable {
     protected void getMultiplayerRooms(@NotNull Context context) {
         final var roomsOptional = executor.enqueue(() -> OsuAPI.getRooms(tokenManager.getTokenData()));
         if (roomsOptional.isEmpty()) {
-            context.status(400).result(new Response(false, "No rooms found", null).toString());
+            context.status(400).result(Response.error("No rooms found", ErrorCode.NO_ROOM_FOUND).toString());
             return;
         }
         final var rooms = roomsOptional.get();
@@ -753,14 +757,14 @@ public class Router implements Closeable {
         ));
 
         if (scores.isEmpty()) {
-            context.status(400).result(new Response(false, "No user found", null).toString());
+            context.status(400).result(Response.error("No user found", ErrorCode.NO_USER_FOUND).toString());
             return;
         }
 
         final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), u));
 
         if (user.isEmpty()) {
-            context.status(400).result(new Response(false, "No user found", null).toString());
+            context.status(400).result(Response.error("No user found", ErrorCode.NO_USER_FOUND).toString());
             return;
         }
 
@@ -772,5 +776,96 @@ public class Router implements Closeable {
     public void close() {
         executor.close();
         renderer.close();
+    }
+
+    protected void queueReplayRender(@NotNull Context context) throws Exception {
+        final String s = context.queryParam("s");
+
+        if (s == null) {
+            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
+            return;
+        }
+
+        final Optional<Score> enqueue = executor.enqueue(() -> OsuAPI.getScore(tokenManager.getTokenData(), s));
+
+        if (enqueue.isEmpty()) {
+            context.status(400).result(Response.error("No score found!", ErrorCode.NO_SCORE_FOUND).toString());
+            return;
+        }
+
+        final Score score = enqueue.get();
+
+        if (!score.getHasReplay()) {
+            context.status(400).result(Response.error("Replay unavailable!", ErrorCode.REPLAY_UNAVAILABLE).toString());
+            return;
+        }
+
+        cacheService.cacheBeatmapset(String.valueOf(score.getBeatmapset().getId()));
+
+        final Path replay = cacheService.getReplay(tokenManager.getTokenData(), s);
+
+        final int queueSize = replayRenderService.getQueueSize() + 1;
+        final String jobId = replayRenderService.queueRender(replay);
+
+        context.status(202).result(
+                new Response(
+                        true,
+                        "Replay render queued!",
+                        GSON.toJsonTree(Map.of(
+                                "status", "queued",
+                                "position", queueSize,
+                                "id", jobId
+                        ))
+                ).toString()
+        );
+    }
+
+    public void getReplayRenderStatus(@NotNull Context context) {
+        String jobId = context.pathParam("jobId");
+        String status = replayRenderService.getJobStatus().getOrDefault(jobId, "unknown");
+
+        switch (status) {
+            case "done" -> context.status(200).result(new Response(true, "Render complete!",
+                    GSON.toJsonTree(Map.of(
+                            "status", "done"
+                    ))).toString());
+            case "failed" -> context.status(500).result(new Response(false, "Render failed",
+                    GSON.toJsonTree(Map.of(
+                            "status", "failed",
+                            "id", jobId
+                    ))).toString());
+            case "queued", "rendering" -> context.status(202).result(new Response(false, "Render waiting",
+                    GSON.toJsonTree(Map.of(
+                            "status", status,
+                            "id", jobId
+                    ))).toString());
+            default -> context.status(400).result(new Response(false, "Job not found", null).toString());
+        }
+    }
+
+    public void getReplayRenderResult(@NotNull Context context) throws IOException {
+        String jobId = context.pathParam("jobId");
+        Path video = replayRenderService.getJobResults().get(jobId);
+
+        if (video != null && Files.exists(video)) {
+            context.writeSeekableStream(Files.newInputStream(video), "video/mp4");
+        } else {
+            context.status(404).result("Video expired or not found");
+        }
+    }
+
+    public void deleteReplayRenderResult(@NotNull Context context) throws IOException {
+        String jobId = context.pathParam("jobId");
+
+        Path video = replayRenderService.getJobResults().get(jobId);
+
+        replayRenderService.getJobStatus().remove(jobId);
+        replayRenderService.getJobResults().remove(jobId);
+
+        if (video != null && Files.exists(video)) {
+            Files.deleteIfExists(video);
+        }
+
+        context.status(200).result("Job cleaned up successfully");
     }
 }

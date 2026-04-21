@@ -23,4 +23,8 @@ public class Response {
 
         return obj.toString();
     }
+
+    public static Response error(String message, ErrorCode errorCode) {
+        return new Response(false, message, errorCode.toJson());
+    }
 }
