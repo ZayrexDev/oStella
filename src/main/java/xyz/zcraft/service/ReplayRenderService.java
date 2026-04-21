@@ -10,9 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -114,15 +112,24 @@ public class ReplayRenderService {
             tempSettingsFile = settingsDir.resolve(tempProfileName + ".json");
             Files.writeString(tempSettingsFile, jsonContent);
 
-            ProcessBuilder builder = new ProcessBuilder(
-                    danserPath.toAbsolutePath().toString(),
-                    "-settings=" + tempProfileName,
-                    "-noupdatecheck",
-                    "-quickstart",
-                    "-record",
-                    "-replay=" + osrPath.toAbsolutePath(),
-                    "-out=" + fileName
-            );
+            boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+
+            List<String> c = new LinkedList<>();
+
+            if (!isWindows) {
+                c.add("xvfb-run");
+                c.add("-a");
+            }
+
+            c.add(danserPath.toAbsolutePath().toString());
+            c.add("-settings=" + tempProfileName);
+            c.add("-noupdatecheck");
+            c.add("-quickstart");
+            c.add("-record");
+            c.add("-replay=" + osrPath.toAbsolutePath());
+            c.add("-out=" + fileName);
+
+            ProcessBuilder builder = new ProcessBuilder(c);
 
             builder.redirectErrorStream(true);
 
