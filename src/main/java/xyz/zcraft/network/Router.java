@@ -778,7 +778,68 @@ public class Router implements Closeable {
         renderer.close();
     }
 
+    protected void queueReplayRenderOfRef(@NotNull Context context) throws Exception {
+        final String of = context.queryParam("of");
+        final String u = context.queryParam("u");
+        final String iStr = context.queryParam("i");
+
+        if (u == null || iStr == null || of == null) {
+            context.status(400).result(Response.error("Invalid query parameter! Missing u", ErrorCode.ILLEGAL_ARGUMENT).toString());
+            return;
+        }
+
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
+            context.status(400).result(Response.error(
+                    "Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString()
+            );
+            return;
+        }
+
+        final int num = Integer.parseInt(iStr);
+
+        final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+
+        if (rs.isEmpty() || rs.get().size() < num) {
+            context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
+            return;
+        }
+
+        final Score score = rs.get().get(num - 1);
+
+        if (!score.getHasReplay()) {
+            context.status(400).result(Response.error("Replay unavailable!", ErrorCode.REPLAY_UNAVAILABLE).toString());
+            return;
+        }
+
+        cacheService.cacheBeatmapset(String.valueOf(score.getBeatmapset().getId()));
+
+        final Path replay = cacheService.getReplay(tokenManager.getTokenData(), String.valueOf(score.getId()));
+
+        final int queueSize = replayRenderService.getQueueSize() + 1;
+        final String jobId = replayRenderService.queueRender(replay);
+
+        context.status(202).result(
+                new Response(
+                        true,
+                        "Replay render queued!",
+                        GSON.toJsonTree(Map.of(
+                                "status", "queued",
+                                "position", queueSize,
+                                "id", jobId
+                        ))
+                ).toString()
+        );
+    }
+
     protected void queueReplayRender(@NotNull Context context) throws Exception {
+        if (context.queryParam("of") != null) {
+            queueReplayRenderOfRef(context);
+        } else {
+            queueReplayRenderOfId(context);
+        }
+    }
+
+    private void queueReplayRenderOfId(@NotNull Context context) throws Exception {
         final String s = context.queryParam("s");
 
         if (s == null) {
