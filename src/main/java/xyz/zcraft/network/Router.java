@@ -47,25 +47,26 @@ public class Router implements Closeable {
         renderer = new RenderService(cacheService);
     }
 
-    protected void getScoreRef(@NotNull Context context, String of) {
+    protected void getScoreRef(@NotNull Context context) {
+        final String of = context.queryParam("of");
+        final String iStr = context.queryParam("i");
         final String u = context.queryParam("u");
 
-        if (u == null) {
+        if (u == null || iStr == null || of == null) {
             context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
             return;
         }
 
-        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
             context.status(400).result(new Response(false,
                     "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
             );
             return;
         }
 
-        final String from = of.substring(0, 2);
-        final int num = Integer.parseInt(of.substring(2));
+        final int num = Integer.parseInt(iStr);
 
-        final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+        final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (rs.isEmpty() || rs.get().size() < num) {
             context.status(400).result(new Response(false, "No scores found for user!", null).toString());
@@ -87,13 +88,14 @@ public class Router implements Closeable {
     }
 
     protected void getScore(@NotNull Context context) throws Exception {
-        final String of = context.queryParam("of");
-
-        if (of != null) {
-            getScoreRef(context, of);
-            return;
+        if (context.queryParam("of") != null) {
+            getScoreRef(context);
+        } else {
+            getScoreOfId(context);
         }
+    }
 
+    private void getScoreOfId(@NotNull Context context) throws RosuFFI.FFIException {
         final String s = context.queryParam("s");
 
         if (s == null || !isLong(s)) {
@@ -166,26 +168,27 @@ public class Router implements Closeable {
         context.status(200).result(imgByte);
     }
 
-    protected void getPKRef(@NotNull Context context, String of) throws Exception {
+    private void getPKRef(@NotNull Context context) throws Exception {
+        final String of = context.queryParam("of");
+        final String iStr = context.queryParam("i");
         final String uSource = context.queryParam("us");
         final String us = context.queryParam("u");
 
-        if (uSource == null || us == null) {
+        if (uSource == null || us == null || of == null || iStr == null) {
             context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
 
-        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
             context.status(400).result(new Response(false,
                     "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
             );
             return;
         }
 
-        final String from = of.substring(0, 2);
-        final int num = Integer.parseInt(of.substring(2));
+        final int num = Integer.parseInt(iStr);
 
-        final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), uSource, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+        final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), uSource, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
             context.status(400).result(new Response(false, "No scores found for user!", null).toString());
@@ -241,13 +244,14 @@ public class Router implements Closeable {
     }
 
     protected void getPK(@NotNull Context context) throws Exception {
-        final String of = context.queryParam("of");
-
-        if (of != null) {
-            getPKRef(context, of);
-            return;
+        if (context.queryParam("of") != null) {
+            getPKRef(context);
+        } else {
+            getPKOfIds(context);
         }
+    }
 
+    private void getPKOfIds(@NotNull Context context) throws RosuFFI.FFIException {
         final String m = context.queryParam("m");
         final String us = context.queryParam("u");
 
@@ -288,8 +292,9 @@ public class Router implements Closeable {
         renderPKFinal(context, placements, beatmap.get(), rosuBeatmapPath);
     }
 
-    protected void getBeatmapRef(@NotNull Context context) {
+    private void getBeatmapRef(@NotNull Context context) {
         final String of = Objects.requireNonNull(context.queryParam("of"));
+        final String iStr = Objects.requireNonNull(context.queryParam("i"));
         final String u = context.queryParam("u");
 
         if (u == null) {
@@ -297,17 +302,16 @@ public class Router implements Closeable {
             return;
         }
 
-        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
             context.status(400).result(new Response(false,
-                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
+                    "Invalid query parameter!", null).toString()
             );
             return;
         }
 
-        final String from = of.substring(0, 2);
-        final int num = Integer.parseInt(of.substring(2));
+        final int num = Integer.parseInt(iStr);
 
-        final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+        final Optional<List<Score>> scoresOptional = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
             context.status(400).result(new Response(false, "No scores found for user!", null).toString());
@@ -368,12 +372,9 @@ public class Router implements Closeable {
     }
 
     protected void getBeatmap(@NotNull Context context) throws Exception {
-        final String of = context.queryParam("of");
-        final String ms = context.queryParam("ms");
-
-        if (of != null) {
+        if (context.queryParam("of") != null) {
             getBeatmapRef(context);
-        } else if (ms != null) {
+        } else if (context.queryParam("ms") != null) {
             getBeatmapOfSet(context);
         } else {
             getBeatmapOfId(context);
@@ -408,7 +409,7 @@ public class Router implements Closeable {
         context.status(200).result(bytes);
     }
 
-    protected DiffSpec getDiffSpecForMap(BeatmapExtended beatmap, String mod) throws RosuFFI.FFIException {
+    private DiffSpec getDiffSpecForMap(BeatmapExtended beatmap, String mod) throws RosuFFI.FFIException {
         final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
 
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
@@ -521,25 +522,26 @@ public class Router implements Closeable {
         }
     }
 
-    protected void getBeatmapsetRef(@NotNull Context context, String of) {
+    protected void getBeatmapsetRef(@NotNull Context context) {
+        final String of = context.queryParam("of");
         final String u = context.queryParam("u");
+        final String iStr = context.queryParam("i");
 
-        if (u == null) {
+        if (u == null || iStr == null || of == null) {
             context.status(400).result(new Response(false, "Invalid query parameter! Missing u", null).toString());
             return;
         }
 
-        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(of.substring(2)))) {
+        if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
             context.status(400).result(new Response(false,
-                    "Invalid query parameter! 'of' should starts with 'rs' or 'bo' and ends with a number!", null).toString()
+                    "Invalid query parameter!", null).toString()
             );
             return;
         }
 
-        final String from = of.substring(0, 2);
-        final int num = Integer.parseInt(of.substring(2));
+        final int num = Integer.parseInt(iStr);
 
-        final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, from.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+        final Optional<List<Score>> rs = executor.enqueue(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
 
         if (rs.isEmpty() || rs.get().size() < num) {
             context.status(400).result(new Response(false, "No scores found for user!", null).toString());
@@ -560,10 +562,8 @@ public class Router implements Closeable {
     }
 
     protected void getBeatmapset(@NotNull Context context) {
-        final String of = context.queryParam("of");
-
-        if (of != null) {
-            getBeatmapsetRef(context, of);
+        if (context.queryParam("of") != null) {
+            getBeatmapsetRef(context);
             return;
         }
 
