@@ -320,17 +320,37 @@ public class Router implements Closeable {
 
         final List<Score> scores = scoresOptional.get();
         final var beatmapId = scores.getLast().getBeatmap().getId();
-        executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(beatmapId)))
-                .ifPresentOrElse(beatmap -> {
-                    try {
-                        final DiffSpec diffSpec = getDiffSpecForMap(beatmap, scores.getLast().getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
-                        final byte[] bytes = renderer.renderBeatmap(beatmap, diffSpec);
-                        context.status(200).result(bytes);
-                    } catch (Exception e) {
-                        context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
-                        LOG.error("An error occurred while processing request: {}", context.queryString(), e);
-                    }
-                }, () -> context.status(400).result(new Response(false, "No beatmap found", null).toString()));
+        final var beatmapsetId = scores.getLast().getBeatmapset().getId();
+        final Optional<Beatmapset> enqueue = executor.enqueue(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(beatmapsetId)));
+
+        if (enqueue.isEmpty()) {
+            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            return;
+        }
+
+        final Beatmapset beatmapset = enqueue.get();
+
+        final Optional<BeatmapExtended> beatmapOptional = beatmapset.getBeatmaps().stream()
+                .filter(b -> Objects.equals(b.getId(), beatmapId))
+                .findFirst();
+
+        if (beatmapOptional.isEmpty()) {
+            context.status(400).result(new Response(false, "No beatmap found", null).toString());
+            return;
+        }
+
+        final BeatmapExtended beatmapExtended = beatmapOptional.get();
+
+        beatmapExtended.setBeatmapset(beatmapset);
+
+        try {
+            final DiffSpec diffSpec = getDiffSpecForMap(beatmapExtended, scores.getLast().getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+            final byte[] bytes = renderer.renderBeatmap(beatmapExtended, diffSpec);
+            context.status(200).result(bytes);
+        } catch (Exception e) {
+            context.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
+            LOG.error("An error occurred while processing request: {}", context.queryString(), e);
+        }
     }
 
     protected void getBeatmapOfSet(@NotNull Context context) throws Exception {
@@ -390,14 +410,27 @@ public class Router implements Closeable {
             return;
         }
 
-        final var beatmapOptional = executor.enqueue(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m));
+        final var beatmapsetOptional = executor.enqueue(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m));
 
-        if (beatmapOptional.isEmpty()) {
+        if (beatmapsetOptional.isEmpty()) {
+            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            return;
+        }
+
+        final Beatmapset beatmapset = beatmapsetOptional.get();
+
+        final Optional<BeatmapExtended> optional = beatmapset.getBeatmaps().stream()
+                .filter(b -> Objects.equals(String.valueOf(b.getId()), m))
+                .findFirst();
+
+        if (optional.isEmpty()) {
             context.status(400).result(new Response(false, "No beatmap found", null).toString());
             return;
         }
 
-        final BeatmapExtended beatmap = beatmapOptional.get();
+        final BeatmapExtended beatmap = optional.get();
+
+        beatmap.setBeatmapset(beatmapset);
 
         final DiffSpec diffSpec = getDiffSpecForMap(beatmap, mod);
 
@@ -561,12 +594,38 @@ public class Router implements Closeable {
                 }, () -> context.status(400).result(new Response(false, "No beatmapset found", null).toString()));
     }
 
-    protected void getBeatmapset(@NotNull Context context) {
-        if (context.queryParam("of") != null) {
-            getBeatmapsetRef(context);
+    private void getBeatmapsetOfMap(@NotNull Context context) {
+        final String m = context.queryParam("m");
+
+        if (m == null) {
+            context.status(400).result(new Response(false, "Invalid query parameter!", null).toString());
             return;
         }
 
+        final var beatmapsetOptional = executor.enqueue(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m));
+
+        if (beatmapsetOptional.isEmpty()) {
+            context.status(400).result(new Response(false, "No beatmapset found", null).toString());
+            return;
+        }
+
+        final Beatmapset beatmapset = beatmapsetOptional.get();
+        final byte[] bytes = renderer.renderBeatmapset(beatmapset);
+
+        context.status(200).result(bytes);
+    }
+
+    protected void getBeatmapset(@NotNull Context context) {
+        if (context.queryParam("of") != null) {
+            getBeatmapsetRef(context);
+        } else if (context.queryParam("m") != null) {
+            getBeatmapsetOfMap(context);
+        } else {
+            getBeatmapsetOfId(context);
+        }
+    }
+
+    private void getBeatmapsetOfId(@NotNull Context context) {
         final String ms = context.queryParam("ms");
 
         if (ms == null || !isInteger(ms)) {

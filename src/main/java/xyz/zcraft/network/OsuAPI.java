@@ -216,6 +216,22 @@ public class OsuAPI {
         }
     }
 
+    public static Beatmapset getBeatmapsetFromBeatmap(TokenData tokenData, String beatmapId) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/beatmapsets/lookup?beatmap_id=" + beatmapId)
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+            return GSON.fromJson(body, Beatmapset.class);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static BeatmapExtended getBeatmap(TokenData tokenData, String beatmapId) {
         try {
             final var request = newRequestBuilder(tokenData, "/beatmaps/" + beatmapId)

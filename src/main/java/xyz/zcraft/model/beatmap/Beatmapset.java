@@ -89,23 +89,30 @@ public class Beatmapset {
     public List<Integer> ratings;
     public Double rating;
     public Double bpm;
+    @SerializedName("related_tags")
+    public List<UserTag> relatedTags;
+    @SerializedName("recent_favourites")
+    public List<UserExtended> recentFavourites;
+    @SerializedName("related_users")
+    public List<UserExtended> relatedUsers;
+    public UserExtended user;
+    @SerializedName("track_id")
+    public Long trackId;
+
+    public String getTagName(int id) {
+        if (relatedTags == null) return null;
+
+        return relatedTags.stream().filter(tag -> tag.getId() == id)
+                .findFirst()
+                .map(UserTag::getName)
+                .orElse(null);
+    }
 
     public String getRatingString() {
         return Optional.ofNullable(rating)
                 .map(r -> String.format("%.2f", r))
                 .orElse("--");
     }
-
-    @SerializedName("recent_favourites")
-    public List<UserExtended> recentFavourites;
-
-    @SerializedName("related_users")
-    public List<UserExtended> relatedUsers;
-
-    public UserExtended user;
-
-    @SerializedName("track_id")
-    public Long trackId;
 
     public String getGenreString() {
         return Optional.ofNullable(genre)
@@ -129,7 +136,7 @@ public class Beatmapset {
     }
 
     public double getMaxStar() {
-        if(beatmaps == null || beatmaps.isEmpty()) return 0;
+        if (beatmaps == null || beatmaps.isEmpty()) return 0;
         double result = beatmaps.getFirst().getDifficultyRating();
         for (BeatmapExtended beatmap : beatmaps) {
             result = Math.max(beatmap.getDifficultyRating(), result);
@@ -138,7 +145,7 @@ public class Beatmapset {
     }
 
     public double getMinStar() {
-        if(beatmaps == null || beatmaps.isEmpty()) return 0;
+        if (beatmaps == null || beatmaps.isEmpty()) return 0;
         double result = beatmaps.getFirst().getDifficultyRating();
         for (BeatmapExtended beatmap : beatmaps) {
             result = Math.min(beatmap.getDifficultyRating(), result);
