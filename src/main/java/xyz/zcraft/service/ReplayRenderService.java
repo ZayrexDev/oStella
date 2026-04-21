@@ -4,6 +4,9 @@ import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -16,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ReplayRenderService {
     private static final Logger LOG = LogManager.getLogger(ReplayRenderService.class);
+    private static final Logger DANSER_LOG = LogManager.getLogger("danser");
     private final Path danserPath;
     private final Path songPath;
     private final ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
@@ -57,6 +61,22 @@ public class ReplayRenderService {
         }
     }
 
+    private void consumeDanserOutput(InputStream inputStream) {
+        Thread gobblerThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    DANSER_LOG.info(line);
+                }
+            } catch (Exception e) {
+                DANSER_LOG.error("Failed to read Danser stream", e);
+            }
+        });
+
+        gobblerThread.setDaemon(true);
+        gobblerThread.start();
+    }
+
     public String queueRender(Path osrPath) {
         final String jobId = UUID.randomUUID().toString();
         jobStatus.put(jobId, "queued");
@@ -89,9 +109,10 @@ public class ReplayRenderService {
             );
 
             builder.redirectErrorStream(true);
-            builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
 
             Process process = builder.start();
+
+            consumeDanserOutput(process.getInputStream());
 
             boolean finished = process.waitFor(3, TimeUnit.MINUTES);
             if (!finished) {
