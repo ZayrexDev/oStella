@@ -13,7 +13,7 @@ public record Config(String clientId, String clientSecret, int port, int maxThre
                 getInt(env, "OSTELLA_DELAY", 1000),
                 getBool(env, "OSTELLA_DEBUG", false),
                 env.get("DANSER_PATH"),
-                getInt(env, "REPLAY_QUEUE_SIZE", 1000)
+                getInt(env, "REPLAY_QUEUE_SIZE", 10)
         );
     }
 
