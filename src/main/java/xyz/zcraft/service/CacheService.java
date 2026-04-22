@@ -184,12 +184,10 @@ public class CacheService {
                     return true;
                 } else {
                     LOG.error("Failed to download beatmapset! Sayobot responded with status code: {}", fileResponse.statusCode());
-                    throw new RuntimeException("Failed to download beatmapset! Sayobot responded with status code: " + fileResponse.statusCode());
                 }
             }
         } catch (IOException | InterruptedException e) {
             LOG.error("Failed to download beatmapset!", e);
-            throw new RuntimeException(e);
         }
 
         return false;
