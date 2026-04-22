@@ -27,13 +27,13 @@ public class CacheService {
     private static final Path BEATMAP_CACHE = Paths.get("data", "cache", "beatmap");
     private static final Path IMAGE_CACHE = Paths.get("data", "cache", "image");
     private static final Path REPLAY_CACHE = Paths.get("data", "cache", "replay");
-    private static final Path DANSER_CACHE = Paths.get("data", "cache", "danser");
+    private static final Path DANSER_SONG_CACHE = Paths.get("data", "cache", "danser", "songs");
 
     public CacheService() throws IOException {
         Files.createDirectories(BEATMAP_CACHE);
         Files.createDirectories(IMAGE_CACHE);
         Files.createDirectories(REPLAY_CACHE);
-        Files.createDirectories(DANSER_CACHE);
+        Files.createDirectories(DANSER_SONG_CACHE);
     }
 
     private static String bytesToHex(byte[] bytes) {
@@ -140,7 +140,7 @@ public class CacheService {
     }
 
     public boolean cacheBeatmapset(String id) throws Exception {
-        try (Stream<Path> list = Files.list(DANSER_CACHE)) {
+        try (Stream<Path> list = Files.list(DANSER_SONG_CACHE)) {
             if (list.map(Path::getFileName)
                     .map(Path::toString)
                     .anyMatch(p -> p.equals(id) || p.startsWith(id + " ") || p.equals(id + ".osz"))
@@ -150,7 +150,7 @@ public class CacheService {
             }
         }
 
-        Path beatmapsetPath = DANSER_CACHE.resolve(id + ".osz");
+        Path beatmapsetPath = DANSER_SONG_CACHE.resolve(id + ".osz");
 
         LOG.info("Downloading beatmapset {}", id);
         try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()) {
@@ -208,6 +208,6 @@ public class CacheService {
     }
 
     public Path getDanserCache() {
-        return DANSER_CACHE;
+        return DANSER_SONG_CACHE;
     }
 }
