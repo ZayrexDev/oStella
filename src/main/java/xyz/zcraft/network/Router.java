@@ -809,9 +809,10 @@ public class Router implements Closeable {
                 return;
             }
 
-            final BeatmapExtended beatmap = scores.getFirst().getBeatmap();
+            final long beatmapId = scores.getFirst().getBeatmap().getId();
+            final long beatmapsetId = scores.getFirst().getBeatmap().getBeatmapset().getId();
 
-            if (!router.cacheService.cacheBeatmapset(String.valueOf(scores.getFirst().getBeatmap().getBeatmapsetId()))) {
+            if (!router.cacheService.cacheBeatmapset(String.valueOf(beatmapsetId))) {
                 context.status(500).result(Response.error("Failed to cache beatmapset!", ErrorCode.BEATMAPSET_FETCH_FAILED).toString());
                 return;
             }
@@ -839,7 +840,7 @@ public class Router implements Closeable {
                 return;
             }
 
-            final String jobId = router.replayRenderService.queueRenderShowcase(String.valueOf(beatmap.getId()), replays);
+            final String jobId = router.replayRenderService.queueRenderShowcase(String.valueOf(beatmapId), replays);
 
             final JsonArray scoresArr = getScoresArr(scores);
 
@@ -851,11 +852,6 @@ public class Router implements Closeable {
                                     "status", "queued",
                                     "position", queueSize,
                                     "id", jobId,
-                                    "beatmap", Map.of(
-                                            "title", beatmap.getBeatmapset().getTitle(),
-                                            "artist", beatmap.getBeatmapset().getArtist(),
-                                            "version", beatmap.getVersion()
-                                    ),
                                     "scores", scoresArr
                             ))
                     ).toString()

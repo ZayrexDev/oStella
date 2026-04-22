@@ -75,6 +75,7 @@ public class CacheService {
     public String getRosuBeatmapPath(String id, boolean update) {
         if (!Files.exists(BEATMAP_CACHE.resolve(id)) || update) {
             try {
+                LOG.info("Caching beatmap {}", id);
                 cacheBeatmap(id);
                 LOG.info("Beatmap {} cached", id);
             } catch (Exception e) {
@@ -196,11 +197,12 @@ public class CacheService {
     public Path getReplay(TokenData tokenData, String id) throws IOException {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
-        if (Files.exists(beatmapsetPath)) {
-            LOG.info("Replay {} already cached", id);
-        } else {
+        if (!Files.exists(beatmapsetPath)) {
+            LOG.info("Caching replay {}", id);
             Files.write(beatmapsetPath, OsuAPI.getReplayBytes(tokenData, id));
         }
+
+        LOG.info("Replay {} is ready", id);
 
         return beatmapsetPath;
     }
