@@ -156,7 +156,7 @@ public class ReplayRenderService {
 
             consumeDanserOutput(process.getInputStream());
 
-            boolean finished = process.waitFor(3, TimeUnit.MINUTES);
+            boolean finished = process.waitFor(5, TimeUnit.MINUTES);
             if (!finished) {
                 jobStatus.put(jobId, "failed");
                 process.destroyForcibly();
