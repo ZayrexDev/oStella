@@ -810,7 +810,7 @@ public class Router implements Closeable {
             }
 
             final long beatmapId = scores.getFirst().getBeatmap().getId();
-            final long beatmapsetId = scores.getFirst().getBeatmap().getBeatmapset().getId();
+            final long beatmapsetId = scores.getFirst().getBeatmap().getBeatmapsetId();
 
             if (!router.cacheService.cacheBeatmapset(String.valueOf(beatmapsetId))) {
                 context.status(500).result(Response.error("Failed to cache beatmapset!", ErrorCode.BEATMAPSET_FETCH_FAILED).toString());
