@@ -11,45 +11,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class ReplayRenderService implements Closeable {
-    public static final String PATCH = """
-            {
-              "General": {
-                "OsuSongsDir": "%s"
-              },
-              "Gameplay": {
-                "AimErrorMeter": {
-                  "Show": true
-                }
-              },
-              "Playfield": {
-                "SeizureWarning": {
-                  "Enabled": false
-                },
-                "Background": {
-                  "Dim": {
-                    "Normal": 0.8
-                  },
-                  "Parallax": {
-                    "Enabled": false
-                  }
-                }
-              },
-              "Cursor": {
-                "CursorSize": 8,
-                "TrailScale": 0.7
-              },
-              "Knockout": {
-              	"Mode": 2,
-              	"BubbleMinimumCombo": 50
-              },
-              "Recording": {
-                "FrameWidth": 854,
-                "FrameHeight": 480,
-                "FPS": 30,
-                "EncoderOptions": "-crf 28 -preset ultrafast"
-              }
-            }
-            """;
     private static final Logger LOG = LogManager.getLogger(ReplayRenderService.class);
     private static final Logger DANSER_LOG = LogManager.getLogger("danser");
     private final Path danserPath;
@@ -128,66 +89,21 @@ public class ReplayRenderService implements Closeable {
         jobStatus.put(jobId, "rendering");
         Path tempSettingsFile = null;
         try {
+            final List<String> c = new LinkedList<>();
             final String fileName = "replay_" + System.currentTimeMillis();
-            String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
 
-            String jsonContent = PATCH.formatted(safeSongPath);
-            Path settingsDir = danserPath.getParent().resolve("settings");
-            Files.createDirectories(settingsDir);
-            String tempProfileName = "ostella_temp_" + UUID.randomUUID().toString().substring(0, 8);
-            tempSettingsFile = settingsDir.resolve(tempProfileName + ".json");
-            Files.writeString(tempSettingsFile, jsonContent);
+            tempSettingsFile = prepareDanser(c);
 
-            boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
-
-            List<String> c = new LinkedList<>();
-
-            if (!isWindows) {
-                c.add("xvfb-run");
-                c.add("-a");
-            }
-
-            c.add(danserPath.toAbsolutePath().toString());
-            c.add("-settings=" + tempProfileName);
-            c.add("-noupdatecheck");
-            c.add("-quickstart");
-            c.add("-record");
             c.add("-replay=" + osrPath.toAbsolutePath());
             c.add("-out=" + fileName);
 
-            ProcessBuilder builder = new ProcessBuilder(c);
-
-            builder.redirectErrorStream(true);
-
-            LOG.info("Render started for {}", jobId);
-
-            Process process = builder.start();
-
-            consumeDanserOutput(process.getInputStream());
-
-            boolean finished = process.waitFor(5, TimeUnit.MINUTES);
-            if (!finished) {
-                jobStatus.put(jobId, "failed");
-                process.destroyForcibly();
-                LOG.error("Danser timed out and was killed.");
-                return;
-            }
-
-            LOG.info("Danser finished rendering video: {}", fileName + ".mp4");
-
-            jobStatus.put(jobId, "done");
-            final Path video = danserPath.resolve("..", "videos", fileName + ".mp4").normalize().toAbsolutePath();
-            jobResults.put(jobId, video);
+            runDanser(jobId, fileName, c);
         } catch (Exception e) {
             jobStatus.put(jobId, "failed");
             LOG.error("Danser failed to render video", e);
         } finally {
             if (tempSettingsFile != null) {
-                try {
-                    Files.deleteIfExists(tempSettingsFile);
-                } catch (IOException e) {
-                    LOG.error("Failed to delete temp settings file", e);
-                }
+                try { Files.deleteIfExists(tempSettingsFile); } catch (IOException ignored) {}
             }
         }
     }
@@ -196,56 +112,83 @@ public class ReplayRenderService implements Closeable {
         jobStatus.put(jobId, "rendering");
         Path tempSettingsFile = null;
         try {
+            final List<String> c = new LinkedList<>();
             final String fileName = "showcase_" + System.currentTimeMillis();
-            String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
 
-            String jsonContent = PATCH.formatted(safeSongPath);
-            Path settingsDir = danserPath.getParent().resolve("settings");
-            Files.createDirectories(settingsDir);
-            String tempProfileName = "ostella_temp_" + UUID.randomUUID().toString().substring(0, 8);
-            tempSettingsFile = settingsDir.resolve(tempProfileName + ".json");
-            Files.writeString(tempSettingsFile, jsonContent);
-
-            boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+            tempSettingsFile = prepareDanser(c);
 
             StringBuilder sb = new StringBuilder();
             sb.append("[");
             for (Path osrPath : osrPaths) {
-                sb.append("\"").append(osrPath.toAbsolutePath()).append("\"").append(",");
+                String safePath = osrPath.toAbsolutePath().toString().replace("\\", "/");
+                sb.append("\"").append(safePath).append("\"").append(",");
             }
             sb.deleteCharAt(sb.length() - 1).append("]");
-
             String replayList = sb.toString();
 
-            List<String> c = new LinkedList<>();
-
-            if (!isWindows) {
-                c.add("xvfb-run");
-                c.add("-a");
-            } else {
-                replayList = replayList.replace("\\", "/");
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
                 replayList = replayList.replace("\"", "\\\"");
             }
 
-            c.add(danserPath.toAbsolutePath().toString());
-            c.add("-settings=" + tempProfileName);
-            c.add("-noupdatecheck");
-            c.add("-quickstart");
-            c.add("-id=" + beatmapId);
-            c.add("-record");
             c.add("-knockout2=" + replayList);
+            c.add("-id=" + beatmapId);
             c.add("-out=" + fileName);
 
-            ProcessBuilder builder = new ProcessBuilder(c);
+            runDanser(jobId, fileName, c);
+        } catch (Exception e) {
+            jobStatus.put(jobId, "failed");
+            LOG.error("Danser failed to render showcase", e);
+        } finally {
+            if (tempSettingsFile != null) {
+                try { Files.deleteIfExists(tempSettingsFile); } catch (IOException ignored) {}
+            }
+        }
+    }
 
-            builder.redirectErrorStream(true);
+    private Path prepareDanser(List<String> c) throws IOException {
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
 
-            LOG.info("Render started for {}", jobId);
+        if (!isWindows) {
+            c.add("xvfb-run");
+            c.add("-a");
+        }
 
-            Process process = builder.start();
+        c.add(danserPath.toAbsolutePath().toString());
+        c.add("-noupdatecheck");
+        c.add("-quickstart");
+        c.add("-record");
 
-            consumeDanserOutput(process.getInputStream());
+        String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
 
+        try (InputStream templateStream = getClass().getResourceAsStream("/danser-config.json")) {
+            if (templateStream == null) {
+                throw new RuntimeException("Could not find danser-config.json in resources!");
+            }
+
+            String jsonTemplate = new String(templateStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            String finalJsonContent = jsonTemplate.replace("{{OSU_SONGS_DIR}}", safeSongPath);
+
+            Path settingsDir = danserPath.getParent().resolve("settings");
+            Files.createDirectories(settingsDir);
+            String tempProfileName = "ostella_temp_" + UUID.randomUUID().toString().substring(0, 8);
+            Path tempSettingsFile = settingsDir.resolve(tempProfileName + ".json");
+            Files.writeString(tempSettingsFile, finalJsonContent);
+
+            c.add("-settings=" + tempProfileName);
+
+            return tempSettingsFile;
+        }
+    }
+
+    private void runDanser(String jobId, String fileName, List<String> c) throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder(c);
+        builder.redirectErrorStream(true);
+        LOG.info("Render started for {}", jobId);
+
+        Process process = builder.start();
+        consumeDanserOutput(process.getInputStream());
+
+        try {
             boolean finished = process.waitFor(5, TimeUnit.MINUTES);
             if (!finished) {
                 jobStatus.put(jobId, "failed");
@@ -253,24 +196,15 @@ public class ReplayRenderService implements Closeable {
                 LOG.error("Danser timed out and was killed.");
                 return;
             }
-
-            LOG.info("Danser finished rendering video: {}", fileName + ".mp4");
-
-            jobStatus.put(jobId, "done");
-            final Path video = danserPath.resolve("..", "videos", fileName + ".mp4").normalize().toAbsolutePath();
-            jobResults.put(jobId, video);
-        } catch (Exception e) {
-            jobStatus.put(jobId, "failed");
-            LOG.error("Danser failed to render video", e);
-        } finally {
-            if (tempSettingsFile != null) {
-                try {
-                    Files.deleteIfExists(tempSettingsFile);
-                } catch (IOException e) {
-                    LOG.error("Failed to delete temp settings file", e);
-                }
-            }
+        } catch (InterruptedException e) {
+            process.destroyForcibly();
+            throw e;
         }
+
+        LOG.info("Danser finished rendering video: {}", fileName + ".mp4");
+        jobStatus.put(jobId, "done");
+        final Path video = danserPath.resolve("..", "videos", fileName + ".mp4").normalize().toAbsolutePath();
+        jobResults.put(jobId, video);
     }
 
     @Override
