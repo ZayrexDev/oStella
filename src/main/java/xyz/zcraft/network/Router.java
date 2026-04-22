@@ -344,6 +344,7 @@ public class Router implements Closeable {
     public void close() {
         executor.close();
         renderer.close();
+        replayRenderService.close();
     }
 
     private record Helper(Router router) {
