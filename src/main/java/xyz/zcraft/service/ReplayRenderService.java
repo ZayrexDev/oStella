@@ -4,24 +4,19 @@ import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
-public class ReplayRenderService {
+public class ReplayRenderService implements Closeable {
     private static final Logger LOG = LogManager.getLogger(ReplayRenderService.class);
     private static final Logger DANSER_LOG = LogManager.getLogger("danser");
     private final Path danserPath;
     private final Path songPath;
     private final ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+    private final ScheduledExecutorService cleanUpExecutor = Executors.newSingleThreadScheduledExecutor();
     //  "queued", "rendering", "done", "failed"
     @Getter
     private final ConcurrentHashMap<String, String> jobStatus = new ConcurrentHashMap<>();
@@ -32,32 +27,28 @@ public class ReplayRenderService {
         this.danserPath = danserPath;
         this.songPath = songPath;
 
-        try (var executor = Executors.newSingleThreadScheduledExecutor()) {
-            executor.scheduleAtFixedRate(() -> {
-                try {
-                    long fifteenMinutesAgo = System.currentTimeMillis() - (15 * 60 * 1000);
+        cleanUpExecutor.scheduleAtFixedRate(() -> {
+            try {
+                long fifteenMinutesAgo = System.currentTimeMillis() - (15 * 60 * 1000);
 
-                    Iterator<Map.Entry<String, Path>> iterator = jobResults.entrySet().iterator();
+                Iterator<Map.Entry<String, Path>> iterator = jobResults.entrySet().iterator();
 
-                    while (iterator.hasNext()) {
-                        Map.Entry<String, Path> entry = iterator.next();
-                        String jobId = entry.getKey();
-                        Path video = entry.getValue();
+                while (iterator.hasNext()) {
+                    Map.Entry<String, Path> entry = iterator.next();
+                    String jobId = entry.getKey();
+                    Path video = entry.getValue();
 
-                        if (video != null && Files.getLastModifiedTime(video).toMillis() < fifteenMinutesAgo) {
-                            Files.deleteIfExists(video);
-                            jobStatus.remove(jobId);
-                            iterator.remove();
-                            LOG.info("Garbage Collector wiped stale job: {}", jobId);
-                        }
+                    if (video != null && Files.getLastModifiedTime(video).toMillis() < fifteenMinutesAgo) {
+                        Files.deleteIfExists(video);
+                        jobStatus.remove(jobId);
+                        iterator.remove();
+                        LOG.info("Garbage Collector wiped stale job: {}", jobId);
                     }
-                } catch (Exception e) {
-                    LOG.error("Error during garbage collection of rendered videos", e);
                 }
-            }, 5, 5, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+            } catch (Exception e) {
+                LOG.error("Error during garbage collection of rendered videos", e);
+            }
+        }, 5, 5, TimeUnit.MINUTES);
     }
 
     private void consumeDanserOutput(InputStream inputStream) {
@@ -186,5 +177,11 @@ public class ReplayRenderService {
                 }
             }
         }
+    }
+
+    @Override
+    public void close() {
+        executor.shutdownNow();
+        cleanUpExecutor.shutdownNow();
     }
 }

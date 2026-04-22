@@ -1010,7 +1010,7 @@ public class Router implements Closeable {
                                             "version", score.getBeatmap().getVersion(),
                                             "username", score.getUser().getUsername(),
                                             "rank", score.getRank(),
-                                            "accuracy", String.format("%.2f%%", score.getAccuracy()),
+                                            "accuracy", String.format("%.2f%%", score.getAccuracy() * 100),
                                             "star", String.format("%.2f★", score.getBeatmap().getDifficultyRating())
                                     )
                             ))
