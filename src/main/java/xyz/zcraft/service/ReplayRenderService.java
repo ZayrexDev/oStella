@@ -91,7 +91,7 @@ public class ReplayRenderService {
         jobStatus.put(jobId, "rendering");
         Path tempSettingsFile = null;
         try {
-            final String fileName = "highlight_" + System.currentTimeMillis();
+            final String fileName = "replay_" + System.currentTimeMillis();
             String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
 
             String jsonContent = """
@@ -100,9 +100,10 @@ public class ReplayRenderService {
                             "OsuSongsDir": "%s"
                         },
                         "Recording": {
-                            "FrameWidth": 960,
-                            "FrameHeight": 540,
-                            "FPS": 30
+                            "FrameWidth": 854,
+                            "FrameHeight": 480,
+                            "FPS": 30,
+                            "EncoderOptions": "-crf 28 -preset ultrafast"
                         }
                     }
                     """.formatted(safeSongPath);

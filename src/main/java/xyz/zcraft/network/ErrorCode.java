@@ -18,7 +18,9 @@ public enum ErrorCode {
     USER_FETCH_FAILED(3003),
     SCORE_FETCH_FAILED(3004),
 
-    REPLAY_UNAVAILABLE(4001);
+    REPLAY_UNAVAILABLE(4001),
+
+    RENDER_QUEUE_FULL(5001);
 
     private final int code;
 

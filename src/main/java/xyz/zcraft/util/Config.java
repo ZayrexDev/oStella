@@ -2,7 +2,7 @@ package xyz.zcraft.util;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
-public record Config(String clientId, String clientSecret, int port, int maxThreads, int delay, boolean debug, String danserPath) {
+public record Config(String clientId, String clientSecret, int port, int maxThreads, int delay, boolean debug, String danserPath, int replayQueueSize) {
     public static Config fromEnv() throws IllegalArgumentException {
         final Dotenv env = Dotenv.load();
         return new Config(
@@ -12,7 +12,8 @@ public record Config(String clientId, String clientSecret, int port, int maxThre
                 getInt(env, "OSTELLA_MAX_THREADS", 2),
                 getInt(env, "OSTELLA_DELAY", 1000),
                 getBool(env, "OSTELLA_DEBUG", false),
-                env.get("DANSER_PATH")
+                env.get("DANSER_PATH"),
+                getInt(env, "REPLAY_QUEUE_SIZE", 1000)
         );
     }
 
