@@ -193,7 +193,7 @@ public class CacheService {
         return false;
     }
 
-    public Path getReplay(TokenData tokenData, String id) throws Exception {
+    public Path getReplay(TokenData tokenData, String id) throws IOException {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
         if (Files.exists(beatmapsetPath)) {

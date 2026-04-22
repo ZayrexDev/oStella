@@ -347,6 +347,16 @@ public class Router implements Closeable {
         replayRenderService.close();
     }
 
+    public void queueShowcaseRender(@NotNull Context context) throws Exception {
+        if (context.queryParam("of") != null) {
+            helper.renderShowcaseOfUsersRef(context);
+        } else if (context.queryParam("u") != null) {
+            helper.renderShowcaseOfUsers(context);
+        } else {
+            helper.renderShowcaseOfIds(context);
+        }
+    }
+
     private record Helper(Router router) {
         private void queueReplayRenderOfBeatmapset(@NotNull Context context) throws Exception {
             final var score = getScoreFromBeatmapset(context);
@@ -641,7 +651,9 @@ public class Router implements Closeable {
                 return;
             }
 
-            final Long id = scoresOptional.get().getLast().getBeatmap().getId();
+            final Score scoreSource = scoresOptional.get().get(num - 1);
+
+            final Long id = scoreSource.getBeatmap().getId();
 
             final String[] u = Arrays.stream(us.split(",")).distinct().toArray(String[]::new);
 
@@ -705,6 +717,163 @@ public class Router implements Closeable {
             final String rosuBeatmapPath = router.cacheService.getRosuBeatmapPath(m, false);
 
             renderPKFinal(context, placements, beatmap.get(), rosuBeatmapPath);
+        }
+
+        private void renderShowcaseOfIds(@NotNull Context context) throws Exception {
+            if (router.replayRenderService == null) return;
+
+            final String ss = context.queryParam("s");
+
+            if (ss == null) {
+                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
+                return;
+            }
+
+            final var scoreIds = Arrays.stream(ss.split(",")).distinct().toList();
+
+            final LinkedList<Score> scores = new LinkedList<>();
+            for (String scoreId : scoreIds) {
+                final var userScore = router.executor.enqueue(() -> OsuAPI.getScore(router.tokenManager.getTokenData(), scoreId));
+                if (userScore.isEmpty() || userScore.get().getPp() == null || !userScore.get().getHasReplay()) continue;
+                scores.add(userScore.get());
+            }
+
+            renderShowcaseFor(context, scores);
+        }
+
+        private void renderShowcaseOfUsers(@NotNull Context context) throws Exception {
+            if (router.replayRenderService == null) return;
+
+            final String us = context.queryParam("u");
+            final String m = context.queryParam("m");
+
+            if (us == null || m == null) {
+                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
+                return;
+            }
+
+            final var userIds = Arrays.stream(us.split(",")).distinct().toList();
+
+            final LinkedList<Score> scores = new LinkedList<>();
+            for (String userId : userIds) {
+                final var userScore = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, m));
+                if (userScore.isEmpty() || userScore.get().getPp() == null || !userScore.get().getHasReplay()) continue;
+                scores.add(userScore.get());
+            }
+
+            renderShowcaseFor(context, scores);
+        }
+
+        private void renderShowcaseOfUsersRef(@NotNull Context context) throws Exception {
+            if (router.replayRenderService == null) return;
+
+            final String us = context.queryParam("u");
+            final String of = context.queryParam("of");
+            final String uSource = context.queryParam("us");
+            final String iStr = context.queryParam("i");
+
+            if (us == null || of == null || uSource == null || iStr == null || !ensureNumbers(iStr)) {
+                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
+                return;
+            }
+
+            final int i = Integer.parseInt(iStr);
+
+            final Optional<List<Score>> scoresOptional = router.executor.enqueue(() ->
+                    OsuAPI.getUserScores(router.tokenManager.getTokenData(), uSource, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false));
+
+            if (scoresOptional.isEmpty() || scoresOptional.get().size() < i) {
+                context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
+                return;
+            }
+
+            final Score scoreSource = scoresOptional.get().get(i - 1);
+
+            final var userIds = Arrays.stream(us.split(",")).distinct().toList();
+
+            final LinkedList<Score> scores = new LinkedList<>();
+            for (String userId : userIds) {
+                final var userScore = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, String.valueOf(scoreSource.getBeatmap().getId())));
+                if (userScore.isEmpty() || userScore.get().getPp() == null || !userScore.get().getHasReplay()) continue;
+                scores.add(userScore.get());
+            }
+
+            renderShowcaseFor(context, scores);
+        }
+
+        private void renderShowcaseFor(@NotNull Context context, LinkedList<Score> scores) throws Exception {
+            if (router.replayRenderService == null) return;
+
+            if (scores.isEmpty()) {
+                context.status(400).result(Response.error("No valid scores found!", ErrorCode.NO_SCORE_FOUND).toString());
+                return;
+            }
+
+            final BeatmapExtended beatmap = scores.getFirst().getBeatmap();
+
+            if (!router.cacheService.cacheBeatmapset(String.valueOf(scores.getFirst().getBeatmap().getBeatmapsetId()))) {
+                context.status(500).result(Response.error("Failed to cache beatmapset!", ErrorCode.BEATMAPSET_FETCH_FAILED).toString());
+                return;
+            }
+
+            final LinkedList<Path> replays = new LinkedList<>();
+
+            for (Score score : scores) {
+                router.executor.enqueue(() -> {
+                    try {
+                        return router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
+                    } catch (IOException e) {
+                        LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
+                        return null;
+                    }
+                }).ifPresent(replays::add);
+            }
+
+            final int queueSize = router.replayRenderService.getQueueSize() + 1;
+
+            if (queueSize > router.conf.replayQueueSize()) {
+                context.status(400).result(
+                        Response.error("Replay rendering queue is full! Please try again later."
+                                , ErrorCode.RENDER_QUEUE_FULL).toString()
+                );
+                return;
+            }
+
+            final String jobId = router.replayRenderService.queueRenderShowcase(String.valueOf(beatmap.getId()), replays);
+
+            final JsonArray scoresArr = getScoresArr(scores);
+
+            context.status(202).result(
+                    new Response(
+                            true,
+                            "Replay render queued!",
+                            router.GSON.toJsonTree(Map.of(
+                                    "status", "queued",
+                                    "position", queueSize,
+                                    "id", jobId,
+                                    "beatmap", Map.of(
+                                            "title", beatmap.getBeatmapset().getTitle(),
+                                            "artist", beatmap.getBeatmapset().getArtist(),
+                                            "version", beatmap.getVersion()
+                                    ),
+                                    "scores", scoresArr
+                            ))
+                    ).toString()
+            );
+        }
+
+        @NotNull
+        private JsonArray getScoresArr(LinkedList<Score> scores) {
+            JsonArray scoresArr = new JsonArray();
+            for (Score score : scores) {
+                JsonObject scoreObj = new JsonObject();
+                scoreObj.addProperty("username", score.getUser().getUsername());
+                scoreObj.addProperty("rank", score.getRank());
+                scoreObj.addProperty("accuracy", String.format("%.2f%%", score.getAccuracy() * 100));
+                scoreObj.addProperty("pp", String.format("%.2f", score.getPp()));
+                scoresArr.add(scoreObj);
+            }
+            return scoresArr;
         }
 
         private DiffSpec getDiffSpecForMap(BeatmapExtended beatmap, String mod) throws RosuFFI.FFIException {
@@ -971,6 +1140,7 @@ public class Router implements Closeable {
         }
 
         private void renderScore(@NotNull Context context, Score score) throws Exception {
+            if (router.replayRenderService == null) return;
             if (!score.getHasReplay()) {
                 context.status(400).result(Response.error("Replay unavailable!", ErrorCode.REPLAY_UNAVAILABLE).toString());
                 return;
@@ -982,8 +1152,6 @@ public class Router implements Closeable {
             }
 
             final Path replay = router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
-
-            if (router.replayRenderService == null) return;
 
             final int queueSize = router.replayRenderService.getQueueSize() + 1;
 
