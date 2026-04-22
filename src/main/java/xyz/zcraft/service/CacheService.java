@@ -138,14 +138,14 @@ public class CacheService {
         return IMAGE_CACHE.resolve(filename);
     }
 
-    public void cacheBeatmapset(String id) throws Exception {
+    public boolean cacheBeatmapset(String id) throws Exception {
         try (Stream<Path> list = Files.list(DANSER_CACHE)) {
             if (list.map(Path::getFileName)
                     .map(Path::toString)
                     .anyMatch(p -> p.equals(id) || p.startsWith(id + " ") || p.equals(id + ".osz"))
             ) {
                 LOG.info("Beatmapset {} is already cached, skipping", id);
-                return;
+                return true;
             }
         }
 
@@ -181,6 +181,7 @@ public class CacheService {
                 if (fileResponse.statusCode() == 200) {
                     Files.copy(fileResponse.body(), beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
                     LOG.info("Beatmapset {} cached", beatmapsetPath);
+                    return true;
                 } else {
                     LOG.error("Failed to download beatmapset! Sayobot responded with status code: {}", fileResponse.statusCode());
                     throw new RuntimeException("Failed to download beatmapset! Sayobot responded with status code: " + fileResponse.statusCode());
@@ -190,6 +191,8 @@ public class CacheService {
             LOG.error("Failed to download beatmapset!", e);
             throw new RuntimeException(e);
         }
+
+        return false;
     }
 
     public Path getReplay(TokenData tokenData, String id) throws Exception {

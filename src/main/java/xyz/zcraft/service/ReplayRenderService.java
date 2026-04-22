@@ -111,6 +111,9 @@ public class ReplayRenderService {
                         "Background": {
                           "Dim": {
                             "Normal": 0.8
+                          },
+                          "Parallax": {
+                            "Enabled": false
                           }
                         }
                       },
@@ -151,6 +154,8 @@ public class ReplayRenderService {
             ProcessBuilder builder = new ProcessBuilder(c);
 
             builder.redirectErrorStream(true);
+
+            LOG.info("Render started for {}", jobId);
 
             Process process = builder.start();
 
