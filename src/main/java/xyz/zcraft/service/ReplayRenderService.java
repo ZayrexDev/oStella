@@ -96,15 +96,33 @@ public class ReplayRenderService {
 
             String jsonContent = """
                     {
-                        "General": {
-                            "OsuSongsDir": "%s"
-                        },
-                        "Recording": {
-                            "FrameWidth": 854,
-                            "FrameHeight": 480,
-                            "FPS": 30,
-                            "EncoderOptions": "-crf 28 -preset ultrafast"
+                      "General": {
+                        "OsuSongsDir": "%s"
+                      },
+                      "Gameplay": {
+                        "AimErrorMeter": {
+                          "Show": true
                         }
+                      },
+                      "Playfield": {
+                        "SeizureWarning": {
+                          "Enabled": false
+                        },
+                        "Background": {
+                          "Dim": {
+                            "Normal": 0.8
+                          }
+                        }
+                      },
+                      "Cursor": {
+                        "CursorSize": 8
+                      },
+                      "Recording": {
+                        "FrameWidth": 854,
+                        "FrameHeight": 480,
+                        "FPS": 30,
+                        "EncoderOptions": "-crf 28 -preset ultrafast"
+                      }
                     }
                     """.formatted(safeSongPath);
             Path settingsDir = danserPath.getParent().resolve("settings");
