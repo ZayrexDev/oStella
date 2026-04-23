@@ -93,13 +93,15 @@
             justify-content: space-between;
             align-items: flex-end;
             padding: 16px 24px 20px 24px;
+            gap: 24px;
         }
 
         .map-info {
             display: flex;
             flex-direction: column;
             gap: 4px;
-            max-width: 65%;
+            flex: 1;
+            min-width: 0;
         }
 
         .song-title {
@@ -147,12 +149,14 @@
             flex-direction: column;
             align-items: flex-end;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .player-identity {
             display: flex;
             align-items: center;
             gap: 10px;
+            max-width: 100%;
         }
 
         .player-avatar {
@@ -165,6 +169,7 @@
         .player-name {
             font-size: 1.8em;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .score-time {
@@ -391,7 +396,7 @@
 
     <div class="meta-row">
         <div class="map-info">
-            <div class="song-title" th:text="${score.getBeatmapset().getTitle()}">Example Song Title</div>
+            <div class="song-title" th:text="${score.getBeatmapset().getTitle()}">This Is An Example Song Title</div>
             <div class="song-artist">
                 <span th:text="${score.getBeatmapset().getArtist()}">Example Artist</span>
                 <span style="color: #a0a0b8; margin: 0 8px;">//</span>
@@ -424,7 +429,7 @@
                 <img th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}"
                      src="https://osu.ppy.sh/images/flags/AU.png" style="width: 32px; border-radius: 4px;" alt="flag">
 
-                <span class="player-name" th:text="${score.getUser().getUsername()}">PlayerName</span>
+                <span class="player-name" th:text="${score.getUser().getUsername()}">ThisIsPlayerName</span>
 
                 <svg th:if="${score.getUser().isSupporter()}" viewBox="0 0 24 24" class="supporter-icon">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -515,7 +520,7 @@
             </div>
             <div class="data-sub">
                 <span th:text="${score.getMaxCombo()} + 'x / ' + ${diff.getMaxCombo()} + 'x'">850x / 908x</span>
-                <span th:if="${score.getIsPerfectCombo()}" class="fc-badge">PERFECT FC</span>
+                <span th:if="${score.getIsPerfectCombo()}" class="fc-badge">PERFECT</span>
             </div>
         </div>
 

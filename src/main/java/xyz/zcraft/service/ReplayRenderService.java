@@ -187,6 +187,7 @@ public class ReplayRenderService implements Closeable {
         c.add("-noupdatecheck");
         c.add("-quickstart");
         c.add("-record");
+        c.add("-preciseprogress");
 
         String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
 
