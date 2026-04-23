@@ -157,7 +157,7 @@ public class Router implements Closeable {
         LOG.info("{} - status", context.ip());
         context.status(200).result(new Response(true, "Server is running!", GSON.toJsonTree(Map.of(
                 "ostella", true,
-                "osu-api", executor.enqueue(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData()))
+                "osu-api", executor.enqueue(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData())).orElse(false)
         ))).toString());
     }
 
