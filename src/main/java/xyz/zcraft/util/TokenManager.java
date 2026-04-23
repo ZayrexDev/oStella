@@ -3,6 +3,7 @@ package xyz.zcraft.util;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.model.TokenData;
 import xyz.zcraft.network.OsuAPI;
 
@@ -12,11 +13,11 @@ public class TokenManager {
     private static final Logger LOG = LogManager.getLogger(TokenManager.class);
 
     private final Timer timer = new Timer();
-    private final Config conf;
+    private final AppConfig conf;
     @Getter
     private TokenData tokenData;
 
-    public TokenManager(Config conf) {
+    public TokenManager(AppConfig conf) {
         this.conf = conf;
         renewToken();
     }

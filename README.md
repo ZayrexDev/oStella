@@ -49,21 +49,15 @@ Here are some demo:
 
 ## Quick Start (5 Minutes)
 
-1. Create `.env` in the project root.
+1. Copy default config file in the project root.
 2. Install Playwright dependencies if not already present.
 3. Run.
 4. Call an endpoint.
 
-### 1) Create `.env`
+### 1) Create `config.yml`
 
-```env
-OSU_CLIENT_ID=your_client_id
-OSU_CLIENT_SECRET=your_client_secret
-OSTELLA_PORT=8721
-OSTELLA_MAX_THREADS=2
-OSTELLA_DELAY=1000
-OSTELLA_DEBUG=false
-```
+The default config file is generated as `config.yml` when you first start the service. 
+You can also copy the example config from [ostella-example-config.yml](/src/main/resources/ostella-example-config.yml)
 
 ### 2) Install Playwright Dependencies
 
@@ -159,8 +153,8 @@ To clear cache, stop the service and remove files under `data/cache/`; they will
 
 `mvn clean package` generates:
 
-- `target/oStella-1.0-SNAPSHOT.jar`
-- `target/oStella-1.0-SNAPSHOT-jar-with-dependencies.jar`
+- `target/oStella-{version}.jar`
+- `target/oStella-{version}-jar-with-dependencies.jar`
 
 ## Playwright Note
 
@@ -173,16 +167,8 @@ Log files are written to `logs/`:
 
 - `latest.log` (application logs)
 - `javalin-server.log` (Javalin/Jetty logs)
+- `danser.log` (Danser-CLI logs)
 - rolled `*.log.gz` archives
-
-## Troubleshooting
-
-- `Invalid configuration` at startup:
-  - Check `.env` values are present and numeric fields are valid (`OSTELLA_PORT`, `OSTELLA_MAX_THREADS`, `OSTELLA_DELAY`).
-- Playwright launch/render issues:
-  - Install Chromium with the command in "Playwright Note" and restart.
-- Endpoint timeout/slowness:
-  - Increase `OSTELLA_MAX_THREADS`, lower `OSTELLA_DELAY`, and verify upstream osu! API health.
 
 ## License
 

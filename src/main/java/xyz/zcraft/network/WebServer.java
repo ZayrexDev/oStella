@@ -4,7 +4,7 @@ import io.javalin.Javalin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import xyz.zcraft.util.Config;
+import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.Closeable;
@@ -13,15 +13,19 @@ import java.io.IOException;
 public class WebServer implements Closeable {
     private static final Logger LOG = LogManager.getLogger(WebServer.class);
 
-    private final Config conf;
+    private final AppConfig conf;
     private final Javalin app;
     private final Router router;
 
-    public WebServer(Config conf, TokenManager tokenManager) throws IOException {
+    public WebServer(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.router = new Router(conf, tokenManager);
         app = Javalin.create(cfg -> {
-            final QueuedThreadPool threadPool = new QueuedThreadPool(Math.max(5, conf.maxThreads() + 3), 2, 60000);
+            final QueuedThreadPool threadPool = new QueuedThreadPool(
+                    Math.max(8, conf.webserver().maxThreads() + 3),
+                    Math.max(2, conf.webserver().minThreads()),
+                    Math.max(1000, conf.webserver().idleTimeout())
+            );
             threadPool.setName("ServPool");
             cfg.jetty.threadPool = threadPool;
 
@@ -40,7 +44,7 @@ public class WebServer implements Closeable {
 
 
             cfg.routes.get("/replay/status", router::getReplayRenderOverview);
-            if(conf.danserPath() != null) {
+            if(conf.replayRender().enabled()) {
                 cfg.routes.get("/replay/render", router::queueReplayRender)
                         .get("/replay/showcase", router::queueShowcaseRender)
                         .get("/replay/status/{jobId}", router::getReplayRenderStatus)
@@ -50,7 +54,7 @@ public class WebServer implements Closeable {
                 LOG.info("No danser path found, replay rendering will be disabled.");
             }
 
-            if (conf.debug()) {
+            if (conf.ostella().debugMode()) {
                 LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
                 cfg.routes.get("/debug/bypass", router::bypassRequest);
             }
@@ -64,8 +68,8 @@ public class WebServer implements Closeable {
     }
 
     public void start() {
-        app.start(conf.port());
-        LOG.info("Started web server on port {}", conf.port());
+        app.start(conf.webserver().port());
+        LOG.info("Started web server on port {}", conf.webserver().port());
     }
 
     @Override

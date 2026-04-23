@@ -1,0 +1,28 @@
+# === Config for oStella ===
+ostella:
+  maxThreads: 2 # Maximum number of threads to use for interactions with the osu! API
+  requestDelayMs: 1000 # Delay in milliseconds between requests to the osu! API (to avoid hitting rate limits)
+  debugMode: false # Enable debug endpoints, not recommended for production use
+
+# === Config for Javalin webserver ===
+webserver:
+  port: 8721 # Port to run the server on
+  maxThreads: 10 # Max number of threads for handling web requests
+  minThreads: 2 # Min number of threads for handling web requests
+  idleTimeout: 60000 # Idle timeout for web server threads in milliseconds
+
+# === Config for osu! API credentials ===
+# Get your own credentials by creating an application
+# on the osu! website: https://osu.ppy.sh/home/account/edit#oauth
+osu:
+  clientId: ""
+  clientSecret: ""
+
+# === Optional configuration for danser ===
+# Enable this if you want to use the replay render functionality,
+# which allows you to render osu! replays as videos using danser.
+replayRender:
+  enabled: true
+  danserPath: "danser/danser-cli" # Path to the danser CLI executable, will be used to locate settings folder for danser
+  renderQueueSize: 5 # Maximum number of replays to render waiting in queue
+  renderThreads: 1 # Maximum number of replays to render at the same time

@@ -6,6 +6,7 @@ import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
@@ -22,7 +23,6 @@ import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
 import xyz.zcraft.service.ReplayRenderService;
-import xyz.zcraft.util.Config;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.Closeable;
@@ -43,17 +43,17 @@ public class Router implements Closeable {
     private final TokenManager tokenManager;
     private final ReplayRenderService replayRenderService;
     private final CacheService cacheService;
-    private final Config conf;
+    private final AppConfig conf;
     private final Helper helper;
 
-    public Router(Config conf, TokenManager tokenManager) throws IOException {
+    public Router(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        this.executor = new AsyncService(conf.maxThreads(), conf.delay());
+        this.executor = new AsyncService(conf.ostella().maxThreads(), conf.ostella().requestDelayMs());
         this.cacheService = new CacheService();
         this.renderer = new RenderService(cacheService);
-        if (conf.danserPath() != null) {
-            this.replayRenderService = new ReplayRenderService(Path.of(conf.danserPath()), cacheService.getDanserCache());
+        if (conf.replayRender().enabled()) {
+            this.replayRenderService = new ReplayRenderService(conf, cacheService.getDanserCache());
         } else {
             this.replayRenderService = null;
         }
@@ -854,7 +854,7 @@ public class Router implements Closeable {
 
             final int queueSize = router.replayRenderService.getQueueSize() + 1;
 
-            if (queueSize > router.conf.replayQueueSize()) {
+            if (queueSize > router.conf.replayRender().renderQueueSize()) {
                 context.status(400).result(
                         Response.error("Replay rendering queue is full! Please try again later."
                                 , ErrorCode.RENDER_QUEUE_FULL).toString()
@@ -1173,7 +1173,7 @@ public class Router implements Closeable {
 
             final int queueSize = router.replayRenderService.getQueueSize() + 1;
 
-            if (queueSize > router.conf.replayQueueSize()) {
+            if (queueSize > router.conf.replayRender().renderQueueSize()) {
                 context.status(400).result(
                         Response.error("Replay rendering queue is full! Please try again later."
                                 , ErrorCode.RENDER_QUEUE_FULL).toString()

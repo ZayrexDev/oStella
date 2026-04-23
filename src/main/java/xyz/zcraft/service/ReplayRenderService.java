@@ -2,6 +2,7 @@ package xyz.zcraft.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import xyz.zcraft.config.AppConfig;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -18,7 +19,7 @@ public class ReplayRenderService implements Closeable {
             Pattern.compile("Progress: (\\d+)%, Speed: ([\\d.]+)x, ETA: (.+)");
     private final Path danserPath;
     private final Path songPath;
-    private final ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+    private final ThreadPoolExecutor executor;
     private final ScheduledExecutorService cleanUpExecutor = Executors.newSingleThreadScheduledExecutor();
     private final ConcurrentHashMap<String, JobProgress> jobProgress = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Path> jobResults = new ConcurrentHashMap<>();
@@ -43,9 +44,10 @@ public class ReplayRenderService implements Closeable {
         return jobResults.get(jobId);
     }
 
-    public ReplayRenderService(Path danserPath, Path songPath) {
-        this.danserPath = danserPath;
-        this.songPath = songPath;
+    public ReplayRenderService(AppConfig conf, Path danserSongPath) {
+        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(1, conf.replayRender().renderThreads()));
+        this.danserPath = Path.of(conf.replayRender().danserPath());
+        this.songPath = danserSongPath;
 
         cleanUpExecutor.scheduleAtFixedRate(() -> {
             try {
