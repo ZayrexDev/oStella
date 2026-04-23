@@ -194,17 +194,19 @@ public class ReplayRenderService implements Closeable {
         try {
             boolean finished = process.waitFor(10, TimeUnit.MINUTES);
             if (!finished) {
-                jobStatus.put(jobId, "failed");
+                jobStatus.put(jobId, "timeout");
                 process.destroyForcibly();
                 LOG.error("Danser timed out and was killed.");
                 return;
             }
         } catch (InterruptedException e) {
+            jobStatus.put(jobId, "failed");
             process.destroyForcibly();
             throw e;
         }
 
         if(!Files.exists(videoPath)) {
+            jobStatus.put(jobId, "failed");
             LOG.error("Danser exited but no video rendered");
             throw new RuntimeException("Danser exited but no video rendered");
         }

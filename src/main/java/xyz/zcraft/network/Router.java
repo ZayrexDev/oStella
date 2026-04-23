@@ -298,6 +298,12 @@ public class Router implements Closeable {
                                     "status", "failed",
                                     "id", jobId
                             ))).toString());
+            case "timeout" -> context.status(500).result(
+                    new Response(false, "Render timed out",
+                            GSON.toJsonTree(Map.of(
+                                    "status", "timeout",
+                                    "id", jobId
+                            ))).toString());
             case "queued" -> context.status(202).result(
                     new Response(true, "Render is waiting in queue",
                             GSON.toJsonTree(Map.of(
