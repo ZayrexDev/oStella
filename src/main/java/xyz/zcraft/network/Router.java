@@ -357,6 +357,13 @@ public class Router implements Closeable {
         }
     }
 
+    public void getReplayRenderOverview(@NotNull Context context) {
+        context.status(200).result(String.valueOf(new Response(true, "", GSON.toJsonTree(Map.of(
+                "enabled", replayRenderService != null,
+                "queue", replayRenderService != null ? replayRenderService.getQueueSize() : 0
+        )))));
+    }
+
     private record Helper(Router router) {
         private void queueReplayRenderOfBeatmapset(@NotNull Context context) throws Exception {
             final var score = getScoreFromBeatmapset(context);

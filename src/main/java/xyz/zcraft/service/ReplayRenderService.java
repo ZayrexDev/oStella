@@ -192,7 +192,7 @@ public class ReplayRenderService implements Closeable {
         consumeDanserOutput(process.getInputStream());
 
         try {
-            boolean finished = process.waitFor(5, TimeUnit.MINUTES);
+            boolean finished = process.waitFor(10, TimeUnit.MINUTES);
             if (!finished) {
                 jobStatus.put(jobId, "failed");
                 process.destroyForcibly();

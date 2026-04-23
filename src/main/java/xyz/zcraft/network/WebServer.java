@@ -38,6 +38,8 @@ public class WebServer implements Closeable {
                     .get("/lb", router::getLeaderBoard)
                     .get("/status", router::getServerStatus);
 
+
+            cfg.routes.get("/replay/status", router::getReplayRenderOverview);
             if(conf.danserPath() != null) {
                 cfg.routes.get("/replay/render", router::queueReplayRender)
                         .get("/replay/showcase", router::queueShowcaseRender)
