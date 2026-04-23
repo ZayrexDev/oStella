@@ -21,6 +21,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -291,6 +292,20 @@ public class OsuAPI {
             return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean isOsuApiHealthy(TokenData tokenData) {
+        try {
+            HttpRequest request = newRequestBuilder(tokenData, "/users/2/osu")
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<Void> response = CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

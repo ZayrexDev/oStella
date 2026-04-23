@@ -155,7 +155,10 @@ public class Router implements Closeable {
 
     protected void getServerStatus(@NotNull Context context) {
         LOG.info("{} - status", context.ip());
-        context.status(200).result(new Response(true, "Server is running!", null).toString());
+        context.status(200).result(new Response(true, "Server is running!", GSON.toJsonTree(Map.of(
+                "ostella", true,
+                "osu-api", executor.enqueue(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData()))
+        ))).toString());
     }
 
     protected void getRecentScores(@NotNull Context context) throws Exception {
