@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.TokenData;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
@@ -12,7 +13,6 @@ import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
 import xyz.zcraft.model.user.User;
 import xyz.zcraft.model.user.UserExtended;
-import xyz.zcraft.util.Config;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,11 +30,11 @@ public class OsuAPI {
     private static final String BASE_URL = "https://osu.ppy.sh/api/v2";
     private static final Gson GSON = new Gson();
 
-    public static TokenData getToken(Config conf) {
+    public static TokenData getToken(AppConfig conf) {
         try {
             final JsonObject payload = new JsonObject();
-            payload.addProperty("client_id", conf.clientId());
-            payload.addProperty("client_secret", conf.clientSecret());
+            payload.addProperty("client_id", conf.osu().clientId());
+            payload.addProperty("client_secret", conf.osu().clientSecret());
             payload.addProperty("grant_type", "client_credentials");
             payload.addProperty("scope", "public");
 
