@@ -13,6 +13,7 @@ and also provides a standalone API for other clients to consume.
 - PNG beatmapset card endpoint (`/ms`)
 - PNG player comparison leaderboard endpoint (`/pk`)
 - PNG user PP leaderboard endpoint (`/lb`)
+- Replay video generation for solo and multiplayer replay showcases (`/replay`)
 - Multiplayer room summary endpoint (`/mp`)
 - Current daily challenge endpoint (`/daily`)
 - Health endpoint (`/status`)
@@ -34,6 +35,11 @@ Here are some demo:
 
 ### Beatmapset Card
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/2bb887d6-5fff-429b-b39e-963235ec463e" />
+
+### Replay Video
+
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/1a2b993d-f9c5-481f-97eb-30613d3192f7" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/45946964-7dd6-4f8a-a346-a83be0b00803" />
 
 ## Prerequisites
 
@@ -81,17 +87,50 @@ curl "http://localhost:8721/bo?u=12345678&n=20" --output best_of_20.png
 
 Base URL: `http://localhost:<OSTELLA_PORT>`
 
-| Endpoint  | Method | Query    | Response                                      |
-|-----------|--------|----------|-----------------------------------------------|
-| `/status` | GET    | none     | JSON health message                           |
-| `/bo`     | GET    | `u`, `n` | `image/png` best-of-N panel                   |
-| `/rs`     | GET    | `u`, `n` | `image/png` recent-N panel                    |
-| `/m`      | GET    | `m`      | `image/png` beatmap card                      |
-| `/ms`     | GET    | `ms`     | `image/png` beatmapset card                   |
-| `/pk`     | GET    | `m`, `u` | `image/png` PP leaderboard card for a beatmap |
-| `/lb`     | GET    | `u`      | `image/png` user PP leaderboard               |
-| `/mp`     | GET    | none     | JSON list of top multiplayer rooms            |
-| `/daily`  | GET    | none     | JSON daily challenge room info or 404         |
+Most JSON endpoints return: `{"success": boolean, "message": string, "data": any}`.
+Image endpoints return PNG bytes. Replay download returns `video/mp4`.
+
+### Core Endpoints
+
+| Method | Path      | Purpose                              | Query / Path Params            | Response |
+|--------|-----------|--------------------------------------|--------------------------------|----------|
+| GET    | `/status` | Service health and osu! API health   | none                           | JSON     |
+| GET    | `/daily`  | Current daily challenge room summary | none                           | JSON     |
+| GET    | `/mp`     | Top multiplayer rooms (up to 20)     | none                           | JSON     |
+| GET    | `/sms`    | Search beatmapsets                   | `q` (search keyword)           | JSON     |
+| GET    | `/lb`     | User PP leaderboard image            | `u` (comma-separated user IDs) | PNG      |
+| GET    | `/bo`     | Best-of-N scores image               | `u` (user ID), `n` (count)     | PNG      |
+| GET    | `/rs`     | Recent scores image                  | `u` (user ID), `n` (count)     | PNG      |
+
+### Beatmap / Beatmapset / Score / PK
+
+| Method | Path  | Purpose                        | Query / Path Params                                                                 | Response |
+|--------|-------|--------------------------------|-------------------------------------------------------------------------------------|----------|
+| GET    | `/m`  | Beatmap card image             | `m` (+ optional `mod`) **or** `ms` + `i` (+ optional `mod`) **or** `of` + `u` + `i` | PNG      |
+| GET    | `/ms` | Beatmapset card image          | `ms` **or** `m` **or** `of` + `u` + `i`                                             | PNG      |
+| GET    | `/s`  | Score card image               | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`                | PNG      |
+| GET    | `/pk` | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`                 | PNG      |
+
+Notes:
+- `of` references source list type (`rs` or `bo`).
+- `i` is a 1-based index within the referenced list or sorted beatmapset difficulties.
+
+### Replay Endpoints (enabled only when `danserPath` is configured)
+
+| Method | Path                     | Purpose                                | Query / Path Params                                                             | Response    |
+|--------|--------------------------|----------------------------------------|---------------------------------------------------------------------------------|-------------|
+| GET    | `/replay/status`         | Replay renderer overview               | none                                                                            | JSON        |
+| GET    | `/replay/render`         | Queue single replay render             | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`            | `202` JSON  |
+| GET    | `/replay/showcase`       | Queue multi-score showcase render      | `s` (comma-separated score IDs) **or** `u` + `m` **or** `of` + `i` + `us` + `u` | `202` JSON  |
+| GET    | `/replay/status/{jobId}` | Get render job state                   | `{jobId}`                                                                       | JSON        |
+| GET    | `/replay/video/{jobId}`  | Download rendered video                | `{jobId}`                                                                       | `video/mp4` |
+| DELETE | `/replay/video/{jobId}`  | Remove rendered video and job metadata | `{jobId}`                                                                       | text        |
+
+### Debug Endpoint (debug mode only)
+
+| Method | Path            | Purpose                                   | Query / Path Params | Response |
+|--------|-----------------|-------------------------------------------|---------------------|----------|
+| GET    | `/debug/bypass` | Debug passthrough call to osu! API helper | raw query string    | JSON     |
 
 ## Configuration Reference
 
@@ -103,15 +142,6 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 | `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks      |
 | `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests           |
 | `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/debug/bypass` |
-
-Notes:
-
-- `/bo` and `/rs` require `u` and numeric `n`; invalid params return HTTP `400`.
-- `/m` requires numeric `m`; invalid params return HTTP `400`.
-- `/ms` requires numeric `ms`; invalid params return HTTP `400`.
-- `/pk` requires numeric `m` and `u` as one or more usernames/ids separated by commas.
-- `/lb` requires `u` as one or more usernames/ids separated by commas.
-- Score endpoints currently call osu! API with `mode=osu`.
 
 ## Cache Behavior
 
