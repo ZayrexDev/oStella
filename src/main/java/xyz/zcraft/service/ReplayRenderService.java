@@ -90,7 +90,7 @@ public class ReplayRenderService implements Closeable {
         Path tempSettingsFile = null;
         try {
             final List<String> c = new LinkedList<>();
-            final String fileName = "replay_" + System.currentTimeMillis();
+            final String fileName = "replay_" + jobId;
 
             tempSettingsFile = prepareDanser(c);
 
@@ -113,7 +113,7 @@ public class ReplayRenderService implements Closeable {
         Path tempSettingsFile = null;
         try {
             final List<String> c = new LinkedList<>();
-            final String fileName = "showcase_" + System.currentTimeMillis();
+            final String fileName = "showcase_" + jobId;
 
             tempSettingsFile = prepareDanser(c);
 
