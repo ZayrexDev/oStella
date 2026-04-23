@@ -24,6 +24,36 @@ public class ReplayRenderService implements Closeable {
     private final ConcurrentHashMap<String, JobProgress> jobProgress = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Path> jobResults = new ConcurrentHashMap<>();
 
+    public ReplayRenderService(AppConfig conf, Path danserSongPath) {
+        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(1, conf.replayRender().renderThreads()));
+        this.danserPath = Path.of(conf.replayRender().danserPath());
+        this.songPath = danserSongPath;
+
+        cleanUpExecutor.scheduleAtFixedRate(() -> {
+            try {
+                long fifteenMinutesAgo = System.currentTimeMillis() - (15 * 60 * 1000);
+
+                Iterator<Map.Entry<String, Path>> iterator = jobResults.entrySet().iterator();
+
+                while (iterator.hasNext()) {
+                    Map.Entry<String, Path> entry = iterator.next();
+                    String jobId = entry.getKey();
+                    Path video = entry.getValue();
+
+                    if (video != null
+                            && (!Files.exists(video) || Files.getLastModifiedTime(video).toMillis() < fifteenMinutesAgo)) {
+                        Files.deleteIfExists(video);
+                        jobProgress.remove(jobId);
+                        iterator.remove();
+                        LOG.info("Garbage Collector wiped stale job: {}", jobId);
+                    }
+                }
+            } catch (Exception e) {
+                LOG.error("Error during garbage collection of rendered videos", e);
+            }
+        }, 5, 5, TimeUnit.MINUTES);
+    }
+
     public JobProgress getJobProgress(String jobId) {
         return jobProgress.getOrDefault(jobId, new JobProgress(JobStatus.UNKNOWN));
     }
@@ -42,36 +72,6 @@ public class ReplayRenderService implements Closeable {
 
     public Path getJobResult(String jobId) {
         return jobResults.get(jobId);
-    }
-
-    public ReplayRenderService(AppConfig conf, Path danserSongPath) {
-        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(1, conf.replayRender().renderThreads()));
-        this.danserPath = Path.of(conf.replayRender().danserPath());
-        this.songPath = danserSongPath;
-
-        cleanUpExecutor.scheduleAtFixedRate(() -> {
-            try {
-                long fifteenMinutesAgo = System.currentTimeMillis() - (15 * 60 * 1000);
-
-                Iterator<Map.Entry<String, Path>> iterator = jobResults.entrySet().iterator();
-
-                while (iterator.hasNext()) {
-                    Map.Entry<String, Path> entry = iterator.next();
-                    String jobId = entry.getKey();
-                    Path video = entry.getValue();
-
-                    if (video != null && Files.exists(video)
-                            && Files.getLastModifiedTime(video).toMillis() < fifteenMinutesAgo) {
-                        Files.deleteIfExists(video);
-                        jobProgress.remove(jobId);
-                        iterator.remove();
-                        LOG.info("Garbage Collector wiped stale job: {}", jobId);
-                    }
-                }
-            } catch (Exception e) {
-                LOG.error("Error during garbage collection of rendered videos", e);
-            }
-        }, 5, 5, TimeUnit.MINUTES);
     }
 
     private void consumeDanserOutput(InputStream inputStream, String jobId) {
@@ -136,7 +136,10 @@ public class ReplayRenderService implements Closeable {
             LOG.error("Danser failed to render video", e);
         } finally {
             if (tempSettingsFile != null) {
-                try { Files.deleteIfExists(tempSettingsFile); } catch (IOException ignored) {}
+                try {
+                    Files.deleteIfExists(tempSettingsFile);
+                } catch (IOException ignored) {
+                }
             }
         }
     }
@@ -173,7 +176,10 @@ public class ReplayRenderService implements Closeable {
             LOG.error("Danser failed to render showcase", e);
         } finally {
             if (tempSettingsFile != null) {
-                try { Files.deleteIfExists(tempSettingsFile); } catch (IOException ignored) {}
+                try {
+                    Files.deleteIfExists(tempSettingsFile);
+                } catch (IOException ignored) {
+                }
             }
         }
     }
@@ -234,13 +240,13 @@ public class ReplayRenderService implements Closeable {
                 return;
             }
         } catch (InterruptedException e) {
-            jobProgress.put(jobId,new JobProgress(JobStatus.FAILED));
+            jobProgress.put(jobId, new JobProgress(JobStatus.FAILED));
             process.destroyForcibly();
             throw e;
         }
 
-        if(!Files.exists(videoPath)) {
-            jobProgress.put(jobId,new JobProgress(JobStatus.FAILED));
+        if (!Files.exists(videoPath)) {
+            jobProgress.put(jobId, new JobProgress(JobStatus.FAILED));
             LOG.error("Danser exited but no video rendered");
             throw new RuntimeException("Danser exited but no video rendered");
         }
@@ -256,12 +262,6 @@ public class ReplayRenderService implements Closeable {
         cleanUpExecutor.shutdownNow();
     }
 
-    public record JobProgress(JobStatus status, String progress, String speed, String eta) {
-        public JobProgress(JobStatus status) {
-            this(status, null, null, null);
-        }
-    }
-
     public enum JobStatus {
         QUEUED,
         UNKNOWN,
@@ -269,5 +269,11 @@ public class ReplayRenderService implements Closeable {
         TIMEOUT,
         FAILED,
         DONE
+    }
+
+    public record JobProgress(JobStatus status, String progress, String speed, String eta) {
+        public JobProgress(JobStatus status) {
+            this(status, null, null, null);
+        }
     }
 }
