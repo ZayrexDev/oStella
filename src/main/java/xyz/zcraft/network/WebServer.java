@@ -48,7 +48,8 @@ public class WebServer implements Closeable {
                 cfg.routes.get("/replay/render", router::queueReplayRender)
                         .get("/replay/showcase", router::queueShowcaseRender)
                         .get("/replay/status/{jobId}", router::getReplayRenderStatus)
-                        .get("/replay/video/{jobId}", router::getReplayRenderResult)
+                        .get("/replay/video/{jobId}", router::getReplayRenderResultStream)
+                        .get("/replay/video/{jobId}/replay.mp4", router::getReplayRenderResultFile)
                         .delete("/replay/video/{jobId}", router::deleteReplayRenderResult);
             } else {
                 LOG.info("No danser path found, replay rendering will be disabled.");

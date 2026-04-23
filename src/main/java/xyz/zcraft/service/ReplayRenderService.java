@@ -86,9 +86,9 @@ public class ReplayRenderService implements Closeable {
                         String eta = matcher.group(3);
 
                         jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING, progress + "%", speed + "x", eta));
-                    } else {
-                        DANSER_LOG.info(line);
                     }
+
+                    DANSER_LOG.info(line);
                 }
             } catch (Exception e) {
                 DANSER_LOG.error("Failed to read Danser stream", e);

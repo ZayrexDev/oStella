@@ -329,12 +329,23 @@ public class Router implements Closeable {
         }
     }
 
-    protected void getReplayRenderResult(@NotNull Context context) throws IOException {
+    protected void getReplayRenderResultStream(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
         Path video = replayRenderService.getJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             context.writeSeekableStream(Files.newInputStream(video), "video/mp4");
+        } else {
+            context.status(404).result("Video expired or not found");
+        }
+    }
+
+    protected void getReplayRenderResultFile(@NotNull Context context) throws IOException {
+        String jobId = context.pathParam("jobId");
+        Path video = replayRenderService.getJobResult(jobId);
+
+        if (video != null && Files.exists(video)) {
+            context.result(Files.newInputStream(video));
         } else {
             context.status(404).result("Video expired or not found");
         }
