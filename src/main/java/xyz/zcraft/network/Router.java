@@ -292,19 +292,19 @@ public class Router implements Closeable {
                             GSON.toJsonTree(Map.of(
                                     "status", "done"
                             ))).toString());
-            case ReplayRenderService.JobStatus.FAILED -> context.status(500).result(
+            case ReplayRenderService.JobStatus.FAILED -> context.status(200).result(
                     new Response(false, "Render failed",
                             GSON.toJsonTree(Map.of(
                                     "status", "failed",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.TIMEOUT -> context.status(500).result(
+            case ReplayRenderService.JobStatus.TIMEOUT -> context.status(200).result(
                     new Response(false, "Render timed out",
                             GSON.toJsonTree(Map.of(
                                     "status", "timeout",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.QUEUED -> context.status(202).result(
+            case ReplayRenderService.JobStatus.QUEUED -> context.status(200).result(
                     new Response(true, "Render is waiting in queue",
                             GSON.toJsonTree(Map.of(
                                     "status", "queued",
@@ -319,10 +319,10 @@ public class Router implements Closeable {
                     obj.addProperty("speed", jobProgress.speed());
                     obj.addProperty("eta", jobProgress.eta());
                 }
-                context.status(202).result(
+                context.status(200).result(
                         new Response(true, "Render in progress", obj).toString());
             }
-            default -> context.status(400).result(new Response(false, "Job not found", null).toString());
+            default -> context.status(404).result(new Response(false, "Job not found", null).toString());
         }
     }
 
