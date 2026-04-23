@@ -89,43 +89,52 @@
 
         /* --- 2. METADATA ROW --- */
         .meta-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-rows: auto auto auto;
             padding: 16px 24px 20px 24px;
-            gap: 24px;
+            row-gap: 8px;
+            align-items: end;
         }
 
         .map-info {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex: 1;
-            min-width: 0;
+            display: contents;
         }
 
         .song-title {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
             font-size: 2.2em;
             font-weight: 900;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            padding-right: 24px;
         }
 
         .song-artist {
+            grid-column: 1 / 3;
+            grid-row: 2 / 3;
             font-size: 1.2em;
             color: #e2e8f0;
             font-weight: 300;
+            padding-right: 140px;
+
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .diff-row {
+            grid-column: 1 / 3;
+            grid-row: 3 / 4;
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-top: 8px;
+            padding-right: 220px;
+
+            flex-wrap: nowrap;
+            min-width: 0;
         }
 
         .diff-badge {
@@ -142,21 +151,24 @@
         .diff-name {
             font-size: 1.3em;
             font-weight: bold;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
 
         .player-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 8px;
-            flex-shrink: 0;
+            display: contents;
         }
 
         .player-identity {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
             display: flex;
             align-items: center;
             gap: 10px;
-            max-width: 100%;
+            justify-self: end;
         }
 
         .player-avatar {
@@ -173,18 +185,24 @@
         }
 
         .score-time {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
             display: flex;
             align-items: center;
             gap: 12px;
             color: #a0a0b8;
             font-size: 1.1em;
             letter-spacing: 1px;
+            justify-self: end;
         }
 
         .score-time-long {
+            grid-column: 2 / 3;
+            grid-row: 3 / 4;
             color: #a0a0b8;
             font-size: 1.1em;
             letter-spacing: 1px;
+            justify-self: end;
         }
 
         .replay-badge {
@@ -429,7 +447,7 @@
                 <img th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}"
                      src="https://osu.ppy.sh/images/flags/AU.png" style="width: 32px; border-radius: 4px;" alt="flag">
 
-                <span class="player-name" th:text="${score.getUser().getUsername()}">ThisIsPlayerName</span>
+                <span class="player-name" th:text="${score.getUser().getUsername()}">PlayerName</span>
 
                 <svg th:if="${score.getUser().isSupporter()}" viewBox="0 0 24 24" class="supporter-icon">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
