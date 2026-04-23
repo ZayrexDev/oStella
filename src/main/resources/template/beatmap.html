@@ -373,7 +373,7 @@
 
         .stat-label {
             text-transform: uppercase;
-            width: 100px;
+            width: 80px;
             text-align: right;
             flex-shrink: 0;
             color: #a0a0b8;
@@ -449,6 +449,36 @@
             height: 10px;
             border-radius: 50%;
             box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+    <style>
+        .community-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .tag-badge {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            font-size: 0.85em;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-transform: lowercase;
+        }
+
+        .tag-name {
+            background: rgba(102, 255, 204, 0.15);
+            color: #66ffcc;
+            padding: 4px 4px;
+            border-right: 1px solid rgba(0,0,0,0.2);
+        }
+        .tag-num {
+            background: rgb(32 166 166 / 0.15);
+            color: #ffffff;
+            padding: 4px 4px;
         }
     </style>
 </head>
@@ -637,6 +667,12 @@
             <div class="stat">
                 <div class="stat-label">Tags</div>
                 <span th:text="${beatmap.getTagString()}">tag tag tag tag tag tag tag tag tag tag tag tag tag tag tag</span>
+            </div>
+            <div class="community-tags" th:if="${beatmap.getTopUserTagIds() != null and !beatmap.getTopUserTagIds().isEmpty()}">
+                <div class="tag-badge" th:each="tag, iterStat : ${beatmap.getTopUserTagIds()}" th:if="${iterStat.index < 2}">
+                    <span class="tag-name" th:text="${beatmap.getBeatmapset().getTagName(tag.getTagId())}">additions/combo colors</span>
+                    <span class="tag-num" th:text="${tag.getCount()}">123</span>
+                </div>
             </div>
         </div>
         <div class="chart-row-layout">

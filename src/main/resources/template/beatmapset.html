@@ -255,7 +255,7 @@
             color: #ffffff;
         }
 
-        .diff-id {
+        .diff-id, .diff-i {
             margin-left: auto;
             font-size: 0.95em;
             color: #a0a0b8;
@@ -351,7 +351,7 @@
     </div>
 
     <div class="diff-list" th:if="${beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()}">
-        <div class="diff-row" th:each="bm : ${beatmapset.beatmaps}" >
+        <div class="diff-row" th:each="bm, iterStat : ${beatmapset.beatmaps}" >
             <div class="star-badge" th:style="'background: ' + ${bm.diffColor} + '; color: ' + ${bm.diffTextColor} + ';'">
                 <svg class="diff-star" th:style="'fill: ' + ${bm.diffTextColor} + ';'" viewBox="0 0 20 20">
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
@@ -374,6 +374,7 @@
                 <span>BPM <b th:text="${#numbers.formatDecimal(bm.bpm, 1, 0)}">200</b></span>
             </div>
 
+            <div class="diff-i" th:text="'#' + ${iterStat.index + 1}">#1</div>
             <div class="diff-id" th:text="${'M' + bm.id}">M712376</div>
         </div>
     </div>

@@ -15,8 +15,9 @@ public class MiscUtil {
         return true;
     }
 
-    public static boolean isLong(String... str) {
+    public static boolean ensureNumbers(String... str) {
         for (String s : str) {
+            if (s == null) return false;
             try {
                 Long.parseLong(s);
             } catch (NumberFormatException e) {

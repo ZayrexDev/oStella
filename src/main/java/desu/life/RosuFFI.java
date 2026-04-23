@@ -1,5 +1,11 @@
 package desu.life;
 
+import com.sun.jna.Memory;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
+import com.sun.jna.ptr.PointerByReference;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,12 +13,6 @@ import java.lang.ref.Cleaner;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.Optional;
-
-import com.sun.jna.Memory;
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
-import com.sun.jna.ptr.PointerByReference;
 
 @SuppressWarnings("ALL")
 public class RosuFFI {
@@ -326,9 +326,9 @@ public class RosuFFI {
         /// Create a [GradualDifficulty] for a [Beatmap] on a specific [GameMode].
         public static native int gradual_difficulty_new_with_mode(PointerByReference context, Pointer difficulty, Pointer beatmap, int mode);
 
-        public static native OptionDifficultyAttributes gradual_difficulty_next(Pointer context);
+        public static native OptionDifficultyAttributes.ByValue gradual_difficulty_next(Pointer context);
 
-        public static native OptionDifficultyAttributes gradual_difficulty_nth(Pointer context, long n);
+        public static native OptionDifficultyAttributes.ByValue gradual_difficulty_nth(Pointer context, long n);
 
         public static native long gradual_difficulty_len(Pointer context);
 
@@ -348,18 +348,18 @@ public class RosuFFI {
 
         /// Process the next hit object and calculate the performance attributes
         /// for the resulting score state.
-        public static native OptionPerformanceAttributes gradual_performance_next(Pointer context, ScoreState.ByValue state);
+        public static native OptionPerformanceAttributes.ByValue gradual_performance_next(Pointer context, ScoreState.ByValue state);
 
         /// Process all remaining hit objects and calculate the final performance
         /// attributes.
-        public static native OptionPerformanceAttributes gradual_performance_last(Pointer context, ScoreState.ByValue state);
+        public static native OptionPerformanceAttributes.ByValue gradual_performance_last(Pointer context, ScoreState.ByValue state);
 
         /// Process everything up to the next nth hitobject and calculate the
         /// performance attributes for the resulting score state.
         ///
         /// Note that the count is zero-indexed, so n=0 will process 1 object,
         /// n=1 will process 2, and so on.
-        public static native OptionPerformanceAttributes gradual_performance_nth(Pointer context, ScoreState.ByValue state, long n);
+        public static native OptionPerformanceAttributes.ByValue gradual_performance_nth(Pointer context, ScoreState.ByValue state, long n);
 
         /// Returns the amount of remaining objects.
         public static native long gradual_performance_len(Pointer context);
@@ -1310,11 +1310,11 @@ public class RosuFFI {
             return m;
         }
 
-        public RosuPPLib.OptionDifficultyAttributes Next() {
+        public RosuPPLib.OptionDifficultyAttributes.ByValue Next() {
             return RosuPPLib.gradual_difficulty_next(getContext());
         }
 
-        public RosuPPLib.OptionDifficultyAttributes Nth(long n) {
+        public RosuPPLib.OptionDifficultyAttributes.ByValue Nth(long n) {
             return RosuPPLib.gradual_difficulty_nth(getContext(), n);
         }
 
@@ -1371,15 +1371,15 @@ public class RosuFFI {
             return m;
         }
 
-        public RosuPPLib.OptionPerformanceAttributes Next(RosuPPLib.ScoreState state) {
+        public RosuPPLib.OptionPerformanceAttributes.ByValue Next(RosuPPLib.ScoreState state) {
             return RosuPPLib.gradual_performance_next(getContext(), (RosuPPLib.ScoreState.ByValue)state);
         }
 
-        public RosuPPLib.OptionPerformanceAttributes Last(RosuPPLib.ScoreState state) {
+        public RosuPPLib.OptionPerformanceAttributes.ByValue Last(RosuPPLib.ScoreState state) {
             return RosuPPLib.gradual_performance_last(getContext(), (RosuPPLib.ScoreState.ByValue)state);
         }
 
-        public RosuPPLib.OptionPerformanceAttributes Nth(long n, RosuPPLib.ScoreState state) {
+        public RosuPPLib.OptionPerformanceAttributes.ByValue Nth(long n, RosuPPLib.ScoreState state) {
             return RosuPPLib.gradual_performance_nth(getContext(), (RosuPPLib.ScoreState.ByValue)state, n);
         }
 

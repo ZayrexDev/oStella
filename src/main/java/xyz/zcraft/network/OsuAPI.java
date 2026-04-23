@@ -21,6 +21,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -151,7 +152,7 @@ public class OsuAPI {
 
     public static List<Beatmapset> searchBeatmapset(TokenData tokenData, String queryString) {
         try {
-            final var request = newRequestBuilder(tokenData, "/beatmapsets/search?q=" + URLEncoder.encode(queryString, StandardCharsets.UTF_8))
+            final var request = newRequestBuilder(tokenData, "/beatmapsets/search?m=0&q=" + URLEncoder.encode(queryString, StandardCharsets.UTF_8))
                     .GET()
                     .build();
 
@@ -216,6 +217,22 @@ public class OsuAPI {
         }
     }
 
+    public static Beatmapset getBeatmapsetFromBeatmap(TokenData tokenData, String beatmapId) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/beatmapsets/lookup?beatmap_id=" + beatmapId)
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+            return GSON.fromJson(body, Beatmapset.class);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static BeatmapExtended getBeatmap(TokenData tokenData, String beatmapId) {
         try {
             final var request = newRequestBuilder(tokenData, "/beatmaps/" + beatmapId)
@@ -263,6 +280,32 @@ public class OsuAPI {
             return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] getReplayBytes(TokenData tokenData, String id) {
+        try {
+            final var request = newRequestBuilder(tokenData, "/scores/" + id + "/download")
+                    .GET()
+                    .build();
+
+            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean isOsuApiHealthy(TokenData tokenData) {
+        try {
+            HttpRequest request = newRequestBuilder(tokenData, "/users/2/osu")
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<Void> response = CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

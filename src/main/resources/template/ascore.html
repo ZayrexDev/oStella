@@ -89,41 +89,52 @@
 
         /* --- 2. METADATA ROW --- */
         .meta-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-rows: auto auto auto;
             padding: 16px 24px 20px 24px;
+            row-gap: 8px;
+            align-items: end;
         }
 
         .map-info {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            max-width: 65%;
+            display: contents;
         }
 
         .song-title {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
             font-size: 2.2em;
             font-weight: 900;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            padding-right: 24px;
         }
 
         .song-artist {
+            grid-column: 1 / 3;
+            grid-row: 2 / 3;
             font-size: 1.2em;
             color: #e2e8f0;
             font-weight: 300;
+            padding-right: 140px;
+
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .diff-row {
+            grid-column: 1 / 3;
+            grid-row: 3 / 4;
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-top: 8px;
+            padding-right: 220px;
+
+            flex-wrap: nowrap;
+            min-width: 0;
         }
 
         .diff-badge {
@@ -140,19 +151,24 @@
         .diff-name {
             font-size: 1.3em;
             font-weight: bold;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
 
         .player-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 8px;
+            display: contents;
         }
 
         .player-identity {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
             display: flex;
             align-items: center;
             gap: 10px;
+            justify-self: end;
         }
 
         .player-avatar {
@@ -165,21 +181,28 @@
         .player-name {
             font-size: 1.8em;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .score-time {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
             display: flex;
             align-items: center;
             gap: 12px;
             color: #a0a0b8;
             font-size: 1.1em;
             letter-spacing: 1px;
+            justify-self: end;
         }
 
         .score-time-long {
+            grid-column: 2 / 3;
+            grid-row: 3 / 4;
             color: #a0a0b8;
             font-size: 1.1em;
             letter-spacing: 1px;
+            justify-self: end;
         }
 
         .replay-badge {
@@ -391,7 +414,7 @@
 
     <div class="meta-row">
         <div class="map-info">
-            <div class="song-title" th:text="${score.getBeatmapset().getTitle()}">Example Song Title</div>
+            <div class="song-title" th:text="${score.getBeatmapset().getTitle()}">This Is An Example Song Title</div>
             <div class="song-artist">
                 <span th:text="${score.getBeatmapset().getArtist()}">Example Artist</span>
                 <span style="color: #a0a0b8; margin: 0 8px;">//</span>
@@ -515,7 +538,7 @@
             </div>
             <div class="data-sub">
                 <span th:text="${score.getMaxCombo()} + 'x / ' + ${diff.getMaxCombo()} + 'x'">850x / 908x</span>
-                <span th:if="${score.getIsPerfectCombo()}" class="fc-badge">PERFECT FC</span>
+                <span th:if="${score.getIsPerfectCombo()}" class="fc-badge">PERFECT</span>
             </div>
         </div>
 

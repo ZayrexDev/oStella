@@ -4,28 +4,36 @@ import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import xyz.zcraft.model.TokenData;
 import xyz.zcraft.network.OsuAPI;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.stream.Stream;
 
 public class CacheService {
     private static final Logger LOG = LogManager.getLogger(CacheService.class);
     private static final Path BEATMAP_CACHE = Paths.get("data", "cache", "beatmap");
     private static final Path IMAGE_CACHE = Paths.get("data", "cache", "image");
+    private static final Path REPLAY_CACHE = Paths.get("data", "cache", "replay");
+    private static final Path DANSER_SONG_CACHE = Paths.get("data", "cache", "danser", "songs");
 
     public CacheService() throws IOException {
-        if (!Files.exists(BEATMAP_CACHE)) {
-            Files.createDirectories(BEATMAP_CACHE);
-        }
-        if (!Files.exists(IMAGE_CACHE)) {
-            Files.createDirectories(IMAGE_CACHE);
-        }
+        Files.createDirectories(BEATMAP_CACHE);
+        Files.createDirectories(IMAGE_CACHE);
+        Files.createDirectories(REPLAY_CACHE);
+        Files.createDirectories(DANSER_SONG_CACHE);
     }
 
     private static String bytesToHex(byte[] bytes) {
@@ -67,6 +75,7 @@ public class CacheService {
     public String getRosuBeatmapPath(String id, boolean update) {
         if (!Files.exists(BEATMAP_CACHE.resolve(id)) || update) {
             try {
+                LOG.info("Caching beatmap {}", id);
                 cacheBeatmap(id);
                 LOG.info("Beatmap {} cached", id);
             } catch (Exception e) {
@@ -128,5 +137,77 @@ public class CacheService {
 
     public Path getImagePathFromFilename(String filename) {
         return IMAGE_CACHE.resolve(filename);
+    }
+
+    public boolean cacheBeatmapset(String id) throws Exception {
+        try (Stream<Path> list = Files.list(DANSER_SONG_CACHE)) {
+            if (list.map(Path::getFileName)
+                    .map(Path::toString)
+                    .anyMatch(p -> p.equals(id) || p.startsWith(id + " ") || p.equals(id + ".osz"))
+            ) {
+                LOG.info("Beatmapset {} is already cached, skipping", id);
+                return true;
+            }
+        }
+
+        Path beatmapsetPath = DANSER_SONG_CACHE.resolve(id + ".osz");
+
+        LOG.info("Downloading beatmapset {}", id);
+        try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()) {
+            String initialUrl = "https://dl.sayobot.cn/beatmaps/download/novideo/" + id;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(initialUrl))
+                    .GET()
+                    .build();
+
+            HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+
+            if (response.statusCode() == 301 || response.statusCode() == 302) {
+                String dirtyLocation = response.headers().firstValue("Location")
+                        .orElseThrow(() -> new RuntimeException("Sayobot redirected without a Location header"));
+
+                String cleanLocation = dirtyLocation
+                        .replace(" ", "%20")
+                        .replace("[", "%5B")
+                        .replace("]", "%5D")
+                        .replace("^", "%5E");
+
+                HttpRequest actualDownloadRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(cleanLocation))
+                        .GET()
+                        .build();
+
+                HttpResponse<InputStream> fileResponse = client.send(actualDownloadRequest, HttpResponse.BodyHandlers.ofInputStream());
+
+                if (fileResponse.statusCode() == 200) {
+                    Files.copy(fileResponse.body(), beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
+                    LOG.info("Beatmapset {} cached", beatmapsetPath);
+                    return true;
+                } else {
+                    LOG.error("Failed to download beatmapset! Sayobot responded with status code: {}", fileResponse.statusCode());
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            LOG.error("Failed to download beatmapset!", e);
+        }
+
+        return false;
+    }
+
+    public Path getReplay(TokenData tokenData, String id) throws IOException {
+        Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
+
+        if (!Files.exists(beatmapsetPath)) {
+            LOG.info("Caching replay {}", id);
+            Files.write(beatmapsetPath, OsuAPI.getReplayBytes(tokenData, id));
+        }
+
+        LOG.info("Replay {} is ready", id);
+
+        return beatmapsetPath;
+    }
+
+    public Path getDanserCache() {
+        return DANSER_SONG_CACHE;
     }
 }

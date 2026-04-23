@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 import xyz.zcraft.util.Colors;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -21,6 +22,8 @@ public class Beatmap {
     @SerializedName("user_id")
     public Long userId;
     public String version;
+    @SerializedName("top_tag_ids")
+    public List<UserTagId> topUserTagIds;
 
     public String getDiffColor() {
         return Colors.getBeatmapDiffColor(difficultyRating);

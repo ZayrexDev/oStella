@@ -1,0 +1,71 @@
+{
+  "General": {
+    "OsuSongsDir": "{{OSU_SONGS_DIR}}"
+  },
+  "Gameplay": {
+    "HitErrorMeter": {
+      "Scale": 1.5,
+      "UnstableRateScale": 2
+    },
+    "AimErrorMeter": {
+      "Show": true,
+      "ShowUnstableRate": true,
+      "Scale": 1.2
+    },
+    "ComboCounter": {
+      "Scale": 1.2
+    },
+    "PPCounter": {
+      "Scale": 1.2
+    },
+    "HitCounter": {
+      "Scale": 1.2
+    },
+    "KeyOverlay": {
+      "Scale": 1.2
+    },
+    "ScoreBoard": {
+      "Scale": 1.2
+    },
+    "Mods": {
+      "Scale": 1.2,
+      "ShowLazerMod": false
+    },
+    "StrainGraph": {
+      "Show": true,
+      "Outline": {
+        "Show": true
+      }
+    }
+  },
+  "Playfield": {
+    "SeizureWarning": {
+      "Enabled": false
+    },
+    "Background": {
+      "Dim": {
+        "Normal": 0.8
+      },
+      "Parallax": {
+        "Enabled": false
+      }
+    }
+  },
+  "Cursor": {
+    "CursorSize": 8,
+    "TrailScale": 0.7,
+    "Colors": {
+      "EnableRainbow": false
+    }
+  },
+  "Knockout": {
+    "Mode": 2,
+    "BubbleMinimumCombo": 50
+  },
+  "Recording": {
+    "FrameWidth": 854,
+    "FrameHeight": 480,
+    "FPS": 30,
+    "EncoderOptions": "-crf 28 -preset ultrafast"
+  }
+}
