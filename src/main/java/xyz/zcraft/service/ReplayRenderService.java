@@ -1,6 +1,5 @@
 package xyz.zcraft.service;
 
-import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -9,19 +8,40 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ReplayRenderService implements Closeable {
     private static final Logger LOG = LogManager.getLogger(ReplayRenderService.class);
     private static final Logger DANSER_LOG = LogManager.getLogger("danser");
+    private static final Pattern DANSER_PROGRESS_PATTERN =
+            Pattern.compile("Progress: (\\d+)%, Speed: ([\\d.]+)x, ETA: (.+)");
     private final Path danserPath;
     private final Path songPath;
     private final ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     private final ScheduledExecutorService cleanUpExecutor = Executors.newSingleThreadScheduledExecutor();
-    //  "queued", "rendering", "done", "failed"
-    @Getter
-    private final ConcurrentHashMap<String, String> jobStatus = new ConcurrentHashMap<>();
-    @Getter
+    private final ConcurrentHashMap<String, JobProgress> jobProgress = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Path> jobResults = new ConcurrentHashMap<>();
+
+    public JobProgress getJobProgress(String jobId) {
+        return jobProgress.getOrDefault(jobId, new JobProgress(JobStatus.UNKNOWN));
+    }
+
+    public JobStatus getJobStatus(String jobId) {
+        return jobProgress.getOrDefault(jobId, new JobProgress(JobStatus.UNKNOWN)).status();
+    }
+
+    public void removeJobProgress(String jobId) {
+        jobProgress.remove(jobId);
+    }
+
+    public void removeJobResult(String jobId) {
+        jobResults.remove(jobId);
+    }
+
+    public Path getJobResult(String jobId) {
+        return jobResults.get(jobId);
+    }
 
     public ReplayRenderService(Path danserPath, Path songPath) {
         this.danserPath = danserPath;
@@ -40,7 +60,7 @@ public class ReplayRenderService implements Closeable {
 
                     if (video != null && Files.getLastModifiedTime(video).toMillis() < fifteenMinutesAgo) {
                         Files.deleteIfExists(video);
-                        jobStatus.remove(jobId);
+                        jobProgress.remove(jobId);
                         iterator.remove();
                         LOG.info("Garbage Collector wiped stale job: {}", jobId);
                     }
@@ -51,12 +71,22 @@ public class ReplayRenderService implements Closeable {
         }, 5, 5, TimeUnit.MINUTES);
     }
 
-    private void consumeDanserOutput(InputStream inputStream) {
+    private void consumeDanserOutput(InputStream inputStream, String jobId) {
         Thread gobblerThread = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    DANSER_LOG.info(line);
+                    Matcher matcher = DANSER_PROGRESS_PATTERN.matcher(line);
+
+                    if (matcher.find()) {
+                        int progress = Integer.parseInt(matcher.group(1));
+                        double speed = Double.parseDouble(matcher.group(2));
+                        String eta = matcher.group(3);
+
+                        jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING, progress + "%", speed + "x", eta));
+                    } else {
+                        DANSER_LOG.info(line);
+                    }
                 }
             } catch (Exception e) {
                 DANSER_LOG.error("Failed to read Danser stream", e);
@@ -69,14 +99,14 @@ public class ReplayRenderService implements Closeable {
 
     public String queueRender(Path osrPath) {
         final String jobId = UUID.randomUUID().toString();
-        jobStatus.put(jobId, "queued");
+        jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
         executor.submit(() -> render(osrPath, jobId));
         return jobId;
     }
 
     public String queueRenderShowcase(String beatmapId, List<Path> osrPaths) {
         final String jobId = UUID.randomUUID().toString();
-        jobStatus.put(jobId, "queued");
+        jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
         executor.submit(() -> renderShowcase(beatmapId, osrPaths, jobId));
         return jobId;
     }
@@ -86,7 +116,7 @@ public class ReplayRenderService implements Closeable {
     }
 
     private void render(Path osrPath, String jobId) {
-        jobStatus.put(jobId, "rendering");
+        jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
         Path tempSettingsFile = null;
         try {
             final List<String> c = new LinkedList<>();
@@ -99,7 +129,7 @@ public class ReplayRenderService implements Closeable {
 
             runDanser(jobId, fileName, c);
         } catch (Exception e) {
-            jobStatus.put(jobId, "failed");
+            jobProgress.put(jobId, new JobProgress(JobStatus.FAILED));
             LOG.error("Danser failed to render video", e);
         } finally {
             if (tempSettingsFile != null) {
@@ -109,7 +139,7 @@ public class ReplayRenderService implements Closeable {
     }
 
     private void renderShowcase(String beatmapId, List<Path> osrPaths, String jobId) {
-        jobStatus.put(jobId, "rendering");
+        jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING));
         Path tempSettingsFile = null;
         try {
             final List<String> c = new LinkedList<>();
@@ -136,7 +166,7 @@ public class ReplayRenderService implements Closeable {
 
             runDanser(jobId, fileName, c);
         } catch (Exception e) {
-            jobStatus.put(jobId, "failed");
+            jobProgress.put(jobId, new JobProgress(JobStatus.FAILED));
             LOG.error("Danser failed to render showcase", e);
         } finally {
             if (tempSettingsFile != null) {
@@ -189,30 +219,30 @@ public class ReplayRenderService implements Closeable {
 
         Process process = builder.start();
 
-        consumeDanserOutput(process.getInputStream());
+        consumeDanserOutput(process.getInputStream(), jobId);
 
         try {
             boolean finished = process.waitFor(10, TimeUnit.MINUTES);
             if (!finished) {
-                jobStatus.put(jobId, "timeout");
+                jobProgress.put(jobId, new JobProgress(JobStatus.TIMEOUT));
                 process.destroyForcibly();
                 LOG.error("Danser timed out and was killed.");
                 return;
             }
         } catch (InterruptedException e) {
-            jobStatus.put(jobId, "failed");
+            jobProgress.put(jobId,new JobProgress(JobStatus.FAILED));
             process.destroyForcibly();
             throw e;
         }
 
         if(!Files.exists(videoPath)) {
-            jobStatus.put(jobId, "failed");
+            jobProgress.put(jobId,new JobProgress(JobStatus.FAILED));
             LOG.error("Danser exited but no video rendered");
             throw new RuntimeException("Danser exited but no video rendered");
         }
 
         LOG.info("Danser finished rendering video: {}", fileName + ".mp4");
-        jobStatus.put(jobId, "done");
+        jobProgress.put(jobId, new JobProgress(JobStatus.DONE));
         jobResults.put(jobId, videoPath);
     }
 
@@ -220,5 +250,20 @@ public class ReplayRenderService implements Closeable {
     public void close() {
         executor.shutdownNow();
         cleanUpExecutor.shutdownNow();
+    }
+
+    public record JobProgress(JobStatus status, String progress, String speed, String eta) {
+        public JobProgress(JobStatus status) {
+            this(status, null, null, null);
+        }
+    }
+
+    public enum JobStatus {
+        QUEUED,
+        UNKNOWN,
+        RENDERING,
+        TIMEOUT,
+        FAILED,
+        DONE
     }
 }

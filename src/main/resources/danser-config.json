@@ -30,6 +30,12 @@
     "Mods": {
       "Scale": 1.2,
       "ShowLazerMod": false
+    },
+    "StrainGraph": {
+      "Show": true,
+      "Outline": {
+        "Show": true
+      }
     }
   },
   "Playfield": {

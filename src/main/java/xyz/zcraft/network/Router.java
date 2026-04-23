@@ -284,45 +284,51 @@ public class Router implements Closeable {
 
     protected void getReplayRenderStatus(@NotNull Context context) {
         String jobId = context.pathParam("jobId");
-        String status = replayRenderService.getJobStatus().getOrDefault(jobId, "unknown");
+        ReplayRenderService.JobStatus status = replayRenderService.getJobStatus(jobId);
 
         switch (status) {
-            case "done" -> context.status(200).result(
+            case ReplayRenderService.JobStatus.DONE -> context.status(200).result(
                     new Response(true, "Render complete!",
                             GSON.toJsonTree(Map.of(
                                     "status", "done"
                             ))).toString());
-            case "failed" -> context.status(500).result(
+            case ReplayRenderService.JobStatus.FAILED -> context.status(500).result(
                     new Response(false, "Render failed",
                             GSON.toJsonTree(Map.of(
                                     "status", "failed",
                                     "id", jobId
                             ))).toString());
-            case "timeout" -> context.status(500).result(
+            case ReplayRenderService.JobStatus.TIMEOUT -> context.status(500).result(
                     new Response(false, "Render timed out",
                             GSON.toJsonTree(Map.of(
                                     "status", "timeout",
                                     "id", jobId
                             ))).toString());
-            case "queued" -> context.status(202).result(
+            case ReplayRenderService.JobStatus.QUEUED -> context.status(202).result(
                     new Response(true, "Render is waiting in queue",
                             GSON.toJsonTree(Map.of(
                                     "status", "queued",
                                     "id", jobId
                             ))).toString());
-            case "rendering" -> context.status(202).result(
-                    new Response(true, "Render in progress",
-                            GSON.toJsonTree(Map.of(
-                                    "status", "rendering",
-                                    "id", jobId
-                            ))).toString());
+            case ReplayRenderService.JobStatus.RENDERING -> {
+                final ReplayRenderService.JobProgress jobProgress = replayRenderService.getJobProgress(jobId);
+                context.status(202).result(
+                        new Response(true, "Render in progress",
+                                GSON.toJsonTree(Map.of(
+                                        "status", "rendering",
+                                        "progress", jobProgress.progress(),
+                                        "speed", jobProgress.speed(),
+                                        "eta", jobProgress.eta(),
+                                        "id", jobId
+                                ))).toString());
+            }
             default -> context.status(400).result(new Response(false, "Job not found", null).toString());
         }
     }
 
     protected void getReplayRenderResult(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
-        Path video = replayRenderService.getJobResults().get(jobId);
+        Path video = replayRenderService.getJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             context.writeSeekableStream(Files.newInputStream(video), "video/mp4");
@@ -334,10 +340,10 @@ public class Router implements Closeable {
     protected void deleteReplayRenderResult(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
 
-        Path video = replayRenderService.getJobResults().get(jobId);
+        Path video = replayRenderService.getJobResult(jobId);
 
-        replayRenderService.getJobStatus().remove(jobId);
-        replayRenderService.getJobResults().remove(jobId);
+        replayRenderService.removeJobProgress(jobId);
+        replayRenderService.removeJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             Files.deleteIfExists(video);
