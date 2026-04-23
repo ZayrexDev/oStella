@@ -312,15 +312,15 @@ public class Router implements Closeable {
                             ))).toString());
             case ReplayRenderService.JobStatus.RENDERING -> {
                 final ReplayRenderService.JobProgress jobProgress = replayRenderService.getJobProgress(jobId);
+                JsonObject obj = new JsonObject();
+                obj.addProperty("status", "rendering");
+                if(jobProgress != null){
+                    obj.addProperty("progress", jobProgress.progress());
+                    obj.addProperty("speed", jobProgress.speed());
+                    obj.addProperty("eta", jobProgress.eta());
+                }
                 context.status(202).result(
-                        new Response(true, "Render in progress",
-                                GSON.toJsonTree(Map.of(
-                                        "status", "rendering",
-                                        "progress", jobProgress.progress(),
-                                        "speed", jobProgress.speed(),
-                                        "eta", jobProgress.eta(),
-                                        "id", jobId
-                                ))).toString());
+                        new Response(true, "Render in progress", obj).toString());
             }
             default -> context.status(400).result(new Response(false, "Job not found", null).toString());
         }

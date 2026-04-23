@@ -116,7 +116,7 @@ public class ReplayRenderService implements Closeable {
     }
 
     private void render(Path osrPath, String jobId) {
-        jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
+        jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING));
         Path tempSettingsFile = null;
         try {
             final List<String> c = new LinkedList<>();
