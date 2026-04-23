@@ -60,7 +60,8 @@ public class ReplayRenderService implements Closeable {
                     String jobId = entry.getKey();
                     Path video = entry.getValue();
 
-                    if (video != null && Files.getLastModifiedTime(video).toMillis() < fifteenMinutesAgo) {
+                    if (video != null && Files.exists(video)
+                            && Files.getLastModifiedTime(video).toMillis() < fifteenMinutesAgo) {
                         Files.deleteIfExists(video);
                         jobProgress.remove(jobId);
                         iterator.remove();
