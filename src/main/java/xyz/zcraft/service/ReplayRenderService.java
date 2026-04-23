@@ -181,11 +181,14 @@ public class ReplayRenderService implements Closeable {
     }
 
     private void runDanser(String jobId, String fileName, List<String> c) throws IOException, InterruptedException {
+        final Path videoPath = danserPath.resolve("..", "videos", fileName + ".mp4").normalize().toAbsolutePath();
+
         ProcessBuilder builder = new ProcessBuilder(c);
         builder.redirectErrorStream(true);
         LOG.info("Render started for {}", jobId);
 
         Process process = builder.start();
+
         consumeDanserOutput(process.getInputStream());
 
         try {
@@ -201,10 +204,14 @@ public class ReplayRenderService implements Closeable {
             throw e;
         }
 
+        if(!Files.exists(videoPath)) {
+            LOG.error("Danser exited but no video rendered");
+            throw new RuntimeException("Danser exited but no video rendered");
+        }
+
         LOG.info("Danser finished rendering video: {}", fileName + ".mp4");
         jobStatus.put(jobId, "done");
-        final Path video = danserPath.resolve("..", "videos", fileName + ".mp4").normalize().toAbsolutePath();
-        jobResults.put(jobId, video);
+        jobResults.put(jobId, videoPath);
     }
 
     @Override
