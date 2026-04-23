@@ -1,7 +1,6 @@
 {
   "General": {
-    "OsuSongsDir": "{{OSU_SONGS_DIR}}",
-    "UnpackOszFiles": false
+    "OsuSongsDir": "{{OSU_SONGS_DIR}}"
   },
   "Gameplay": {
     "HitErrorMeter": {
