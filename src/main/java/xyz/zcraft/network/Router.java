@@ -408,7 +408,7 @@ public class Router implements Closeable {
                 end = Double.parseDouble(endStr);
             }
 
-            renderScore(context, score, start, end);
+            renderScoreFor(context, score, start, end);
         }
 
         private void queueReplayRenderOfBeatmap(@NotNull Context context) throws Exception {
@@ -443,7 +443,7 @@ public class Router implements Closeable {
                 end = Double.parseDouble(endStr);
             }
 
-            renderScore(context, score, start, end);
+            renderScoreFor(context, score, start, end);
         }
 
         private void queueReplayRenderOfRef(@NotNull Context context) throws Exception {
@@ -464,7 +464,7 @@ public class Router implements Closeable {
                 end = Double.parseDouble(endStr);
             }
 
-            renderScore(context, score, start, end);
+            renderScoreFor(context, score, start, end);
         }
 
         private void queueReplayRenderOfId(@NotNull Context context) throws Exception {
@@ -498,7 +498,7 @@ public class Router implements Closeable {
                 end = Double.parseDouble(endStr);
             }
 
-            renderScore(context, score, start, end);
+            renderScoreFor(context, score, start, end);
         }
 
         private void getBeatmapsetOfRef(@NotNull Context context) {
@@ -947,6 +947,16 @@ public class Router implements Closeable {
                 return;
             }
 
+            final Optional<BeatmapExtended> beatmapOpt = router.executor.enqueue(
+                    () -> OsuAPI.getBeatmap(router.tokenManager.getTokenData(), String.valueOf(beatmapId)));
+
+            if(beatmapOpt.isEmpty()) {
+                context.status(500).result(Response.error("Failed to get beatmap!", ErrorCode.BEATMAP_FETCH_FAILED).toString());
+                return;
+            }
+
+            final BeatmapExtended beatmap = beatmapOpt.get();
+
             final LinkedList<Path> replays = new LinkedList<>();
 
             for (Score score : scores) {
@@ -982,6 +992,12 @@ public class Router implements Closeable {
                                     "status", "queued",
                                     "position", queueSize,
                                     "id", jobId,
+                                    "beatmap", Map.of(
+                                            "title", beatmap.getBeatmapset().getTitle(),
+                                            "artist", beatmap.getBeatmapset().getArtist(),
+                                            "version", beatmap.getVersion(),
+                                            "star", String.format("%.2f★", beatmap.getDifficultyRating())
+                                    ),
                                     "scores", scoresArr
                             ))
                     ).toString()
@@ -989,7 +1005,7 @@ public class Router implements Closeable {
         }
 
         @NotNull
-        private JsonArray getScoresArr(LinkedList<Score> scores) {
+        private JsonArray getScoresArr(List<Score> scores) {
             JsonArray scoresArr = new JsonArray();
             for (Score score : scores) {
                 JsonObject scoreObj = new JsonObject();
@@ -1265,7 +1281,7 @@ public class Router implements Closeable {
             return rs.get().get(num - 1);
         }
 
-        private void renderScore(@NotNull Context context, Score score, Double start, Double end) throws Exception {
+        private void renderScoreFor(@NotNull Context context, Score score, Double start, Double end) throws Exception {
             if (router.replayService == null) return;
             if (!score.getHasReplay()) {
                 context.status(400).result(Response.error("Replay unavailable!", ErrorCode.REPLAY_UNAVAILABLE).toString());
@@ -1299,15 +1315,13 @@ public class Router implements Closeable {
                                     "status", "queued",
                                     "position", queueSize,
                                     "id", jobId,
-                                    "score", Map.of(
+                                    "beatmap", Map.of(
                                             "title", score.getBeatmapset().getTitle(),
                                             "artist", score.getBeatmapset().getArtist(),
                                             "version", score.getBeatmap().getVersion(),
-                                            "username", score.getUser().getUsername(),
-                                            "rank", score.getRank(),
-                                            "accuracy", String.format("%.2f%%", score.getAccuracy() * 100),
                                             "star", String.format("%.2f★", score.getBeatmap().getDifficultyRating())
-                                    )
+                                    ),
+                                    "scores", getScoresArr(List.of(score))
                             ))
                     ).toString()
             );
