@@ -29,7 +29,10 @@ public class CacheService {
     private static final Path REPLAY_CACHE = Paths.get("data", "cache", "replay");
     private static final Path DANSER_SONG_CACHE = Paths.get("data", "cache", "danser", "songs");
 
-    public CacheService() throws IOException {
+    private final AsyncService executor;
+
+    public CacheService(AsyncService executor) throws IOException {
+        this.executor = executor;
         Files.createDirectories(BEATMAP_CACHE);
         Files.createDirectories(IMAGE_CACHE);
         Files.createDirectories(REPLAY_CACHE);
@@ -94,7 +97,7 @@ public class CacheService {
 
     private void cacheBeatmap(String id) throws Exception {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
-        Files.write(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapBytes(id));
+        Files.write(BEATMAP_CACHE.resolve(id), executor.enqueue(() -> OsuAPI.getBeatmapBytes(id)).orElseThrow());
     }
 
     @NotNull
@@ -122,8 +125,8 @@ public class CacheService {
         }
 
         try {
-            return "http://ostella-cache/" + IMAGE_CACHE.resolve(getFileName(url)).toAbsolutePath().toString().replace("\\", "/");
-
+            return "http://ostella-cache/"
+                    + IMAGE_CACHE.resolve(getFileName(url)).toAbsolutePath().toString().replace("\\", "/");
         } catch (Exception e) {
             LOG.error("Failed to load image from cache!", e);
             throw new RuntimeException("Failed to load image from cache!", e);
@@ -228,12 +231,12 @@ public class CacheService {
         return false;
     }
 
-    public Path getReplay(TokenData tokenData, String id) throws IOException {
+    public Path getReplay(TokenData tokenData, String id) throws Exception {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
         if (!Files.exists(beatmapsetPath)) {
             LOG.info("Caching replay {}", id);
-            Files.write(beatmapsetPath, OsuAPI.getReplayBytes(tokenData, id));
+            Files.write(beatmapsetPath, executor.enqueue(() -> OsuAPI.getReplayBytes(tokenData, id)).orElseThrow());
         }
 
         LOG.info("Replay {} is ready", id);

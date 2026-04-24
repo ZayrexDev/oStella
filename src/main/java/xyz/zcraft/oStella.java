@@ -4,6 +4,7 @@ import desu.life.RosuFFI;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.config.ConfigLoader;
 import xyz.zcraft.network.WebServer;
@@ -43,12 +44,14 @@ public class oStella {
         }
 
         if (conf.ostella().debugMode()) {
+            Configurator.setRootLevel(org.apache.logging.log4j.Level.DEBUG);
             LOG.warn("Debug mode is enabled! This may cause security and performance issues. Please disable debug mode in production environment.");
         }
 
         LOG.info("Initializing RosuFFI, you may ignore the warnings below.");
 
         try {
+            LOG.debug("awdawdawdawda");
             new RosuFFI.Beatmap(new byte[0]).close();
         } catch (RosuFFI.FFIException e) {
             LOG.error("Error while initializing RosuFFI", e);

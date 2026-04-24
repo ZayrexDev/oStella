@@ -49,7 +49,7 @@ public class Router implements Closeable {
         this.conf = conf;
         this.tokenManager = tokenManager;
         this.executor = new AsyncService(conf.ostella().maxThreads(), conf.ostella().requestDelayMs());
-        this.cacheService = new CacheService();
+        this.cacheService = new CacheService(executor);
         this.renderer = new RenderService(cacheService);
         if (conf.replayRender().enabled()) {
             this.replayService = new ReplayService(conf, cacheService.getDanserCache());
@@ -856,6 +856,7 @@ public class Router implements Closeable {
 
             final var userIds = Arrays.stream(us.split(",")).distinct().toList();
 
+            LOG.info("Getting {} scores for showcase", userIds.size());
             final LinkedList<Score> scores = new LinkedList<>();
             for (String userId : userIds) {
                 final var userScore = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, m));
@@ -960,14 +961,11 @@ public class Router implements Closeable {
             final LinkedList<Path> replays = new LinkedList<>();
 
             for (Score score : scores) {
-                router.executor.enqueue(() -> {
-                    try {
-                        return router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
-                    } catch (IOException e) {
-                        LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
-                        return null;
-                    }
-                }).ifPresent(replays::add);
+                try {
+                    replays.add(router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId())));
+                } catch (Exception e) {
+                    LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
+                }
             }
 
             final int queueSize = router.replayService.getQueueSize() + 1;
