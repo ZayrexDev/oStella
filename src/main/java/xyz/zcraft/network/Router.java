@@ -295,13 +295,13 @@ public class Router implements Closeable {
                                     "status", "done"
                             ))).toString());
             case ReplayService.JobStatus.FAILED -> context.status(200).result(
-                    new Response(false, "Render failed",
+                    new Response(true, "Render failed",
                             GSON.toJsonTree(Map.of(
                                     "status", "failed",
                                     "id", jobId
                             ))).toString());
             case ReplayService.JobStatus.TIMEOUT -> context.status(200).result(
-                    new Response(false, "Render timed out",
+                    new Response(true, "Render timed out",
                             GSON.toJsonTree(Map.of(
                                     "status", "timeout",
                                     "id", jobId
