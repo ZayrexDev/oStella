@@ -15,16 +15,27 @@ public class MiscUtil {
         return true;
     }
 
-    public static boolean ensureNumbers(String... str) {
+    public static boolean isDouble(String... str) {
         for (String s : str) {
-            if (s == null) return false;
             try {
-                Long.parseLong(s);
+                Double.parseDouble(s);
             } catch (NumberFormatException e) {
                 return false;
             }
         }
         return true;
+    }
+
+    public static boolean notNumber(String... str) {
+        for (String s : str) {
+            if (s == null) return true;
+            try {
+                Long.parseLong(s);
+            } catch (NumberFormatException e) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String getRelativeTimeAgo(String isoTimestamp) {

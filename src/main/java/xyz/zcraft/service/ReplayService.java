@@ -12,8 +12,8 @@ import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ReplayRenderService implements Closeable {
-    private static final Logger LOG = LogManager.getLogger(ReplayRenderService.class);
+public class ReplayService implements Closeable {
+    private static final Logger LOG = LogManager.getLogger(ReplayService.class);
     private static final Logger DANSER_LOG = LogManager.getLogger("danser");
     private static final Pattern DANSER_PROGRESS_PATTERN =
             Pattern.compile("Progress: (\\d+)%, Speed: ([\\d.]+)x, ETA: (.+)");
@@ -24,7 +24,7 @@ public class ReplayRenderService implements Closeable {
     private final ConcurrentHashMap<String, JobProgress> jobProgress = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Path> jobResults = new ConcurrentHashMap<>();
 
-    public ReplayRenderService(AppConfig conf, Path danserSongPath) {
+    public ReplayService(AppConfig conf, Path danserSongPath) {
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(1, conf.replayRender().renderThreads()));
         this.danserPath = Path.of(conf.replayRender().danserPath());
         this.songPath = danserSongPath;
@@ -100,17 +100,17 @@ public class ReplayRenderService implements Closeable {
         gobblerThread.start();
     }
 
-    public String queueRender(Path osrPath) {
+    public String queueRender(Path osrPath, Double start, Double end) {
         final String jobId = UUID.randomUUID().toString();
         jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
-        executor.submit(() -> render(osrPath, jobId));
+        executor.submit(() -> render(osrPath, jobId, start, end));
         return jobId;
     }
 
-    public String queueRenderShowcase(String beatmapId, List<Path> osrPaths) {
+    public String queueRenderShowcase(String beatmapId, List<Path> osrPaths, Double start, Double end) {
         final String jobId = UUID.randomUUID().toString();
         jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
-        executor.submit(() -> renderShowcase(beatmapId, osrPaths, jobId));
+        executor.submit(() -> renderShowcase(beatmapId, osrPaths, jobId, start, end));
         return jobId;
     }
 
@@ -118,7 +118,7 @@ public class ReplayRenderService implements Closeable {
         return executor.getQueue().size();
     }
 
-    private void render(Path osrPath, String jobId) {
+    private void render(Path osrPath, String jobId, Double start, Double end) {
         jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING));
         Path tempSettingsFile = null;
         try {
@@ -126,6 +126,14 @@ public class ReplayRenderService implements Closeable {
             final String fileName = "replay_" + jobId;
 
             tempSettingsFile = prepareDanser(c);
+
+            if(start != null) {
+                c.add("-start=" + start);
+            }
+
+            if(end != null) {
+                c.add("-end=" + end);
+            }
 
             c.add("-replay=" + osrPath.toAbsolutePath());
             c.add("-out=" + fileName);
@@ -144,7 +152,7 @@ public class ReplayRenderService implements Closeable {
         }
     }
 
-    private void renderShowcase(String beatmapId, List<Path> osrPaths, String jobId) {
+    private void renderShowcase(String beatmapId, List<Path> osrPaths, String jobId, Double start, Double end) {
         jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING));
         Path tempSettingsFile = null;
         try {
@@ -164,6 +172,14 @@ public class ReplayRenderService implements Closeable {
 
             if (System.getProperty("os.name").toLowerCase().contains("win")) {
                 replayList = replayList.replace("\"", "\\\"");
+            }
+
+            if(start != null) {
+                c.add("-start=" + start);
+            }
+
+            if(end != null) {
+                c.add("-end=" + end);
             }
 
             c.add("-knockout2=" + replayList);

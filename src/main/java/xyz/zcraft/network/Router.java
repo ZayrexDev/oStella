@@ -22,7 +22,7 @@ import xyz.zcraft.model.user.User;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
-import xyz.zcraft.service.ReplayRenderService;
+import xyz.zcraft.service.ReplayService;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.Closeable;
@@ -32,8 +32,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static xyz.zcraft.util.MiscUtil.ensureNumbers;
-import static xyz.zcraft.util.MiscUtil.isInteger;
+import static xyz.zcraft.util.MiscUtil.*;
 
 public class Router implements Closeable {
     private static final Logger LOG = LogManager.getLogger(Router.class);
@@ -41,7 +40,7 @@ public class Router implements Closeable {
     private final RenderService renderer;
     private final AsyncService executor;
     private final TokenManager tokenManager;
-    private final ReplayRenderService replayRenderService;
+    private final ReplayService replayService;
     private final CacheService cacheService;
     private final AppConfig conf;
     private final Helper helper;
@@ -53,9 +52,9 @@ public class Router implements Closeable {
         this.cacheService = new CacheService();
         this.renderer = new RenderService(cacheService);
         if (conf.replayRender().enabled()) {
-            this.replayRenderService = new ReplayRenderService(conf, cacheService.getDanserCache());
+            this.replayService = new ReplayService(conf, cacheService.getDanserCache());
         } else {
-            this.replayRenderService = null;
+            this.replayService = null;
         }
 
         this.helper = new Helper(this);
@@ -287,37 +286,37 @@ public class Router implements Closeable {
 
     protected void getReplayRenderStatus(@NotNull Context context) {
         String jobId = context.pathParam("jobId");
-        ReplayRenderService.JobStatus status = replayRenderService.getJobStatus(jobId);
+        ReplayService.JobStatus status = replayService.getJobStatus(jobId);
 
         switch (status) {
-            case ReplayRenderService.JobStatus.DONE -> context.status(200).result(
+            case ReplayService.JobStatus.DONE -> context.status(200).result(
                     new Response(true, "Render complete!",
                             GSON.toJsonTree(Map.of(
                                     "status", "done"
                             ))).toString());
-            case ReplayRenderService.JobStatus.FAILED -> context.status(200).result(
+            case ReplayService.JobStatus.FAILED -> context.status(200).result(
                     new Response(false, "Render failed",
                             GSON.toJsonTree(Map.of(
                                     "status", "failed",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.TIMEOUT -> context.status(200).result(
+            case ReplayService.JobStatus.TIMEOUT -> context.status(200).result(
                     new Response(false, "Render timed out",
                             GSON.toJsonTree(Map.of(
                                     "status", "timeout",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.QUEUED -> context.status(200).result(
+            case ReplayService.JobStatus.QUEUED -> context.status(200).result(
                     new Response(true, "Render is waiting in queue",
                             GSON.toJsonTree(Map.of(
                                     "status", "queued",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.RENDERING -> {
-                final ReplayRenderService.JobProgress jobProgress = replayRenderService.getJobProgress(jobId);
+            case ReplayService.JobStatus.RENDERING -> {
+                final ReplayService.JobProgress jobProgress = replayService.getJobProgress(jobId);
                 JsonObject obj = new JsonObject();
                 obj.addProperty("status", "rendering");
-                if(jobProgress != null){
+                if (jobProgress != null) {
                     obj.addProperty("progress", jobProgress.progress());
                     obj.addProperty("speed", jobProgress.speed());
                     obj.addProperty("eta", jobProgress.eta());
@@ -331,7 +330,7 @@ public class Router implements Closeable {
 
     protected void getReplayRenderResultStream(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
-        Path video = replayRenderService.getJobResult(jobId);
+        Path video = replayService.getJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             context.writeSeekableStream(Files.newInputStream(video), "video/mp4");
@@ -342,7 +341,7 @@ public class Router implements Closeable {
 
     protected void getReplayRenderResultFile(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
-        Path video = replayRenderService.getJobResult(jobId);
+        Path video = replayService.getJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             context.result(Files.newInputStream(video));
@@ -354,10 +353,10 @@ public class Router implements Closeable {
     protected void deleteReplayRenderResult(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
 
-        Path video = replayRenderService.getJobResult(jobId);
+        Path video = replayService.getJobResult(jobId);
 
-        replayRenderService.removeJobProgress(jobId);
-        replayRenderService.removeJobResult(jobId);
+        replayService.removeJobProgress(jobId);
+        replayService.removeJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             Files.deleteIfExists(video);
@@ -370,7 +369,7 @@ public class Router implements Closeable {
     public void close() {
         executor.close();
         renderer.close();
-        replayRenderService.close();
+        replayService.close();
     }
 
     public void queueShowcaseRender(@NotNull Context context) throws Exception {
@@ -385,8 +384,8 @@ public class Router implements Closeable {
 
     public void getReplayRenderOverview(@NotNull Context context) {
         context.status(200).result(String.valueOf(new Response(true, "", GSON.toJsonTree(Map.of(
-                "enabled", replayRenderService != null,
-                "queue", replayRenderService != null ? replayRenderService.getQueueSize() : 0
+                "enabled", replayService != null,
+                "queue", replayService != null ? replayService.getQueueSize() : 0
         )))));
     }
 
@@ -395,14 +394,28 @@ public class Router implements Closeable {
             final var score = getScoreFromBeatmapset(context);
             if (score == null) return;
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScore(context, score, start, end);
         }
 
         private void queueReplayRenderOfBeatmap(@NotNull Context context) throws Exception {
             final String m = context.queryParam("m");
             final String u = context.queryParam("u");
 
-            if (m == null || u == null || !ensureNumbers(m, u)) {
+            if (m == null || u == null || notNumber(m, u)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -416,14 +429,42 @@ public class Router implements Closeable {
 
             final Score score = enqueue.get();
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScore(context, score, start, end);
         }
 
         private void queueReplayRenderOfRef(@NotNull Context context) throws Exception {
             final Score score = getScoreFromRef(context);
             if (score == null) return;
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScore(context, score, start, end);
         }
 
         private void queueReplayRenderOfId(@NotNull Context context) throws Exception {
@@ -443,7 +484,21 @@ public class Router implements Closeable {
 
             final Score score = enqueue.get();
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScore(context, score, start, end);
         }
 
         private void getBeatmapsetOfRef(@NotNull Context context) {
@@ -753,7 +808,7 @@ public class Router implements Closeable {
         }
 
         private void renderShowcaseOfIds(@NotNull Context context) throws Exception {
-            if (router.replayRenderService == null) return;
+            if (router.replayService == null) return;
 
             final String ss = context.queryParam("s");
 
@@ -771,11 +826,25 @@ public class Router implements Closeable {
                 scores.add(userScore.get());
             }
 
-            renderShowcaseFor(context, scores);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderShowcaseFor(context, scores, start, end);
         }
 
         private void renderShowcaseOfUsers(@NotNull Context context) throws Exception {
-            if (router.replayRenderService == null) return;
+            if (router.replayService == null) return;
 
             final String us = context.queryParam("u");
             final String m = context.queryParam("m");
@@ -794,18 +863,32 @@ public class Router implements Closeable {
                 scores.add(userScore.get());
             }
 
-            renderShowcaseFor(context, scores);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderShowcaseFor(context, scores, start, end);
         }
 
         private void renderShowcaseOfUsersRef(@NotNull Context context) throws Exception {
-            if (router.replayRenderService == null) return;
+            if (router.replayService == null) return;
 
             final String us = context.queryParam("u");
             final String of = context.queryParam("of");
             final String uSource = context.queryParam("us");
             final String iStr = context.queryParam("i");
 
-            if (us == null || of == null || uSource == null || iStr == null || !ensureNumbers(iStr)) {
+            if (us == null || of == null || uSource == null || iStr == null || notNumber(iStr)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -831,11 +914,25 @@ public class Router implements Closeable {
                 scores.add(userScore.get());
             }
 
-            renderShowcaseFor(context, scores);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderShowcaseFor(context, scores, start, end);
         }
 
-        private void renderShowcaseFor(@NotNull Context context, LinkedList<Score> scores) throws Exception {
-            if (router.replayRenderService == null) return;
+        private void renderShowcaseFor(@NotNull Context context, LinkedList<Score> scores, Double start, Double end) throws Exception {
+            if (router.replayService == null) return;
 
             if (scores.isEmpty()) {
                 context.status(400).result(Response.error("No valid scores found!", ErrorCode.NO_SCORE_FOUND).toString());
@@ -863,7 +960,7 @@ public class Router implements Closeable {
                 }).ifPresent(replays::add);
             }
 
-            final int queueSize = router.replayRenderService.getQueueSize() + 1;
+            final int queueSize = router.replayService.getQueueSize() + 1;
 
             if (queueSize > router.conf.replayRender().renderQueueSize()) {
                 context.status(400).result(
@@ -873,7 +970,7 @@ public class Router implements Closeable {
                 return;
             }
 
-            final String jobId = router.replayRenderService.queueRenderShowcase(String.valueOf(beatmapId), replays);
+            final String jobId = router.replayService.queueRenderShowcase(String.valueOf(beatmapId), replays, start, end);
 
             final JsonArray scoresArr = getScoresArr(scores);
 
@@ -1021,7 +1118,7 @@ public class Router implements Closeable {
         private void getScoreOfId(@NotNull Context context) throws Exception {
             final String s = context.queryParam("s");
 
-            if (s == null || !ensureNumbers(s)) {
+            if (s == null || notNumber(s)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -1048,7 +1145,7 @@ public class Router implements Closeable {
             final String m = context.queryParam("m");
             final String u = context.queryParam("u");
 
-            if (m == null || !ensureNumbers(m) || u == null || !ensureNumbers(u)) {
+            if (m == null || notNumber(m) || u == null || notNumber(u)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -1109,7 +1206,7 @@ public class Router implements Closeable {
             final String iStr = context.queryParam("i");
             final String u = context.queryParam("u");
 
-            if (ms == null || u == null || iStr == null || !ensureNumbers(ms, iStr, u)) {
+            if (ms == null || u == null || iStr == null || notNumber(ms, iStr, u)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return null;
             }
@@ -1168,8 +1265,8 @@ public class Router implements Closeable {
             return rs.get().get(num - 1);
         }
 
-        private void renderScore(@NotNull Context context, Score score) throws Exception {
-            if (router.replayRenderService == null) return;
+        private void renderScore(@NotNull Context context, Score score, Double start, Double end) throws Exception {
+            if (router.replayService == null) return;
             if (!score.getHasReplay()) {
                 context.status(400).result(Response.error("Replay unavailable!", ErrorCode.REPLAY_UNAVAILABLE).toString());
                 return;
@@ -1182,7 +1279,7 @@ public class Router implements Closeable {
 
             final Path replay = router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
 
-            final int queueSize = router.replayRenderService.getQueueSize() + 1;
+            final int queueSize = router.replayService.getQueueSize() + 1;
 
             if (queueSize > router.conf.replayRender().renderQueueSize()) {
                 context.status(400).result(
@@ -1192,7 +1289,7 @@ public class Router implements Closeable {
                 return;
             }
 
-            final String jobId = router.replayRenderService.queueRender(replay);
+            final String jobId = router.replayService.queueRender(replay, start, end);
 
             context.status(202).result(
                     new Response(
