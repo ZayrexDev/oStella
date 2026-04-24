@@ -51,7 +51,6 @@ public class oStella {
         LOG.info("Initializing RosuFFI, you may ignore the warnings below.");
 
         try {
-            LOG.debug("awdawdawdawda");
             new RosuFFI.Beatmap(new byte[0]).close();
         } catch (RosuFFI.FFIException e) {
             LOG.error("Error while initializing RosuFFI", e);

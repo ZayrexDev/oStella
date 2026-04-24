@@ -29,6 +29,8 @@ public class WebServer implements Closeable {
             threadPool.setName("ServPool");
             cfg.jetty.threadPool = threadPool;
 
+            cfg.routes.before(ctx -> LOG.debug("{} {} {}", ctx.method(), ctx.path(), ctx.queryString()));
+
             cfg.routes
                     .get("/bo", router::getBestOfN)
                     .get("/daily", router::getDaily)
