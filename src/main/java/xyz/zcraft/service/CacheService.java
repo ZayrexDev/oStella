@@ -152,7 +152,42 @@ public class CacheService {
 
         Path beatmapsetPath = DANSER_SONG_CACHE.resolve(id + ".osz");
 
-        LOG.info("Downloading beatmapset {}", id);
+        LOG.info("Downloading beatmapset {} via Sayobot", id);
+        if (!downloadSayobot(id, beatmapsetPath)) {
+            LOG.warn("Switching to Nekoha");
+            if (!downloadNekoha(id, beatmapsetPath)) {
+                LOG.error("Failed to download beatmapset {} via both Sayobot and Nekoha!", id);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean downloadNekoha(String id, Path beatmapsetPath) {
+        try (final HttpClient client = HttpClient.newBuilder().build()) {
+            String initialUrl = "https://mirror.nekoha.moe/api4/download/" + id;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(initialUrl))
+                    .GET()
+                    .build();
+
+            HttpResponse<InputStream> fileResponse = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+            if (fileResponse.statusCode() == 200) {
+                Files.copy(fileResponse.body(), beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
+                LOG.info("Beatmapset {} cached via Nekoha", beatmapsetPath);
+                return true;
+            } else {
+                LOG.error("Failed to download beatmapset! Nekoha responded with status code: {}", fileResponse.statusCode());
+            }
+        } catch (IOException | InterruptedException e) {
+            LOG.error("Failed to download beatmapset!", e);
+        }
+        return false;
+    }
+
+    private boolean downloadSayobot(String id, Path beatmapsetPath) {
         try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()) {
             String initialUrl = "https://dl.sayobot.cn/beatmaps/download/novideo/" + id;
             HttpRequest request = HttpRequest.newBuilder()
@@ -181,7 +216,7 @@ public class CacheService {
 
                 if (fileResponse.statusCode() == 200) {
                     Files.copy(fileResponse.body(), beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
-                    LOG.info("Beatmapset {} cached", beatmapsetPath);
+                    LOG.info("Beatmapset {} cached via Sayobot", beatmapsetPath);
                     return true;
                 } else {
                     LOG.error("Failed to download beatmapset! Sayobot responded with status code: {}", fileResponse.statusCode());
@@ -190,7 +225,6 @@ public class CacheService {
         } catch (IOException | InterruptedException e) {
             LOG.error("Failed to download beatmapset!", e);
         }
-
         return false;
     }
 
