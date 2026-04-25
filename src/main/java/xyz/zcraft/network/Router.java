@@ -1166,13 +1166,24 @@ public class Router implements Closeable {
             final var scoreOptional = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, m));
 
             if (scoreOptional.isEmpty()) {
-                context.status(400).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
+                context.status(404).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
                 return;
             }
 
             final Score score = scoreOptional.get();
 
             final BeatmapExtended beatmap = score.getBeatmap();
+            final var beatmapsetOpt = router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(beatmap.getBeatmapsetId())));
+
+            if(beatmapsetOpt.isEmpty()) {
+                context.status(404).result(Response.error("No beatmapset found.", ErrorCode.NO_BEATMAPSET_FOUND).toString());
+                return;
+            }
+
+            final Beatmapset beatmapset = beatmapsetOpt.get();
+
+            beatmap.setBeatmapset(beatmapset);
+            score.setBeatmapset(beatmapset);
 
             final DiffSpec diffSpec = getDiffSpecForMap(beatmap, score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
 
@@ -1232,12 +1243,13 @@ public class Router implements Closeable {
                 return null;
             }
 
-            final List<BeatmapExtended> beatmaps = enqueue.get().getBeatmaps();
+            final Beatmapset beatmapset = enqueue.get();
+            final List<BeatmapExtended> beatmaps = beatmapset.getBeatmaps();
 
             beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
 
             final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
-            beatmapExtended.setBeatmapset(enqueue.get());
+            beatmapExtended.setBeatmapset(beatmapset);
 
             final var scoreOptional = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, String.valueOf(beatmapExtended.getId())));
 
@@ -1246,7 +1258,12 @@ public class Router implements Closeable {
                 return null;
             }
 
-            return scoreOptional.get();
+            final Score score = scoreOptional.get();
+
+            score.setBeatmap(beatmapExtended);
+            score.setBeatmapset(beatmapset);
+
+            return score;
         }
 
         private Score getScoreFromRef(@NotNull Context context) {
