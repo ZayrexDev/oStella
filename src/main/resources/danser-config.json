@@ -60,7 +60,8 @@
   },
   "Knockout": {
     "Mode": 2,
-    "BubbleMinimumCombo": 50
+    "BubbleMinimumCombo": 20,
+    "HideMods": "LZ"
   },
   "Recording": {
     "FrameWidth": 854,
