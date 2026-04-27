@@ -50,7 +50,7 @@ public class Router implements Closeable {
     public Router(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        this.executor = new AsyncService(conf.ostella().maxThreads(), conf.ostella().requestPerSecond());
+        this.executor = new AsyncService(conf.ostella().requestPerSecond());
         this.cacheService = new CacheService(executor);
         this.renderer = new RenderService(cacheService);
 

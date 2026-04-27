@@ -32,24 +32,15 @@ public class RenderService implements AutoCloseable{
     private final CacheService cacheService;
     private final LinkedList<AutoCloseable>  resources = new LinkedList<>();
     @Getter
-    private final ExecutorService renderExecutor = Executors.newFixedThreadPool(4);
+    private final ExecutorService renderExecutor = Executors.newFixedThreadPool(10);
     private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
-        LOG.info("Starting new Playwright instance for Thread: {}", Thread.currentThread().getName());
-
         final Playwright playwright = Playwright.create();
         resources.add(playwright);
-
-        LOG.info("Playwright instance created for Thread: {}", Thread.currentThread().getName());
-
         return playwright;
     });
     private final ThreadLocal<Browser> browserLocal = ThreadLocal.withInitial(() -> {
-        LOG.info("Launching Chromium for Thread: {}", Thread.currentThread().getName());
-
         final Browser browser = playwrightLocal.get().chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-
         LOG.info("Chromium launched for Thread: {}", Thread.currentThread().getName());
-
         return browser;
     });
     private final TemplateEngine templateEngine;
