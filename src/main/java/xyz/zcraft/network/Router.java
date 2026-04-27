@@ -22,7 +22,7 @@ import xyz.zcraft.model.user.User;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
-import xyz.zcraft.service.ReplayRenderService;
+import xyz.zcraft.service.ReplayService;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.Closeable;
@@ -32,8 +32,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static xyz.zcraft.util.MiscUtil.ensureNumbers;
-import static xyz.zcraft.util.MiscUtil.isInteger;
+import static xyz.zcraft.util.MiscUtil.*;
 
 public class Router implements Closeable {
     private static final Logger LOG = LogManager.getLogger(Router.class);
@@ -41,7 +40,7 @@ public class Router implements Closeable {
     private final RenderService renderer;
     private final AsyncService executor;
     private final TokenManager tokenManager;
-    private final ReplayRenderService replayRenderService;
+    private final ReplayService replayService;
     private final CacheService cacheService;
     private final AppConfig conf;
     private final Helper helper;
@@ -50,12 +49,12 @@ public class Router implements Closeable {
         this.conf = conf;
         this.tokenManager = tokenManager;
         this.executor = new AsyncService(conf.ostella().maxThreads(), conf.ostella().requestDelayMs());
-        this.cacheService = new CacheService();
+        this.cacheService = new CacheService(executor);
         this.renderer = new RenderService(cacheService);
         if (conf.replayRender().enabled()) {
-            this.replayRenderService = new ReplayRenderService(conf, cacheService.getDanserCache());
+            this.replayService = new ReplayService(conf, cacheService.getDanserCache());
         } else {
-            this.replayRenderService = null;
+            this.replayService = null;
         }
 
         this.helper = new Helper(this);
@@ -154,7 +153,6 @@ public class Router implements Closeable {
     }
 
     protected void getServerStatus(@NotNull Context context) {
-        LOG.info("{} - status", context.ip());
         context.status(200).result(new Response(true, "Server is running!", GSON.toJsonTree(Map.of(
                 "ostella", true,
                 "osu-api", executor.enqueue(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData())).orElse(false)
@@ -287,37 +285,37 @@ public class Router implements Closeable {
 
     protected void getReplayRenderStatus(@NotNull Context context) {
         String jobId = context.pathParam("jobId");
-        ReplayRenderService.JobStatus status = replayRenderService.getJobStatus(jobId);
+        ReplayService.JobStatus status = replayService.getJobStatus(jobId);
 
         switch (status) {
-            case ReplayRenderService.JobStatus.DONE -> context.status(200).result(
+            case ReplayService.JobStatus.DONE -> context.status(200).result(
                     new Response(true, "Render complete!",
                             GSON.toJsonTree(Map.of(
                                     "status", "done"
                             ))).toString());
-            case ReplayRenderService.JobStatus.FAILED -> context.status(200).result(
-                    new Response(false, "Render failed",
+            case ReplayService.JobStatus.FAILED -> context.status(200).result(
+                    new Response(true, "Render failed",
                             GSON.toJsonTree(Map.of(
                                     "status", "failed",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.TIMEOUT -> context.status(200).result(
-                    new Response(false, "Render timed out",
+            case ReplayService.JobStatus.TIMEOUT -> context.status(200).result(
+                    new Response(true, "Render timed out",
                             GSON.toJsonTree(Map.of(
                                     "status", "timeout",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.QUEUED -> context.status(200).result(
+            case ReplayService.JobStatus.QUEUED -> context.status(200).result(
                     new Response(true, "Render is waiting in queue",
                             GSON.toJsonTree(Map.of(
                                     "status", "queued",
                                     "id", jobId
                             ))).toString());
-            case ReplayRenderService.JobStatus.RENDERING -> {
-                final ReplayRenderService.JobProgress jobProgress = replayRenderService.getJobProgress(jobId);
+            case ReplayService.JobStatus.RENDERING -> {
+                final ReplayService.JobProgress jobProgress = replayService.getJobProgress(jobId);
                 JsonObject obj = new JsonObject();
                 obj.addProperty("status", "rendering");
-                if(jobProgress != null){
+                if (jobProgress != null) {
                     obj.addProperty("progress", jobProgress.progress());
                     obj.addProperty("speed", jobProgress.speed());
                     obj.addProperty("eta", jobProgress.eta());
@@ -329,9 +327,9 @@ public class Router implements Closeable {
         }
     }
 
-    protected void getReplayRenderResult(@NotNull Context context) throws IOException {
+    protected void getReplayRenderResultStream(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
-        Path video = replayRenderService.getJobResult(jobId);
+        Path video = replayService.getJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             context.writeSeekableStream(Files.newInputStream(video), "video/mp4");
@@ -340,13 +338,24 @@ public class Router implements Closeable {
         }
     }
 
+    protected void getReplayRenderResultFile(@NotNull Context context) throws IOException {
+        String jobId = context.pathParam("jobId");
+        Path video = replayService.getJobResult(jobId);
+
+        if (video != null && Files.exists(video)) {
+            context.result(Files.newInputStream(video));
+        } else {
+            context.status(404).result("Video expired or not found");
+        }
+    }
+
     protected void deleteReplayRenderResult(@NotNull Context context) throws IOException {
         String jobId = context.pathParam("jobId");
 
-        Path video = replayRenderService.getJobResult(jobId);
+        Path video = replayService.getJobResult(jobId);
 
-        replayRenderService.removeJobProgress(jobId);
-        replayRenderService.removeJobResult(jobId);
+        replayService.removeJobProgress(jobId);
+        replayService.removeJobResult(jobId);
 
         if (video != null && Files.exists(video)) {
             Files.deleteIfExists(video);
@@ -359,7 +368,7 @@ public class Router implements Closeable {
     public void close() {
         executor.close();
         renderer.close();
-        replayRenderService.close();
+        replayService.close();
     }
 
     public void queueShowcaseRender(@NotNull Context context) throws Exception {
@@ -374,8 +383,8 @@ public class Router implements Closeable {
 
     public void getReplayRenderOverview(@NotNull Context context) {
         context.status(200).result(String.valueOf(new Response(true, "", GSON.toJsonTree(Map.of(
-                "enabled", replayRenderService != null,
-                "queue", replayRenderService != null ? replayRenderService.getQueueSize() : 0
+                "enabled", replayService != null,
+                "queue", replayService != null ? replayService.getQueueSize() : 0
         )))));
     }
 
@@ -384,14 +393,28 @@ public class Router implements Closeable {
             final var score = getScoreFromBeatmapset(context);
             if (score == null) return;
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScoreFor(context, score, start, end);
         }
 
         private void queueReplayRenderOfBeatmap(@NotNull Context context) throws Exception {
             final String m = context.queryParam("m");
             final String u = context.queryParam("u");
 
-            if (m == null || u == null || !ensureNumbers(m, u)) {
+            if (m == null || u == null || notNumber(m, u)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -405,14 +428,42 @@ public class Router implements Closeable {
 
             final Score score = enqueue.get();
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScoreFor(context, score, start, end);
         }
 
         private void queueReplayRenderOfRef(@NotNull Context context) throws Exception {
             final Score score = getScoreFromRef(context);
             if (score == null) return;
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScoreFor(context, score, start, end);
         }
 
         private void queueReplayRenderOfId(@NotNull Context context) throws Exception {
@@ -432,7 +483,21 @@ public class Router implements Closeable {
 
             final Score score = enqueue.get();
 
-            renderScore(context, score);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderScoreFor(context, score, start, end);
         }
 
         private void getBeatmapsetOfRef(@NotNull Context context) {
@@ -742,7 +807,7 @@ public class Router implements Closeable {
         }
 
         private void renderShowcaseOfIds(@NotNull Context context) throws Exception {
-            if (router.replayRenderService == null) return;
+            if (router.replayService == null) return;
 
             final String ss = context.queryParam("s");
 
@@ -760,11 +825,25 @@ public class Router implements Closeable {
                 scores.add(userScore.get());
             }
 
-            renderShowcaseFor(context, scores);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderShowcaseFor(context, scores, start, end);
         }
 
         private void renderShowcaseOfUsers(@NotNull Context context) throws Exception {
-            if (router.replayRenderService == null) return;
+            if (router.replayService == null) return;
 
             final String us = context.queryParam("u");
             final String m = context.queryParam("m");
@@ -776,6 +855,7 @@ public class Router implements Closeable {
 
             final var userIds = Arrays.stream(us.split(",")).distinct().toList();
 
+            LOG.info("Getting {} scores for showcase", userIds.size());
             final LinkedList<Score> scores = new LinkedList<>();
             for (String userId : userIds) {
                 final var userScore = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, m));
@@ -783,18 +863,32 @@ public class Router implements Closeable {
                 scores.add(userScore.get());
             }
 
-            renderShowcaseFor(context, scores);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderShowcaseFor(context, scores, start, end);
         }
 
         private void renderShowcaseOfUsersRef(@NotNull Context context) throws Exception {
-            if (router.replayRenderService == null) return;
+            if (router.replayService == null) return;
 
             final String us = context.queryParam("u");
             final String of = context.queryParam("of");
             final String uSource = context.queryParam("us");
             final String iStr = context.queryParam("i");
 
-            if (us == null || of == null || uSource == null || iStr == null || !ensureNumbers(iStr)) {
+            if (us == null || of == null || uSource == null || iStr == null || notNumber(iStr)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -820,11 +914,25 @@ public class Router implements Closeable {
                 scores.add(userScore.get());
             }
 
-            renderShowcaseFor(context, scores);
+            final String startStr = context.queryParam("start");
+            final String endStr = context.queryParam("end");
+
+            Double start = null;
+            Double end = null;
+
+            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
+                start = Double.parseDouble(startStr);
+            }
+
+            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
+                end = Double.parseDouble(endStr);
+            }
+
+            renderShowcaseFor(context, scores, start, end);
         }
 
-        private void renderShowcaseFor(@NotNull Context context, LinkedList<Score> scores) throws Exception {
-            if (router.replayRenderService == null) return;
+        private void renderShowcaseFor(@NotNull Context context, LinkedList<Score> scores, Double start, Double end) throws Exception {
+            if (router.replayService == null) return;
 
             if (scores.isEmpty()) {
                 context.status(400).result(Response.error("No valid scores found!", ErrorCode.NO_SCORE_FOUND).toString());
@@ -839,20 +947,27 @@ public class Router implements Closeable {
                 return;
             }
 
+            final Optional<BeatmapExtended> beatmapOpt = router.executor.enqueue(
+                    () -> OsuAPI.getBeatmap(router.tokenManager.getTokenData(), String.valueOf(beatmapId)));
+
+            if(beatmapOpt.isEmpty()) {
+                context.status(500).result(Response.error("Failed to get beatmap!", ErrorCode.BEATMAP_FETCH_FAILED).toString());
+                return;
+            }
+
+            final BeatmapExtended beatmap = beatmapOpt.get();
+
             final LinkedList<Path> replays = new LinkedList<>();
 
             for (Score score : scores) {
-                router.executor.enqueue(() -> {
-                    try {
-                        return router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
-                    } catch (IOException e) {
-                        LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
-                        return null;
-                    }
-                }).ifPresent(replays::add);
+                try {
+                    replays.add(router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId())));
+                } catch (Exception e) {
+                    LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
+                }
             }
 
-            final int queueSize = router.replayRenderService.getQueueSize() + 1;
+            final int queueSize = router.replayService.getQueueSize() + 1;
 
             if (queueSize > router.conf.replayRender().renderQueueSize()) {
                 context.status(400).result(
@@ -862,7 +977,7 @@ public class Router implements Closeable {
                 return;
             }
 
-            final String jobId = router.replayRenderService.queueRenderShowcase(String.valueOf(beatmapId), replays);
+            final String jobId = router.replayService.queueRenderShowcase(String.valueOf(beatmapId), replays, start, end);
 
             final JsonArray scoresArr = getScoresArr(scores);
 
@@ -874,6 +989,12 @@ public class Router implements Closeable {
                                     "status", "queued",
                                     "position", queueSize,
                                     "id", jobId,
+                                    "beatmap", Map.of(
+                                            "title", beatmap.getBeatmapset().getTitle(),
+                                            "artist", beatmap.getBeatmapset().getArtist(),
+                                            "version", beatmap.getVersion(),
+                                            "star", String.format("%.2f★", beatmap.getDifficultyRating())
+                                    ),
                                     "scores", scoresArr
                             ))
                     ).toString()
@@ -881,7 +1002,7 @@ public class Router implements Closeable {
         }
 
         @NotNull
-        private JsonArray getScoresArr(LinkedList<Score> scores) {
+        private JsonArray getScoresArr(List<Score> scores) {
             JsonArray scoresArr = new JsonArray();
             for (Score score : scores) {
                 JsonObject scoreObj = new JsonObject();
@@ -1010,7 +1131,7 @@ public class Router implements Closeable {
         private void getScoreOfId(@NotNull Context context) throws Exception {
             final String s = context.queryParam("s");
 
-            if (s == null || !ensureNumbers(s)) {
+            if (s == null || notNumber(s)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -1037,7 +1158,7 @@ public class Router implements Closeable {
             final String m = context.queryParam("m");
             final String u = context.queryParam("u");
 
-            if (m == null || !ensureNumbers(m) || u == null || !ensureNumbers(u)) {
+            if (m == null || notNumber(m) || u == null || notNumber(u)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return;
             }
@@ -1045,13 +1166,24 @@ public class Router implements Closeable {
             final var scoreOptional = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, m));
 
             if (scoreOptional.isEmpty()) {
-                context.status(400).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
+                context.status(404).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
                 return;
             }
 
             final Score score = scoreOptional.get();
 
             final BeatmapExtended beatmap = score.getBeatmap();
+            final var beatmapsetOpt = router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(beatmap.getBeatmapsetId())));
+
+            if(beatmapsetOpt.isEmpty()) {
+                context.status(404).result(Response.error("No beatmapset found.", ErrorCode.NO_BEATMAPSET_FOUND).toString());
+                return;
+            }
+
+            final Beatmapset beatmapset = beatmapsetOpt.get();
+
+            beatmap.setBeatmapset(beatmapset);
+            score.setBeatmapset(beatmapset);
 
             final DiffSpec diffSpec = getDiffSpecForMap(beatmap, score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
 
@@ -1098,7 +1230,7 @@ public class Router implements Closeable {
             final String iStr = context.queryParam("i");
             final String u = context.queryParam("u");
 
-            if (ms == null || u == null || iStr == null || !ensureNumbers(ms, iStr, u)) {
+            if (ms == null || u == null || iStr == null || notNumber(ms, iStr, u)) {
                 context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
                 return null;
             }
@@ -1111,12 +1243,13 @@ public class Router implements Closeable {
                 return null;
             }
 
-            final List<BeatmapExtended> beatmaps = enqueue.get().getBeatmaps();
+            final Beatmapset beatmapset = enqueue.get();
+            final List<BeatmapExtended> beatmaps = beatmapset.getBeatmaps();
 
             beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
 
             final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
-            beatmapExtended.setBeatmapset(enqueue.get());
+            beatmapExtended.setBeatmapset(beatmapset);
 
             final var scoreOptional = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, String.valueOf(beatmapExtended.getId())));
 
@@ -1125,7 +1258,12 @@ public class Router implements Closeable {
                 return null;
             }
 
-            return scoreOptional.get();
+            final Score score = scoreOptional.get();
+
+            score.setBeatmap(beatmapExtended);
+            score.setBeatmapset(beatmapset);
+
+            return score;
         }
 
         private Score getScoreFromRef(@NotNull Context context) {
@@ -1157,8 +1295,8 @@ public class Router implements Closeable {
             return rs.get().get(num - 1);
         }
 
-        private void renderScore(@NotNull Context context, Score score) throws Exception {
-            if (router.replayRenderService == null) return;
+        private void renderScoreFor(@NotNull Context context, Score score, Double start, Double end) throws Exception {
+            if (router.replayService == null) return;
             if (!score.getHasReplay()) {
                 context.status(400).result(Response.error("Replay unavailable!", ErrorCode.REPLAY_UNAVAILABLE).toString());
                 return;
@@ -1171,7 +1309,7 @@ public class Router implements Closeable {
 
             final Path replay = router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
 
-            final int queueSize = router.replayRenderService.getQueueSize() + 1;
+            final int queueSize = router.replayService.getQueueSize() + 1;
 
             if (queueSize > router.conf.replayRender().renderQueueSize()) {
                 context.status(400).result(
@@ -1181,7 +1319,7 @@ public class Router implements Closeable {
                 return;
             }
 
-            final String jobId = router.replayRenderService.queueRender(replay);
+            final String jobId = router.replayService.queueRender(replay, start, end);
 
             context.status(202).result(
                     new Response(
@@ -1191,15 +1329,13 @@ public class Router implements Closeable {
                                     "status", "queued",
                                     "position", queueSize,
                                     "id", jobId,
-                                    "score", Map.of(
+                                    "beatmap", Map.of(
                                             "title", score.getBeatmapset().getTitle(),
                                             "artist", score.getBeatmapset().getArtist(),
                                             "version", score.getBeatmap().getVersion(),
-                                            "username", score.getUser().getUsername(),
-                                            "rank", score.getRank(),
-                                            "accuracy", String.format("%.2f%%", score.getAccuracy() * 100),
                                             "star", String.format("%.2f★", score.getBeatmap().getDifficultyRating())
-                                    )
+                                    ),
+                                    "scores", getScoresArr(List.of(score))
                             ))
                     ).toString()
             );

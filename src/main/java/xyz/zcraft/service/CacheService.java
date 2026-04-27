@@ -29,7 +29,10 @@ public class CacheService {
     private static final Path REPLAY_CACHE = Paths.get("data", "cache", "replay");
     private static final Path DANSER_SONG_CACHE = Paths.get("data", "cache", "danser", "songs");
 
-    public CacheService() throws IOException {
+    private final AsyncService executor;
+
+    public CacheService(AsyncService executor) throws IOException {
+        this.executor = executor;
         Files.createDirectories(BEATMAP_CACHE);
         Files.createDirectories(IMAGE_CACHE);
         Files.createDirectories(REPLAY_CACHE);
@@ -75,9 +78,9 @@ public class CacheService {
     public String getRosuBeatmapPath(String id, boolean update) {
         if (!Files.exists(BEATMAP_CACHE.resolve(id)) || update) {
             try {
-                LOG.info("Caching beatmap {}", id);
+                LOG.debug("Caching beatmap {}", id);
                 cacheBeatmap(id);
-                LOG.info("Beatmap {} cached", id);
+                LOG.debug("Beatmap {} cached", id);
             } catch (Exception e) {
                 LOG.error("Failed to download beatmap!", e);
                 throw new RuntimeException("Failed to download beatmap!", e);
@@ -94,7 +97,7 @@ public class CacheService {
 
     private void cacheBeatmap(String id) throws Exception {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
-        Files.write(BEATMAP_CACHE.resolve(id), OsuAPI.getBeatmapBytes(id));
+        Files.write(BEATMAP_CACHE.resolve(id), executor.enqueue(() -> OsuAPI.getBeatmapBytes(id)).orElseThrow());
     }
 
     @NotNull
@@ -114,7 +117,7 @@ public class CacheService {
         if (!Files.exists(IMAGE_CACHE.resolve(fileName))) {
             try {
                 cacheImage(fileName, url);
-                LOG.info("Image {} cached", fileName);
+                LOG.debug("Image {} cached", fileName);
             } catch (Exception e) {
                 LOG.error("Failed to download image!", e);
                 throw new RuntimeException("Failed to download image!", e);
@@ -122,8 +125,8 @@ public class CacheService {
         }
 
         try {
-            return "http://ostella-cache/" + IMAGE_CACHE.resolve(getFileName(url)).toAbsolutePath().toString().replace("\\", "/");
-
+            return "http://ostella-cache/"
+                    + IMAGE_CACHE.resolve(getFileName(url)).toAbsolutePath().toString().replace("\\", "/");
         } catch (Exception e) {
             LOG.error("Failed to load image from cache!", e);
             throw new RuntimeException("Failed to load image from cache!", e);
@@ -145,14 +148,49 @@ public class CacheService {
                     .map(Path::toString)
                     .anyMatch(p -> p.equals(id) || p.startsWith(id + " ") || p.equals(id + ".osz"))
             ) {
-                LOG.info("Beatmapset {} is already cached, skipping", id);
+                LOG.debug("Beatmapset {} is already cached, skipping", id);
                 return true;
             }
         }
 
         Path beatmapsetPath = DANSER_SONG_CACHE.resolve(id + ".osz");
 
-        LOG.info("Downloading beatmapset {}", id);
+        LOG.debug("Downloading beatmapset {} via Sayobot", id);
+        if (!downloadSayobot(id, beatmapsetPath)) {
+            LOG.warn("Switching to Nekoha");
+            if (!downloadNekoha(id, beatmapsetPath)) {
+                LOG.error("Failed to download beatmapset {} via both Sayobot and Nekoha!", id);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean downloadNekoha(String id, Path beatmapsetPath) {
+        try (final HttpClient client = HttpClient.newBuilder().build()) {
+            String initialUrl = "https://mirror.nekoha.moe/api4/download/" + id;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(initialUrl))
+                    .GET()
+                    .build();
+
+            HttpResponse<InputStream> fileResponse = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+            if (fileResponse.statusCode() == 200) {
+                Files.copy(fileResponse.body(), beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
+                LOG.debug("Beatmapset {} cached via Nekoha", beatmapsetPath);
+                return true;
+            } else {
+                LOG.error("Failed to download beatmapset! Nekoha responded with status code: {}", fileResponse.statusCode());
+            }
+        } catch (IOException | InterruptedException e) {
+            LOG.error("Failed to download beatmapset!", e);
+        }
+        return false;
+    }
+
+    private boolean downloadSayobot(String id, Path beatmapsetPath) {
         try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()) {
             String initialUrl = "https://dl.sayobot.cn/beatmaps/download/novideo/" + id;
             HttpRequest request = HttpRequest.newBuilder()
@@ -181,7 +219,7 @@ public class CacheService {
 
                 if (fileResponse.statusCode() == 200) {
                     Files.copy(fileResponse.body(), beatmapsetPath, StandardCopyOption.REPLACE_EXISTING);
-                    LOG.info("Beatmapset {} cached", beatmapsetPath);
+                    LOG.debug("Beatmapset {} cached via Sayobot", beatmapsetPath);
                     return true;
                 } else {
                     LOG.error("Failed to download beatmapset! Sayobot responded with status code: {}", fileResponse.statusCode());
@@ -190,19 +228,18 @@ public class CacheService {
         } catch (IOException | InterruptedException e) {
             LOG.error("Failed to download beatmapset!", e);
         }
-
         return false;
     }
 
-    public Path getReplay(TokenData tokenData, String id) throws IOException {
+    public Path getReplay(TokenData tokenData, String id) throws Exception {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
         if (!Files.exists(beatmapsetPath)) {
-            LOG.info("Caching replay {}", id);
-            Files.write(beatmapsetPath, OsuAPI.getReplayBytes(tokenData, id));
+            LOG.debug("Caching replay {}", id);
+            Files.write(beatmapsetPath, executor.enqueue(() -> OsuAPI.getReplayBytes(tokenData, id)).orElseThrow());
         }
 
-        LOG.info("Replay {} is ready", id);
+        LOG.debug("Replay {} is ready", id);
 
         return beatmapsetPath;
     }
