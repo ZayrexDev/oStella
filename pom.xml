@@ -6,7 +6,7 @@
 
     <groupId>xyz.zcraft</groupId>
     <artifactId>oStella</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
@@ -72,6 +72,13 @@
     </build>
 
     <dependencies>
+        <!-- Source: https://mvnrepository.com/artifact/com.google.guava/guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.6.0-jre</version>
+            <scope>compile</scope>
+        </dependency>
         <!-- Source: https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
         <dependency>
             <groupId>tools.jackson.core</groupId>

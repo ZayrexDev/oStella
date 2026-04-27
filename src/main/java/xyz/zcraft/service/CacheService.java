@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class CacheService {
@@ -97,7 +98,7 @@ public class CacheService {
 
     private void cacheBeatmap(String id) throws Exception {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
-        Files.write(BEATMAP_CACHE.resolve(id), executor.enqueue(() -> OsuAPI.getBeatmapBytes(id)).orElseThrow());
+        Files.write(BEATMAP_CACHE.resolve(id), executor.enqueueAsync(() -> OsuAPI.getBeatmapBytes(id)).join());
     }
 
     @NotNull
@@ -135,14 +136,14 @@ public class CacheService {
 
     private void cacheImage(String fileName, String url) throws Exception {
         Files.deleteIfExists(IMAGE_CACHE.resolve(fileName));
-        Files.write(IMAGE_CACHE.resolve(fileName), OsuAPI.getImageBytes(url));
+        Files.write(IMAGE_CACHE.resolve(fileName), Objects.requireNonNull(OsuAPI.getImageBytes(url)));
     }
 
     public Path getImagePathFromFilename(String filename) {
         return IMAGE_CACHE.resolve(filename);
     }
 
-    public boolean cacheBeatmapset(String id) throws Exception {
+    public boolean cacheBeatmapset(String id) {
         try (Stream<Path> list = Files.list(DANSER_SONG_CACHE)) {
             if (list.map(Path::getFileName)
                     .map(Path::toString)
@@ -151,6 +152,8 @@ public class CacheService {
                 LOG.debug("Beatmapset {} is already cached, skipping", id);
                 return true;
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         Path beatmapsetPath = DANSER_SONG_CACHE.resolve(id + ".osz");
@@ -236,7 +239,7 @@ public class CacheService {
 
         if (!Files.exists(beatmapsetPath)) {
             LOG.debug("Caching replay {}", id);
-            Files.write(beatmapsetPath, executor.enqueue(() -> OsuAPI.getReplayBytes(tokenData, id)).orElseThrow());
+            Files.write(beatmapsetPath, executor.enqueueAsync(() -> OsuAPI.getReplayBytes(tokenData, id)).join());
         }
 
         LOG.debug("Replay {} is ready", id);

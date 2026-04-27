@@ -100,14 +100,14 @@ public class ReplayService implements Closeable {
         gobblerThread.start();
     }
 
-    public String queueRender(Path osrPath, Double start, Double end) {
+    public String queueRender(Path osrPath, double start, double end) {
         final String jobId = UUID.randomUUID().toString();
         jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
         executor.submit(() -> render(osrPath, jobId, start, end));
         return jobId;
     }
 
-    public String queueRenderShowcase(String beatmapId, List<Path> osrPaths, Double start, Double end) {
+    public String queueRenderShowcase(String beatmapId, List<Path> osrPaths, double start, double end) {
         final String jobId = UUID.randomUUID().toString();
         jobProgress.put(jobId, new JobProgress(JobStatus.QUEUED));
         executor.submit(() -> renderShowcase(beatmapId, osrPaths, jobId, start, end));
@@ -118,7 +118,7 @@ public class ReplayService implements Closeable {
         return executor.getQueue().size();
     }
 
-    private void render(Path osrPath, String jobId, Double start, Double end) {
+    private void render(Path osrPath, String jobId, double start, double end) {
         jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING));
         Path tempSettingsFile = null;
         try {
@@ -127,11 +127,11 @@ public class ReplayService implements Closeable {
 
             tempSettingsFile = prepareDanser(c);
 
-            if(start != null) {
+            if(!Double.isNaN(start)) {
                 c.add("-start=" + start);
             }
 
-            if(end != null) {
+            if(!Double.isNaN(end)) {
                 c.add("-end=" + end);
             }
 
@@ -152,7 +152,7 @@ public class ReplayService implements Closeable {
         }
     }
 
-    private void renderShowcase(String beatmapId, List<Path> osrPaths, String jobId, Double start, Double end) {
+    private void renderShowcase(String beatmapId, List<Path> osrPaths, String jobId, double start, double end) {
         jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING));
         Path tempSettingsFile = null;
         try {
@@ -174,11 +174,11 @@ public class ReplayService implements Closeable {
                 replayList = replayList.replace("\"", "\\\"");
             }
 
-            if(start != null) {
+            if(!Double.isNaN(start)) {
                 c.add("-start=" + start);
             }
 
-            if(end != null) {
+            if(!Double.isNaN(end)) {
                 c.add("-end=" + end);
             }
 

@@ -1,54 +1,33 @@
 package xyz.zcraft.service;
 
-import java.util.Optional;
+import com.google.common.util.concurrent.RateLimiter;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public class AsyncService {
     private final ExecutorService executor;
     private final ScheduledExecutorService scheduler;
-    private final long delayMillis;
 
-    public AsyncService(int threads, long delayMillis) {
+    @SuppressWarnings("UnstableApiUsage")
+    private final RateLimiter rateLimiter;
+
+    public AsyncService(int threads, int requestPerSecond) {
         executor = Executors.newFixedThreadPool(Math.max(threads, 1));
         scheduler = Executors.newSingleThreadScheduledExecutor();
-        this.delayMillis = Math.max(delayMillis, 0L);
+        //noinspection UnstableApiUsage
+        this.rateLimiter = RateLimiter.create(requestPerSecond);
     }
 
-    public <T> CompletableFuture<T> runAsync(Supplier<T> supplier) {
-        return CompletableFuture.supplyAsync(supplier, executor);
-    }
-
-    public <T> CompletableFuture<T> runDelayAsync(Supplier<T> supplier) {
-        CompletableFuture<T> future = new CompletableFuture<>();
-
-        scheduler.schedule(() -> executor.execute(() -> {
-            try {
-                future.complete(supplier.get());
-            } catch (Throwable e) {
-                future.completeExceptionally(e);
-            }
-        }), delayMillis, TimeUnit.MILLISECONDS);
-
-        return future;
-    }
-
-    public <T> Optional<T> enqueue(Supplier<T> supplier) {
-        CompletableFuture<T> future = new CompletableFuture<>();
-
-        scheduler.schedule(() -> executor.execute(() -> {
-            try {
-                future.complete(supplier.get());
-            } catch (Throwable e) {
-                future.completeExceptionally(e);
-            }
-        }), delayMillis, TimeUnit.MILLISECONDS);
-
-        return Optional.ofNullable(future.join());
+    public <T> CompletableFuture<T> enqueueAsync(Supplier<T> supplier) {
+        return CompletableFuture.supplyAsync(() -> {
+            //noinspection UnstableApiUsage
+            rateLimiter.acquire();
+            return supplier.get();
+        }, executor);
     }
 
     public void close() {

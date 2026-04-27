@@ -22,6 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -54,7 +55,7 @@ public class OsuAPI {
                     asJsonObject.get("expires_in").getAsLong()
             );
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get token!", e);
+            throw new ApiException(ErrorCode.TOKEN_FETCH_FAILED, "Failed to fetch token", e);
         }
     }
 
@@ -72,7 +73,7 @@ public class OsuAPI {
 
             return GSON.fromJson(body, Score.class);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get user!", e);
+            throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to get score id " + scoreId, e);
         }
     }
 
@@ -93,7 +94,7 @@ public class OsuAPI {
 
             return scores;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get user!", e);
+            throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for user id " + id, e);
         }
     }
 
@@ -111,7 +112,7 @@ public class OsuAPI {
 
             return GSON.fromJson(JsonParser.parseString(body).getAsJsonObject().get("score").getAsJsonObject(), Score.class);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get user!", e);
+            throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for " + u + " on beatmap " + bm, e);
         }
     }
 
@@ -121,11 +122,22 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 
-            return GSON.fromJson(body, UserExtended.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get user!", e);
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for user " + id
+                );
+            }
+
+            return GSON.fromJson(response.body(), UserExtended.class);
+        } catch (IOException | InterruptedException e) {
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get user id " + id, e);
         }
     }
 
@@ -139,14 +151,27 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for user " + Arrays.toString(ids.toArray())
+                );
+            }
+
+            final String body = response.body();
 
             final JsonArray users = JsonParser.parseString(body).getAsJsonObject().get("users").getAsJsonArray();
             final LinkedList<User> userList = new LinkedList<>();
             users.forEach(u -> userList.add(GSON.fromJson(u, User.class)));
             return userList;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get user!", e);
+        } catch (IOException | InterruptedException e) {
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Failed to get users with ids " + ids, e);
         }
     }
 
@@ -156,7 +181,20 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " query " + queryString
+                );
+            }
+
+            final String body = response.body();
 
             final LinkedList<Beatmapset> beatmapsets = new LinkedList<>();
 
@@ -165,7 +203,7 @@ public class OsuAPI {
 
             return beatmapsets;
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.BEATMAPSET_FETCH_FAILED, "Failed to search beatmapsets with query " + queryString, e);
         }
     }
 
@@ -175,7 +213,20 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " getting rooms"
+                );
+            }
+
+            final String body = response.body();
 
             final LinkedList<MultiplayerRoom> rooms = new LinkedList<>();
             JsonParser.parseString(body).getAsJsonArray().forEach(
@@ -183,7 +234,7 @@ public class OsuAPI {
 
             return rooms;
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.ROOM_FETCH_FAILED, "Failed to fetch rooms", e);
         }
     }
 
@@ -193,11 +244,24 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode()
+                );
+            }
+
+            final String body = response.body();
 
             return JsonParser.parseString(body).getAsJsonObject();
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Failed to make bypass request with query " + query, e);
         }
     }
 
@@ -207,13 +271,26 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for beatmapset " + setId
+                );
+            }
+
+            final String body = response.body();
             if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
                 return null;
             }
             return GSON.fromJson(body, Beatmapset.class);
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.BEATMAPSET_FETCH_FAILED, "Failed to get beatmapset id " + setId, e);
         }
     }
 
@@ -223,13 +300,26 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for beatmap " + beatmapId
+                );
+            }
+
+            final String body = response.body();
             if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
                 return null;
             }
             return GSON.fromJson(body, Beatmapset.class);
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.BEATMAPSET_FETCH_FAILED, "Failed to get beatmapset for beatmap id " + beatmapId, e);
         }
     }
 
@@ -239,13 +329,26 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for beatmap " + beatmapId
+                );
+            }
+
+            final String body = response.body();
             if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
                 return null;
             }
             return GSON.fromJson(body, BeatmapExtended.class);
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.BEATMAP_FETCH_FAILED, "Failed to get beatmap id " + beatmapId, e);
         }
     }
 
@@ -256,9 +359,22 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
+            final HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for beatmap " + beatmapId
+                );
+            }
+
+            return response.body();
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.BEATMAP_FETCH_FAILED, "Failed to get beatmap bytes for beatmap id " + beatmapId, e);
         }
     }
 
@@ -277,9 +393,22 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
+            final HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for img " + url
+                );
+            }
+
+            return response.body();
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.IMAGE_FETCH_FAILED, "Failed to get image bytes for url " + url, e);
         }
     }
 
@@ -289,9 +418,22 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray()).body();
+            final HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for replay " + id
+                );
+            }
+
+            return response.body();
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.REPLAY_FETCH_FAILED, "Failed to get replay bytes for score id " + id, e);
         }
     }
 

@@ -1,0 +1,52 @@
+package xyz.zcraft.network;
+
+import lombok.Getter;
+
+@Getter
+public class ApiException extends RuntimeException {
+    private final ErrorCode errorCode;
+    private final Exception wrappedException;
+
+    public ApiException(ErrorCode errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+        this.wrappedException = null;
+    }
+
+    public ApiException(ErrorCode errorCode, String message, Exception wrappedException) {
+        super(message);
+        this.errorCode = errorCode;
+        this.wrappedException = wrappedException;
+    }
+
+    public ApiException(ErrorCode errorCode) {
+        super(getDefaultMessage(errorCode));
+        this.errorCode = errorCode;
+        this.wrappedException = null;
+    }
+
+    public ApiException(ErrorCode errorCode, Exception wrappedException) {
+        super(getDefaultMessage(errorCode));
+        this.errorCode = errorCode;
+        this.wrappedException = wrappedException;
+    }
+
+    private static String getDefaultMessage(ErrorCode errorCode) {
+        return switch (errorCode) {
+            case NO_BEATMAP_FOUND -> "No beatmap found";
+            case NO_BEATMAPSET_FOUND -> "No beatmapset found";
+            case NO_USER_FOUND -> "No user found";
+            case NO_SCORE_FOUND -> "No score found";
+            case NO_ROOM_FOUND -> "No rooms found";
+            case ILLEGAL_ARGUMENT -> "Illegal argument";
+            case BEATMAP_FETCH_FAILED -> "Beatmap fetch failed";
+            case BEATMAPSET_FETCH_FAILED -> "Beatmapset fetch failed";
+            case USER_FETCH_FAILED -> "User fetch failed";
+            case SCORE_FETCH_FAILED -> "Score fetch failed";
+            case REPLAY_UNAVAILABLE -> "Replay unavailable";
+            case RENDER_QUEUE_FULL -> "Render queue full";
+            case ROSU_ERROR -> "Rosu error";
+            default -> "Unknown error";
+        };
+    }
+}

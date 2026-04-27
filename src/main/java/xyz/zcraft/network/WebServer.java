@@ -32,27 +32,27 @@ public class WebServer implements Closeable {
             cfg.routes.before(ctx -> LOG.debug("{} {} {}", ctx.method(), ctx.path(), ctx.queryString()));
 
             cfg.routes
-                    .get("/bo", router::getBestOfN)
-                    .get("/daily", router::getDaily)
-                    .get("/mp", router::getMultiplayerRooms)
-                    .get("/rs", router::getRecentScores)
-                    .get("/m", router::getBeatmap)
-                    .get("/ms", router::getBeatmapset)
-                    .get("/sms", router::searchBeatmapSet)
-                    .get("/s", router::getScore)
-                    .get("/pk", router::getPK)
-                    .get("/lb", router::getLeaderBoard)
-                    .get("/status", router::getServerStatus);
+                    .get("/bo", router::getBestOfNAsync)
+                    .get("/daily", router::getDailyAsync)
+                    .get("/mp", router::getMultiplayerRoomsAsync)
+                    .get("/rs", router::getRecentScoresAsync)
+                    .get("/m", router.beatmapController::getBeatmapAsync)
+                    .get("/ms", router.beatmapsetController::getBeatmapsetAsync)
+                    .get("/sms", router::searchBeatmapSetAsync)
+                    .get("/s", router.scoreController::getScoreAsync)
+                    .get("/pk", router.pkController::getPKAsync)
+                    .get("/lb", router::getLeaderBoardAsync)
+                    .get("/status", router::getServerStatusAsync);
 
-
-            cfg.routes.get("/replay/status", router::getReplayRenderOverview);
             if(conf.replayRender().enabled()) {
-                cfg.routes.get("/replay/render", router::queueReplayRender)
-                        .get("/replay/showcase", router::queueShowcaseRender)
-                        .get("/replay/status/{jobId}", router::getReplayRenderStatus)
-                        .get("/replay/video/{jobId}", router::getReplayRenderResultStream)
-                        .get("/replay/video/{jobId}/replay.mp4", router::getReplayRenderResultFile)
-                        .delete("/replay/video/{jobId}", router::deleteReplayRenderResult);
+                cfg.routes
+                        .get("/replay/status", router.replayController::getReplayRenderOverview)
+                        .get("/replay/render", router.replayController::queueReplayRenderAsync)
+                        .get("/replay/showcase", router.replayController::queueShowcaseRenderAsync)
+                        .get("/replay/status/{jobId}", router.replayController::getReplayRenderStatus)
+                        .get("/replay/video/{jobId}", router.replayController::getReplayRenderResultStream)
+                        .get("/replay/video/{jobId}/replay.mp4", router.replayController::getReplayRenderResultFile)
+                        .delete("/replay/video/{jobId}", router.replayController::deleteReplayRenderResult);
             } else {
                 LOG.info("No danser path found, replay rendering will be disabled.");
             }
@@ -63,6 +63,30 @@ public class WebServer implements Closeable {
             }
 
             cfg.routes
+                    .exception(ApiException.class, (e, ctx) -> {
+                        switch (e.getErrorCode()) {
+                            case ErrorCode.NO_BEATMAP_FOUND,
+                                 ErrorCode.NO_BEATMAPSET_FOUND,
+                                 ErrorCode.NO_SCORE_FOUND,
+                                 ErrorCode.NO_ROOM_FOUND,
+                                 ErrorCode.NO_USER_FOUND
+                                    -> ctx.status(404);
+                            case ErrorCode.ILLEGAL_ARGUMENT,
+                                 ErrorCode.REPLAY_UNAVAILABLE
+                                    -> ctx.status(400);
+                            case ErrorCode.BEATMAP_FETCH_FAILED,
+                                 ErrorCode.BEATMAPSET_FETCH_FAILED,
+                                 ErrorCode.SCORE_FETCH_FAILED,
+                                 ErrorCode.USER_FETCH_FAILED,
+                                 ErrorCode.RENDER_QUEUE_FULL,
+                                 ErrorCode.ROSU_ERROR,
+                                 ErrorCode.IO_ERROR
+                                    -> ctx.status(500);
+                            default -> ctx.status(500);
+                        }
+                        ctx.result(new Response(false, e.getMessage(), e.getErrorCode().toJson()).toString());
+                        LOG.error("API error occurred while processing request: {} - {}", ctx.queryString(), e.getMessage());
+                    })
                     .exception(Exception.class, (e, ctx) -> {
                         ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());
                         LOG.error("An error occurred while processing request: {}", ctx.queryString(), e);
