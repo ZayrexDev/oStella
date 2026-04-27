@@ -2,6 +2,7 @@ package xyz.zcraft.service;
 
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
+import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.thymeleaf.TemplateEngine;
@@ -23,11 +24,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class RenderService implements AutoCloseable{
     private static final Logger LOG = LogManager.getLogger(RenderService.class);
     private final CacheService cacheService;
     private final LinkedList<AutoCloseable>  resources = new LinkedList<>();
+    @Getter
+    private final ExecutorService renderExecutor = Executors.newFixedThreadPool(4);
     private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
         LOG.info("Starting new Playwright instance for Thread: {}", Thread.currentThread().getName());
 

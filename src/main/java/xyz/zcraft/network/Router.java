@@ -1,6 +1,8 @@
 package xyz.zcraft.network;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import desu.life.RosuFFI;
 import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
@@ -10,7 +12,6 @@ import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
-import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.beatmap.SearchResultItem;
 import xyz.zcraft.model.score.Placement;
@@ -30,9 +31,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Stream;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
-import static xyz.zcraft.util.MiscUtil.*;
+import static xyz.zcraft.util.BeatmapUtil.getDiffSpecForMap;
+import static xyz.zcraft.util.RequestUtil.*;
 
 public class Router implements Closeable {
     private static final Logger LOG = LogManager.getLogger(Router.class);
@@ -48,7 +51,7 @@ public class Router implements Closeable {
     public Router(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        this.executor = new AsyncService(conf.ostella().maxThreads(), conf.ostella().requestDelayMs());
+        this.executor = new AsyncService(conf.ostella().maxThreads(), conf.ostella().requestPerSecond());
         this.cacheService = new CacheService(executor);
         this.renderer = new RenderService(cacheService);
         if (conf.replayRender().enabled()) {
@@ -60,226 +63,211 @@ public class Router implements Closeable {
         this.helper = new Helper(this);
     }
 
-    protected void getScore(@NotNull Context context) throws Exception {
+    protected void getScoreAsync(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            helper.getScoreOfRef(context);
+            helper.getScoreOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
-            helper.getScoreOfBeatmap(context);
+            helper.getScoreOfBeatmapAsync(context);
         } else if (context.queryParam("ms") != null) {
-            helper.getScoreOfBeatmapset(context);
+            helper.getScoreOfBeatmapsetAsync(context);
         } else {
-            helper.getScoreOfId(context);
+            helper.getScoreOfIdAsync(context);
         }
     }
 
-    protected void searchBeatmapSet(@NotNull Context context) {
-        final String query = context.queryParam("q");
+    protected void searchBeatmapSetAsync(@NotNull Context context) {
+        final String query = requireString(context, "q");
 
-        if (query == null) {
-            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-            return;
-        }
-
-        executor.enqueue(() -> OsuAPI.searchBeatmapset(tokenManager.getTokenData(), query)).ifPresentOrElse(
-                result -> {
-                    final List<SearchResultItem> list = result.stream().map(SearchResultItem::fromBeatmapset).toList();
-                    context.status(200).result(new Response(true, "Query successful", GSON.toJsonTree(list)).toString());
-                },
-                () -> context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAP_FOUND).toString())
-        );
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.searchBeatmapset(tokenManager.getTokenData(), query))
+                .thenApply(result -> {
+                    if (result == null || result.isEmpty()) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+                    return result.stream().map(SearchResultItem::fromBeatmapset).toList();
+                })
+                .thenAccept(
+                        result -> context.status(200).result(
+                                new Response(true, "Query successful", GSON.toJsonTree(result)).toString()
+                        )
+                ));
     }
 
-    protected void getLeaderBoard(@NotNull Context context) {
-        final String us = context.queryParam("u");
+    protected void getLeaderBoardAsync(@NotNull Context context) {
+        final String us = requireString(context, "u");
+        final List<String> ids = Arrays.stream(us.split(",")).distinct().toList();
 
-        if (us == null) {
-            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-            return;
-        }
-
-        final String[] u = us.split(",");
-        final List<String> ids = Arrays.stream(u).distinct().toList();
-        final LinkedList<User> users = new LinkedList<>();
+        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
 
         for (int i = 0; i < ids.size(); i += 50) {
             final List<String> subList = ids.subList(i, Math.min(i + 50, ids.size()));
-            executor.enqueue(() -> OsuAPI.getUsers(tokenManager.getTokenData(), subList)).ifPresent(users::addAll);
+
+            futures.add(executor.enqueueAsync(() ->
+                    OsuAPI.getUsers(tokenManager.getTokenData(), subList)
+            ));
         }
 
-        users.sort(Comparator.comparingDouble((User user) ->
-                Optional.ofNullable(user)
-                        .map(User::getStatisticsRulesets)
-                        .map(StatisticsRuleset::getOsu)
-                        .map(Statistics::getPp)
-                        .orElse(0.0)
-        ).reversed());
+        CompletableFuture<?>[] futuresArray = futures.toArray(new CompletableFuture[0]);
+        context.future(() ->
+                CompletableFuture.allOf(futuresArray)
+                        .thenApply(_ ->
+                                futures.stream()
+                                        .map(CompletableFuture::join)
+                                        .filter(Objects::nonNull)
+                                        .flatMap(List::stream)
+                                        .collect(Collectors.toCollection(LinkedList::new)))
+                        .thenApplyAsync(users -> {
+                            users.sort(Comparator.comparingDouble((User user) ->
+                                    Optional.ofNullable(user)
+                                            .map(User::getStatisticsRulesets)
+                                            .map(StatisticsRuleset::getOsu)
+                                            .map(Statistics::getPp)
+                                            .orElse(0.0)
+                            ).reversed());
+                            return renderer.renderLeaderboard(users);
 
-        final byte[] imgByte = renderer.renderLeaderboard(users);
-
-        context.status(200).result(imgByte);
+                        }, renderer.getRenderExecutor())
+                        .thenAccept(imgByte -> context.status(200).result(imgByte))
+        );
     }
 
-    protected void getPK(@NotNull Context context) throws Exception {
+    protected void getPKAsync(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            helper.getPKOfRef(context);
+            helper.getPKOfRefAsync(context);
         } else {
-            helper.getPKOfIds(context);
+            helper.getPKOfIdsAsync(context);
         }
     }
 
-    protected void getBeatmap(@NotNull Context context) throws Exception {
+    protected void getBeatmapAsync(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            helper.getBeatmapOfRef(context);
+            helper.getBeatmapOfRefAsync(context);
         } else if (context.queryParam("ms") != null) {
-            helper.getBeatmapOfSet(context);
+            helper.getBeatmapOfSetAsync(context);
         } else {
-            helper.getBeatmapOfId(context);
+            helper.getBeatmapOfIdAsync(context);
         }
     }
 
-    protected void getBeatmapset(@NotNull Context context) {
+    protected void getBeatmapsetAsync(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            helper.getBeatmapsetOfRef(context);
+            helper.getBeatmapsetOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
-            helper.getBeatmapsetOfMap(context);
+            helper.getBeatmapsetOfMapAsync(context);
         } else {
-            helper.getBeatmapsetOfId(context);
+            helper.getBeatmapsetOfIdAsync(context);
         }
     }
 
     protected void bypassRequest(@NotNull Context context) {
-        executor.enqueue(() -> OsuAPI.byPassRequest(tokenManager.getTokenData(), context.queryString()))
-                .ifPresent(r -> context.status(200).result(new Response(true, "Success", r).toString()));
+        executor.enqueueAsync(() -> OsuAPI.byPassRequest(tokenManager.getTokenData(), context.queryString()))
+                .thenAccept(r -> context.status(200).result(new Response(true, "Bypass successful", r).toString()));
     }
 
-    protected void getServerStatus(@NotNull Context context) {
-        context.status(200).result(new Response(true, "Server is running!", GSON.toJsonTree(Map.of(
-                "ostella", true,
-                "osu-api", executor.enqueue(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData())).orElse(false)
-        ))).toString());
+    protected void getServerStatusAsync(@NotNull Context context) {
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData()))
+                .thenAccept(r -> context.status(200)
+                        .result(new Response(
+                                true,
+                                "Server is running!",
+                                GSON.toJsonTree(Map.of(
+                                        "ostella", true,
+                                        "osu-api", r
+                                ))).toString())));
+
     }
 
-    protected void getRecentScores(@NotNull Context context) throws Exception {
-        final String u = context.queryParam("u");
-        final String n = context.queryParam("n");
+    protected void getRecentScoresAsync(@NotNull Context context) {
+        final String u = requireNumberString(context, "u");
+        final String n = requireNumberString(context, "n");
 
-        if (u == null || n == null || !isInteger(n)) {
-            context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-            return;
-        }
-
-        final List<Score> scores = executor.runAsync(() -> OsuAPI.getUserScores(
-                tokenManager.getTokenData(),
-                u,
-                ScoreType.RECENT,
-                Integer.parseInt(n),
-                false
-        )).get();
-
-        final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), u));
-
-        if (user.isEmpty()) {
-            context.status(400).result(Response.error("No user found", ErrorCode.NO_USER_FOUND).toString());
-            return;
-        }
-
-        final byte[] bytes = renderer.renderScores(user.get(), scores, ScoreType.RECENT);
-
-        context.status(200).result(bytes);
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
+                        tokenManager.getTokenData(), u, ScoreType.RECENT, Integer.parseInt(n), false)
+                )
+                .thenCompose(scores -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
+                        .thenApplyAsync(user -> {
+                            if (user == null) {
+                                throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found");
+                            }
+                            return renderer.renderScores(user, scores, ScoreType.RECENT);
+                        }, renderer.getRenderExecutor()))
+                .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    protected void getMultiplayerRooms(@NotNull Context context) {
-        final var roomsOptional = executor.enqueue(() -> OsuAPI.getRooms(tokenManager.getTokenData()));
-        if (roomsOptional.isEmpty()) {
-            context.status(400).result(Response.error("No rooms found", ErrorCode.NO_ROOM_FOUND).toString());
-            return;
-        }
-        final var rooms = roomsOptional.get();
+    protected void getMultiplayerRoomsAsync(@NotNull Context context) {
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
+                .thenApply(rooms -> {
+                    if (rooms == null || rooms.isEmpty()) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "No rooms found");
+                    }
 
-        rooms.sort(Comparator.comparingInt(MultiplayerRoom::getParticipantCount));
+                    rooms.sort(Comparator.comparingInt(MultiplayerRoom::getParticipantCount));
 
-        List<MultiplayerRoom> topRooms = rooms.size() > 20 ? rooms.reversed().subList(0, 20) : rooms;
-        JsonArray arr = new JsonArray();
-        for (MultiplayerRoom room : topRooms) {
-            arr.add(room.getName() + " << " + room.getParticipantCount());
-        }
-
-        context.status(200).result(new Response(true, "Success", arr).toString());
+                    List<MultiplayerRoom> topRooms = rooms.size() > 20 ? rooms.reversed().subList(0, 20) : rooms;
+                    JsonArray arr = new JsonArray();
+                    for (MultiplayerRoom room : topRooms) {
+                        arr.add(room.getName() + " << " + room.getParticipantCount());
+                    }
+                    return arr;
+                })
+                .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString())));
     }
 
-    protected void getDaily(@NotNull Context context) {
-        final var roomResult = executor.enqueue(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
-                .map(List::stream)
-                .map(s -> s.filter(room -> Objects.equals(room.getCategory(), "daily_challenge")))
-                .flatMap(Stream::findFirst);
-        if (roomResult.isEmpty()) {
-            context.status(404).result(new Response(false, "Daily challenge room not found!", null).toString());
-            return;
-        }
+    protected void getDailyAsync(@NotNull Context context) {
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
+                .thenApply(rooms -> {
+                    if (rooms == null || rooms.isEmpty()) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "No rooms found");
+                    }
+                    return rooms.stream().filter(room -> Objects.equals(room.getCategory(), "daily_challenge")).findFirst()
+                            .orElseThrow(() -> new ApiException(ErrorCode.NO_ROOM_FOUND, "Daily challenge room not found!"));
+                })
+                .thenApply(room -> {
+                    final BeatmapExtended beatmap = room.getCurrentPlaylistItem().getBeatmap();
 
-        final MultiplayerRoom room = roomResult.get();
-        final BeatmapExtended beatmap = room.getCurrentPlaylistItem().getBeatmap();
+                    JsonObject data = new JsonObject();
+                    data.addProperty("name", room.getName());
+                    data.addProperty("participant_count", room.getParticipantCount());
+                    data.addProperty("title", beatmap.getBeatmapset().getTitle());
+                    data.addProperty("difficulty_rating", beatmap.getDifficultyRating());
+                    data.addProperty("version", beatmap.getVersion());
 
-        JsonObject data = new JsonObject();
-        data.addProperty("name", room.getName());
-        data.addProperty("participant_count", room.getParticipantCount());
-        data.addProperty("title", beatmap.getBeatmapset().getTitle());
-        data.addProperty("difficulty_rating", beatmap.getDifficultyRating());
-        data.addProperty("version", beatmap.getVersion());
+                    StringBuilder modStr = new StringBuilder();
+                    for (Mod mod : room.getCurrentPlaylistItem().getRequiredMods()) {
+                        modStr.append(mod.getAcronym()).append(" ");
+                    }
 
-        StringBuilder modStr = new StringBuilder();
-        for (Mod mod : room.getCurrentPlaylistItem().getRequiredMods()) {
-            modStr.append(mod.getAcronym()).append(" ");
-        }
-
-        data.addProperty("required_mods", modStr.toString().trim());
-
-        context.status(200).result(new Response(true, "Success", data).toString());
+                    data.addProperty("required_mods", modStr.toString().trim());
+                    return data;
+                })
+                .thenAccept(data -> context.status(200).result(new Response(true, "Success", data).toString())));
     }
 
-    protected void getBestOfN(@NotNull Context context) {
-        final String u = context.queryParam("u");
-        final String n = context.queryParam("n");
+    protected void getBestOfNAsync(@NotNull Context context) {
+        final String u = requireNumberString(context, "u");
+        final String n = requireNumberString(context, "n");
 
-        if (u == null || n == null || !isInteger(n)) {
-            context.status(400)
-                    .result(new Response(false, "Invalid query parameter!", null).toString());
-            return;
-        }
-
-        final var scores = executor.enqueue(() -> OsuAPI.getUserScores(
-                tokenManager.getTokenData(),
-                u,
-                ScoreType.BEST,
-                Integer.parseInt(n),
-                false
-        ));
-
-        if (scores.isEmpty()) {
-            context.status(400).result(Response.error("No user found", ErrorCode.NO_USER_FOUND).toString());
-            return;
-        }
-
-        final var user = executor.enqueue(() -> OsuAPI.getUser(tokenManager.getTokenData(), u));
-
-        if (user.isEmpty()) {
-            context.status(400).result(Response.error("No user found", ErrorCode.NO_USER_FOUND).toString());
-            return;
-        }
-
-        final byte[] bytes = renderer.renderScores(user.get(), scores.get(), ScoreType.BEST);
-        context.status(200).result(bytes);
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
+                        tokenManager.getTokenData(), u, ScoreType.BEST, Integer.parseInt(n), false
+                ))
+                .thenCompose(scores -> {
+                    if (scores == null || scores.isEmpty()) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
+                    return executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
+                            .thenApplyAsync(user -> {
+                                if (user == null) throw new ApiException(ErrorCode.NO_USER_FOUND);
+                                return renderer.renderScores(user, scores, ScoreType.BEST);
+                            }, renderer.getRenderExecutor());
+                })
+                .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    protected void queueReplayRender(@NotNull Context context) throws Exception {
+    protected void queueReplayRenderAsync(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            helper.queueReplayRenderOfRef(context);
+            helper.queueReplayRenderOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
-            helper.queueReplayRenderOfBeatmap(context);
+            helper.queueReplayRenderOfBeatmapAsync(context);
         } else if (context.queryParam("ms") != null) {
-            helper.queueReplayRenderOfBeatmapset(context);
+            helper.queueReplayRenderOfBeatmapsetAsync(context);
         } else {
-            helper.queueReplayRenderOfId(context);
+            helper.queueReplayRenderOfIdAsync(context);
         }
     }
 
@@ -364,6 +352,10 @@ public class Router implements Closeable {
         context.status(200).result("Job cleaned up successfully");
     }
 
+    protected String getRosuPath(Long id) {
+        return cacheService.getRosuBeatmapPath(String.valueOf(id), true);
+    }
+
     @Override
     public void close() {
         executor.close();
@@ -371,13 +363,13 @@ public class Router implements Closeable {
         replayService.close();
     }
 
-    public void queueShowcaseRender(@NotNull Context context) throws Exception {
+    public void queueShowcaseRenderAsync(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            helper.renderShowcaseOfUsersRef(context);
+            helper.renderShowcaseOfUsersRefAsync(context);
         } else if (context.queryParam("u") != null) {
-            helper.renderShowcaseOfUsers(context);
+            helper.renderShowcaseOfUsersAsync(context);
         } else {
-            helper.renderShowcaseOfIds(context);
+            helper.renderShowcaseOfIdsAsync(context);
         }
     }
 
@@ -389,317 +381,191 @@ public class Router implements Closeable {
     }
 
     private record Helper(Router router) {
-        private void queueReplayRenderOfBeatmapset(@NotNull Context context) throws Exception {
-            final var score = getScoreFromBeatmapset(context);
-            if (score == null) return;
-
-            final String startStr = context.queryParam("start");
-            final String endStr = context.queryParam("end");
-
-            Double start = null;
-            Double end = null;
-
-            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
-                start = Double.parseDouble(startStr);
-            }
-
-            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
-                end = Double.parseDouble(endStr);
-            }
-
-            renderScoreFor(context, score, start, end);
-        }
-
-        private void queueReplayRenderOfBeatmap(@NotNull Context context) throws Exception {
-            final String m = context.queryParam("m");
-            final String u = context.queryParam("u");
-
-            if (m == null || u == null || notNumber(m, u)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            final Optional<Score> enqueue = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, m));
-
-            if (enqueue.isEmpty()) {
-                context.status(400).result(Response.error("No score found!", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
-
-            final Score score = enqueue.get();
-
-            final String startStr = context.queryParam("start");
-            final String endStr = context.queryParam("end");
-
-            Double start = null;
-            Double end = null;
-
-            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
-                start = Double.parseDouble(startStr);
-            }
-
-            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
-                end = Double.parseDouble(endStr);
-            }
-
-            renderScoreFor(context, score, start, end);
-        }
-
-        private void queueReplayRenderOfRef(@NotNull Context context) throws Exception {
-            final Score score = getScoreFromRef(context);
-            if (score == null) return;
-
-            final String startStr = context.queryParam("start");
-            final String endStr = context.queryParam("end");
-
-            Double start = null;
-            Double end = null;
-
-            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
-                start = Double.parseDouble(startStr);
-            }
-
-            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
-                end = Double.parseDouble(endStr);
-            }
-
-            renderScoreFor(context, score, start, end);
-        }
-
-        private void queueReplayRenderOfId(@NotNull Context context) throws Exception {
-            final String s = context.queryParam("s");
-
-            if (s == null) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            final Optional<Score> enqueue = router.executor.enqueue(() -> OsuAPI.getScore(router.tokenManager.getTokenData(), s));
-
-            if (enqueue.isEmpty()) {
-                context.status(400).result(Response.error("No score found!", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
-
-            final Score score = enqueue.get();
-
-            final String startStr = context.queryParam("start");
-            final String endStr = context.queryParam("end");
-
-            Double start = null;
-            Double end = null;
-
-            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
-                start = Double.parseDouble(startStr);
-            }
-
-            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
-                end = Double.parseDouble(endStr);
-            }
-
-            renderScoreFor(context, score, start, end);
-        }
-
-        private void getBeatmapsetOfRef(@NotNull Context context) {
-            final Score scoreFromRef = getScoreFromRef(context);
-            if (scoreFromRef == null) return;
-
-            final var beatmapsetId = scoreFromRef.getBeatmapset().getId();
-            router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(beatmapsetId)))
-                    .ifPresentOrElse(beatmapset -> {
-                        try {
-                            final byte[] bytes = router.renderer.renderBeatmapset(beatmapset);
-                            context.status(200).result(bytes);
-                        } catch (Exception e) {
-                            context.status(500).result(Response.error("An error occurred while processing the request!", ErrorCode.BEATMAPSET_FETCH_FAILED).toString());
-                            LOG.error("An error occurred while processing request: {}", context.queryString(), e);
-                        }
-                    }, () -> context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString()));
-        }
-
-        private void getBeatmapsetOfMap(@NotNull Context context) {
-            final String m = context.queryParam("m");
-
-            if (m == null) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            final var beatmapsetOptional = router.executor.enqueue(() -> OsuAPI.getBeatmapsetFromBeatmap(router.tokenManager.getTokenData(), m));
-
-            if (beatmapsetOptional.isEmpty()) {
-                context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString());
-                return;
-            }
-
-            final Beatmapset beatmapset = beatmapsetOptional.get();
-            final byte[] bytes = router.renderer.renderBeatmapset(beatmapset);
-
-            context.status(200).result(bytes);
-        }
-
-        private void getBeatmapsetOfId(@NotNull Context context) {
-            final String ms = context.queryParam("ms");
-
-            if (ms == null || !isInteger(ms)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            final var beatmapsetOptional = router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), ms));
-
-            if (beatmapsetOptional.isEmpty()) {
-                context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString());
-                return;
-            }
-
-            final Beatmapset beatmapset = beatmapsetOptional.get();
-            final byte[] bytes = router.renderer.renderBeatmapset(beatmapset);
-
-            context.status(200).result(bytes);
-        }
-
-        private void getBeatmapOfSet(@NotNull Context context) throws Exception {
-            final String ms = context.queryParam("ms");
-            final String iStr = context.queryParam("i");
-            final String mod = context.queryParam("mod");
-
-            if (iStr == null) {
-                context.status(400).result(Response.error("Invalid query parameter! Missing i", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            if (!isInteger(ms, iStr)) {
-                context.status(400).result(Response.error(
-                        "Invalid query parameter! 'ms' and 'i' should be a number!", ErrorCode.ILLEGAL_ARGUMENT).toString()
-                );
-                return;
-            }
-
-            final int i = Integer.parseInt(iStr);
-
-            final Optional<Beatmapset> enqueue = router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), ms));
-
-            if (enqueue.isEmpty() || enqueue.get().getBeatmaps().size() < i) {
-                context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
-                return;
-            }
-
-            final List<BeatmapExtended> beatmaps = enqueue.get().getBeatmaps();
-
-            beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
-
-            final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
-            beatmapExtended.setBeatmapset(enqueue.get());
-
-            DiffSpec spec = getDiffSpecForMap(beatmapExtended, mod);
-            final byte[] bytes = router.renderer.renderBeatmap(beatmapExtended, spec);
-            context.status(200).result(bytes);
-        }
-
-        private void getBeatmapOfId(@NotNull Context context) throws RosuFFI.FFIException {
-            final String m = context.queryParam("m");
-            final String mod = context.queryParam("mod");
-
-            if (m == null || !isInteger(m)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            final var beatmapsetOptional = router.executor.enqueue(() -> OsuAPI.getBeatmapsetFromBeatmap(router.tokenManager.getTokenData(), m));
-
-            if (beatmapsetOptional.isEmpty()) {
-                context.status(400).result(Response.error("No beatmapset found", ErrorCode.NO_BEATMAPSET_FOUND).toString());
-                return;
-            }
-
-            final Beatmapset beatmapset = beatmapsetOptional.get();
-
-            final Optional<BeatmapExtended> optional = beatmapset.getBeatmaps().stream()
-                    .filter(b -> Objects.equals(String.valueOf(b.getId()), m))
-                    .findFirst();
-
-            if (optional.isEmpty()) {
-                context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
-                return;
-            }
-
-            final BeatmapExtended beatmap = optional.get();
-
-            beatmap.setBeatmapset(beatmapset);
-
-            final DiffSpec diffSpec = getDiffSpecForMap(beatmap, mod);
-
-            final byte[] bytes = router.renderer.renderBeatmap(
-                    beatmap,
-                    diffSpec
+        private void queueReplayRenderOfBeatmapsetAsync(@NotNull Context context) {
+            context.future(() ->
+                    getScoreFromBeatmapsetAsync(context)
+                            .thenCompose(score -> {
+                                if (score == null) {
+                                    throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this user in the specified beatmapset!");
+                                }
+
+                                final double start = optionalDouble(context, "start");
+                                final double end = optionalDouble(context, "end");
+
+                                return renderScoreForAsync(context, score, start, end);
+                            })
             );
-
-            context.status(200).result(bytes);
         }
 
-        private void getBeatmapOfRef(@NotNull Context context) {
-            final String of = Objects.requireNonNull(context.queryParam("of"));
-            final String iStr = Objects.requireNonNull(context.queryParam("i"));
-            final String u = context.queryParam("u");
+        private void queueReplayRenderOfBeatmapAsync(@NotNull Context context) {
+            final String m = requireNumberString(context, "m");
+            final String u = requireNumberString(context, "u");
 
-            if (u == null) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
+            context.future(() ->
+                    router.executor.enqueueAsync(() ->
+                            OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, m)
+                    ).thenCompose(score -> {
+                        if (score == null) {
+                            throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this user on this map!");
+                        }
 
-            if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
-                context.status(400).result(Response.error(
-                        "Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString()
-                );
-                return;
-            }
+                        final double start = optionalDouble(context, "start");
+                        final double end = optionalDouble(context, "end");
 
-            final int num = Integer.parseInt(iStr);
-
-            final Optional<List<Score>> scoresOptional = router.executor.enqueue(() -> OsuAPI.getUserScores(router.tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
-
-            if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
-                context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
-
-            final List<Score> scores = scoresOptional.get();
-            final var beatmapId = scores.getLast().getBeatmap().getId();
-            final var beatmapsetId = scores.getLast().getBeatmapset().getId();
-            final Optional<Beatmapset> enqueue = router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(beatmapsetId)));
-
-            if (enqueue.isEmpty()) {
-                context.status(400).result(Response.error("No beatmapset found!", ErrorCode.NO_BEATMAPSET_FOUND).toString());
-                return;
-            }
-
-            final Beatmapset beatmapset = enqueue.get();
-
-            final Optional<BeatmapExtended> beatmapOptional = beatmapset.getBeatmaps().stream()
-                    .filter(b -> Objects.equals(b.getId(), beatmapId))
-                    .findFirst();
-
-            if (beatmapOptional.isEmpty()) {
-                context.status(400).result(Response.error("No beatmap found!", ErrorCode.NO_BEATMAP_FOUND).toString());
-                return;
-            }
-
-            final BeatmapExtended beatmapExtended = beatmapOptional.get();
-
-            beatmapExtended.setBeatmapset(beatmapset);
-
-            try {
-                final DiffSpec diffSpec = getDiffSpecForMap(beatmapExtended, scores.getLast().getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
-                final byte[] bytes = router.renderer.renderBeatmap(beatmapExtended, diffSpec);
-                context.status(200).result(bytes);
-            } catch (Exception e) {
-                context.status(500).result(Response.error("An error occurred while processing the request!", ErrorCode.BEATMAP_FETCH_FAILED).toString());
-                LOG.error("An error occurred while processing request: {}", context.queryString(), e);
-            }
+                        return renderScoreForAsync(context, score, start, end);
+                    })
+            );
         }
 
-        private void renderPKFinal(@NotNull Context context, LinkedList<Placement> placements, BeatmapExtended beatmap, String rosuBeatmapPath) throws RosuFFI.FFIException {
+        private void queueReplayRenderOfRefAsync(@NotNull Context context) {
+            context.future(() ->
+                    getScoreFromRefAsync(context)
+                            .thenCompose(score -> {
+                                if (score == null) {
+                                    throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for reference!");
+                                }
+
+                                final double start = optionalDouble(context, "start");
+                                final double end = optionalDouble(context, "end");
+
+                                return renderScoreForAsync(context, score, start, end);
+                            })
+            );
+        }
+
+        private void queueReplayRenderOfIdAsync(@NotNull Context context) {
+            final String s = requireString(context, "s");
+
+            context.future(() ->
+                    router.executor.enqueueAsync(() ->
+                            OsuAPI.getScore(router.tokenManager.getTokenData(), s)
+                    ).thenCompose(score -> {
+                        if (score == null) {
+                            throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this ID!");
+                        }
+
+                        final double start = optionalDouble(context, "start");
+                        final double end = optionalDouble(context, "end");
+
+                        return renderScoreForAsync(context, score, start, end);
+                    })
+            );
+        }
+
+        private void getBeatmapsetOfRefAsync(@NotNull Context context) {
+            context.future(() -> getScoreFromRefAsync(context)
+                    .thenCompose(score -> {
+                        if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
+
+                        return router.executor.enqueueAsync(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(score.getBeatmapset().getId())));
+                    })
+                    .thenApplyAsync(beatmapset -> {
+                        if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+                        return router.renderer.renderBeatmapset(beatmapset);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
+        }
+
+        private void getBeatmapsetOfMapAsync(@NotNull Context context) {
+            final String m = requireNumberString(context, "m");
+
+            context.future(() -> router.executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(router.tokenManager.getTokenData(), m))
+                    .thenApplyAsync(ms -> {
+                        if (ms == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+                        return router.renderer.renderBeatmapset(ms);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
+        }
+
+        private void getBeatmapsetOfIdAsync(@NotNull Context context) {
+            final String ms = requireNumberString(context, "ms");
+
+            context.future(() -> router.executor.enqueueAsync(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), ms))
+                    .thenApplyAsync(beatmapset -> {
+                        if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+                        return router.renderer.renderBeatmapset(beatmapset);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
+        }
+
+        private void getBeatmapOfSetAsync(@NotNull Context context) {
+            final String ms = requireNumberString(context, "ms");
+            final int i = requireInt(context, "i");
+            final String mod = optionalString(context, "mod");
+
+            context.future(() -> router.executor
+                    .enqueueAsync(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), ms))
+                    .thenApply(beatmapset -> {
+                        if (beatmapset == null)
+                            throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND, "No beatmapset found");
+                        final List<BeatmapExtended> beatmaps = beatmapset.getBeatmaps();
+                        beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
+                        final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
+                        beatmapExtended.setBeatmapset(beatmapset);
+                        return beatmapExtended;
+                    })
+                    .thenApplyAsync(beatmapExtended -> {
+                        DiffSpec spec = getDiffSpecForMap(beatmapExtended, router.getRosuPath(beatmapExtended.getId()), mod);
+                        return router.renderer.renderBeatmap(beatmapExtended, spec);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
+        }
+
+        private void getBeatmapOfIdAsync(@NotNull Context context) {
+            final String m = requireNumberString(context, "m");
+            final String mod = optionalString(context, "mod");
+
+            context.future(() -> router.executor
+                    .enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(router.tokenManager.getTokenData(), m))
+                    .thenApply(beatmapset -> {
+                        if (beatmapset == null)
+                            throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND, "No beatmapset found");
+                        final BeatmapExtended beatmapExtended = beatmapset.getBeatmaps()
+                                .stream()
+                                .filter(b -> Objects.equals(String.valueOf(b.getId()), m))
+                                .findFirst()
+                                .orElseThrow(() -> new ApiException(ErrorCode.NO_BEATMAP_FOUND, "No beatmap found"));
+                        beatmapExtended.setBeatmapset(beatmapset);
+                        return beatmapExtended;
+                    })
+                    .thenApplyAsync(beatmap -> {
+                        DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), mod);
+                        return router.renderer.renderBeatmap(beatmap, diffSpec);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
+        }
+
+        private void getBeatmapOfRefAsync(@NotNull Context context) {
+            final String of = requireStringFrom(context, "of", "rs", "bo");
+            final int i = requireInt(context, "i");
+            final String u = requireNumberString(context, "u");
+
+            context.future(() -> router.executor.enqueueAsync(() -> OsuAPI.getUserScores(router.tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false))
+                    .thenCompose(scores -> {
+                        if (scores == null || scores.isEmpty())
+                            throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found");
+                        final var beatmapId = scores.getLast().getBeatmap().getId();
+                        final var beatmapsetId = scores.getLast().getBeatmapset().getId();
+                        return router.executor
+                                .enqueueAsync(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(beatmapsetId)))
+                                .thenApply(beatmapset -> {
+                                    if (beatmapset == null)
+                                        throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND, "No beatmapset found");
+                                    final BeatmapExtended beatmapExtended = beatmapset.getBeatmaps()
+                                            .stream().filter(b -> Objects.equals(b.getId(), beatmapId))
+                                            .findFirst().orElseThrow(() -> new ApiException(ErrorCode.NO_BEATMAP_FOUND, "No beatmap found"));
+                                    beatmapExtended.setBeatmapset(beatmapset);
+                                    return beatmapExtended;
+                                })
+                                .thenApplyAsync(beatmap -> {
+                                    final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), scores.getLast().getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+                                    return router.renderer.renderBeatmap(beatmap, diffSpec);
+                                }, router.renderer.getRenderExecutor());
+                    })
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
+        }
+
+        private byte[] getPKFinalBytes(LinkedList<Placement> placements, BeatmapExtended beatmap, String rosuBeatmapPath) {
             try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
                  final RosuFFI.Performance perfSS = new RosuFFI.Performance()
             ) {
@@ -707,301 +573,255 @@ public class Router implements Closeable {
                 perfSS.setMisses(0);
                 perfSS.setCombo(beatmap.getMaxCombo());
 
-                final byte[] imgByte = router.renderer.renderPK(beatmap, placements, perfSS.calculate(rosuBeatmap).osu.t.pp);
-
-                context.status(200).result(imgByte);
+                return router.renderer.renderPK(beatmap, placements, perfSS.calculate(rosuBeatmap).osu.t.pp);
+            } catch (RosuFFI.FFIException e) {
+                throw new ApiException(ErrorCode.ROSU_ERROR, "Failed to calculate difficulty with RosuFFI: " + e.getMessage());
             }
         }
 
-        private void getPKOfRef(@NotNull Context context) throws Exception {
-            final String of = context.queryParam("of");
-            final String iStr = context.queryParam("i");
-            final String uSource = context.queryParam("us");
-            final String us = context.queryParam("u");
+        private void getPKOfRefAsync(@NotNull Context context) {
+            final String of = requireStringFrom(context, "of", "rs", "bo");
+            final int i = requireInt(context, "i");
+            final String uSource = requireString(context, "us");
+            final String[] u = Arrays.stream(requireString(context, "u").split(",")).distinct().toArray(String[]::new);
 
-            if (uSource == null || us == null || of == null || iStr == null) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
+            context.future(() -> router.executor.enqueueAsync(() -> OsuAPI.getUserScores(router.tokenManager.getTokenData(), uSource, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false))
+                    .thenCompose(scores -> {
+                        if (scores == null || scores.size() < i) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
 
-            if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
+                        final Long id = scores.get(i - 1).getBeatmap().getId();
+                        return getPlacementsAsync(u, String.valueOf(id));
+                    })
+                    .thenApply(placements -> {
+                        placements.sort((a, b) -> Double.compare(b.score.pp, a.score.pp));
+                        return placements;
+                    })
+                    .thenCompose(placements -> router.executor.enqueueAsync(() -> OsuAPI.getBeatmap(router.tokenManager.getTokenData(), String.valueOf(placements.getFirst().score.getBeatmap().getId())))
+                            .thenApplyAsync(beatmap -> {
+                                if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
+                                final String rosuBeatmapPath = router.cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
 
-            final int num = Integer.parseInt(iStr);
+                                return getPKFinalBytes(placements, beatmap, rosuBeatmapPath);
+                            }, router.renderer.getRenderExecutor()))
+                    .thenAccept(imgByte -> context.status(200).result(imgByte)));
+        }
 
-            final Optional<List<Score>> scoresOptional = router.executor.enqueue(() -> OsuAPI.getUserScores(router.tokenManager.getTokenData(), uSource, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
+        private CompletableFuture<LinkedList<Placement>> getPlacementsAsync(String[] u, String id) {
+            List<CompletableFuture<Placement>> placementFutures = Arrays.stream(u).map(s ->
+                    router.executor
+                            .enqueueAsync(() ->
+                                    OsuAPI.getUserScore(router.tokenManager.getTokenData(), s, id)
+                            )
+                            .thenCompose(score -> {
+                                if (score == null || score.getPp() == null) {
+                                    return CompletableFuture.completedFuture(null);
+                                }
+                                return router.executor
+                                        .enqueueAsync(() ->
+                                                OsuAPI.getUser(router.tokenManager.getTokenData(), s)
+                                        )
+                                        .thenApply(user -> {
+                                            if (user == null) return null;
 
-            if (scoresOptional.isEmpty() || scoresOptional.get().size() < num) {
-                context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
+                                            final Placement placement = new Placement();
+                                            placement.setScore(score);
+                                            placement.setUser(user);
+                                            return placement;
+                                        });
+                            })).toList();
 
-            final Score scoreSource = scoresOptional.get().get(num - 1);
+            CompletableFuture<?>[] futuresArray = placementFutures.toArray(new CompletableFuture[0]);
 
-            final Long id = scoreSource.getBeatmap().getId();
+            return CompletableFuture.allOf(futuresArray)
+                    .thenApply(_ ->
+                            placementFutures
+                                    .stream()
+                                    .map(CompletableFuture::join)
+                                    .filter(Objects::nonNull)
+                                    .collect(Collectors.toCollection(LinkedList::new)));
+        }
 
+        private void getPKOfIdsAsync(@NotNull Context context) {
+            final String m = requireNumberString(context, "m");
+            final String us = requireString(context, "u");
             final String[] u = Arrays.stream(us.split(",")).distinct().toArray(String[]::new);
 
-            final LinkedList<Placement> placements = getPlacements(u, String.valueOf(id));
+            context.future(() -> getPlacementsAsync(u, m)
+                    .thenApply(p -> {
+                        p.sort((a, b) -> Double.compare(b.score.pp, a.score.pp));
+                        return p;
+                    })
+                    .thenCompose(placements ->
+                            router.executor.enqueueAsync(() -> OsuAPI.getBeatmap(router.tokenManager.getTokenData(), m))
+                                    .thenApplyAsync(beatmap -> {
+                                        if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
+                                        final String rosuBeatmapPath = router.cacheService.getRosuBeatmapPath(m, false);
 
-            placements.sort((a, b) -> (int) (b.score.pp - a.score.pp));
-
-            final var beatmap = router.executor.enqueue(() -> OsuAPI.getBeatmap(router.tokenManager.getTokenData(), String.valueOf(id)));
-
-            if (beatmap.isEmpty()) {
-                context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
-                return;
-            }
-
-            final String rosuBeatmapPath = router.cacheService.getRosuBeatmapPath(String.valueOf(id), false);
-
-            renderPKFinal(context, placements, beatmap.get(), rosuBeatmapPath);
+                                        return getPKFinalBytes(placements, beatmap, rosuBeatmapPath);
+                                    }, router.renderer.getRenderExecutor()))
+                    .thenAccept(imgByte -> context.status(200).result(imgByte)));
         }
 
-        private LinkedList<Placement> getPlacements(String[] u, String id) {
-            final LinkedList<Placement> placements = new LinkedList<>();
-
-            for (String s : u) {
-                final var userScore = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), s, id));
-                if (userScore.isEmpty() || userScore.get().getPp() == null) continue;
-
-                final var user = router.executor.enqueue(() -> OsuAPI.getUser(router.tokenManager.getTokenData(), s));
-                if (user.isEmpty()) continue;
-
-                final Placement placement = new Placement();
-                placement.setScore(userScore.get());
-                placement.setUser(user.get());
-
-                placements.add(placement);
-            }
-            return placements;
-        }
-
-        private void getPKOfIds(@NotNull Context context) throws RosuFFI.FFIException {
-            final String m = context.queryParam("m");
-            final String us = context.queryParam("u");
-
-            if (m == null || us == null || !isInteger(m)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            final String[] u = Arrays.stream(us.split(",")).distinct().toArray(String[]::new);
-
-            final LinkedList<Placement> placements = getPlacements(u, m);
-
-            placements.sort((a, b) -> (int) (b.score.pp - a.score.pp));
-
-            final var beatmap = router.executor.enqueue(() -> OsuAPI.getBeatmap(router.tokenManager.getTokenData(), m));
-
-            if (beatmap.isEmpty()) {
-                context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
-                return;
-            }
-
-            final String rosuBeatmapPath = router.cacheService.getRosuBeatmapPath(m, false);
-
-            renderPKFinal(context, placements, beatmap.get(), rosuBeatmapPath);
-        }
-
-        private void renderShowcaseOfIds(@NotNull Context context) throws Exception {
+        private void renderShowcaseOfIdsAsync(@NotNull Context context) {
             if (router.replayService == null) return;
 
-            final String ss = context.queryParam("s");
+            final String ss = requireString(context, "s");
+            final List<String> scoreIds = Arrays.stream(ss.split(",")).distinct().toList();
 
-            if (ss == null) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
+            context.future(() -> {
+                List<CompletableFuture<Score>> scoreFutures = scoreIds.stream()
+                        .map(id -> router.executor.enqueueAsync(() ->
+                                OsuAPI.getScore(router.tokenManager.getTokenData(), id)) //
+                        ).toList();
 
-            final var scoreIds = Arrays.stream(ss.split(",")).distinct().toList();
+                return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
+                        .thenApply(_ -> scoreFutures.stream()
+                                .map(CompletableFuture::join) // Safe because allOf is finished
+                                .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
+                                .collect(Collectors.toCollection(LinkedList::new))
+                        )
+                        .thenCompose(validScores -> {
+                            final double start = optionalDouble(context, "start");
+                            final double end = optionalDouble(context, "end");
 
-            final LinkedList<Score> scores = new LinkedList<>();
-            for (String scoreId : scoreIds) {
-                final var userScore = router.executor.enqueue(() -> OsuAPI.getScore(router.tokenManager.getTokenData(), scoreId));
-                if (userScore.isEmpty() || userScore.get().getPp() == null || !userScore.get().getHasReplay()) continue;
-                scores.add(userScore.get());
-            }
-
-            final String startStr = context.queryParam("start");
-            final String endStr = context.queryParam("end");
-
-            Double start = null;
-            Double end = null;
-
-            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
-                start = Double.parseDouble(startStr);
-            }
-
-            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
-                end = Double.parseDouble(endStr);
-            }
-
-            renderShowcaseFor(context, scores, start, end);
+                            return renderShowcaseForAsync(context, validScores, start, end);
+                        });
+            });
         }
 
-        private void renderShowcaseOfUsers(@NotNull Context context) throws Exception {
+        private void renderShowcaseOfUsersAsync(@NotNull Context context) {
             if (router.replayService == null) return;
 
-            final String us = context.queryParam("u");
-            final String m = context.queryParam("m");
+            final String us = requireString(context, "u");
+            final String m = requireString(context, "m");
 
-            if (us == null || m == null) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
+            context.future(() -> {
+                final List<String> userIds = Arrays.stream(us.split(",")).distinct().toList();
+                LOG.info("Getting {} scores for showcase on map {}", userIds.size(), m);
 
-            final var userIds = Arrays.stream(us.split(",")).distinct().toList();
+                List<CompletableFuture<Score>> scoreFutures = userIds.stream()
+                        .map(userId -> router.executor.enqueueAsync(() ->
+                                OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, m))
+                        ).toList();
 
-            LOG.info("Getting {} scores for showcase", userIds.size());
-            final LinkedList<Score> scores = new LinkedList<>();
-            for (String userId : userIds) {
-                final var userScore = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, m));
-                if (userScore.isEmpty() || userScore.get().getPp() == null || !userScore.get().getHasReplay()) continue;
-                scores.add(userScore.get());
-            }
+                return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
+                        .thenApply(_ -> scoreFutures.stream()
+                                .map(CompletableFuture::join)
+                                .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
+                                .collect(Collectors.toCollection(LinkedList::new))
+                        )
+                        .thenCompose(validScores -> {
+                            final double start = optionalDouble(context, "start");
+                            final double end = optionalDouble(context, "end");
 
-            final String startStr = context.queryParam("start");
-            final String endStr = context.queryParam("end");
-
-            Double start = null;
-            Double end = null;
-
-            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
-                start = Double.parseDouble(startStr);
-            }
-
-            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
-                end = Double.parseDouble(endStr);
-            }
-
-            renderShowcaseFor(context, scores, start, end);
+                            return renderShowcaseForAsync(context, validScores, start, end);
+                        });
+            });
         }
 
-        private void renderShowcaseOfUsersRef(@NotNull Context context) throws Exception {
-            if (router.replayService == null) return;
+        private void renderShowcaseOfUsersRefAsync(@NotNull Context context) {
+            final String us = requireString(context, "u");
+            final String of = requireStringFrom(context, "of", "rs", "bo");
+            final String uSource = requireString(context, "us");
+            final int i = requireInt(context, "i");
 
-            final String us = context.queryParam("u");
-            final String of = context.queryParam("of");
-            final String uSource = context.queryParam("us");
-            final String iStr = context.queryParam("i");
+            context.future(() ->
+                    router.executor.enqueueAsync(() ->
+                            OsuAPI.getUserScores(router.tokenManager.getTokenData(), uSource,
+                                    of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false)
+                    ).thenCompose(scores -> {
+                        if (scores == null || scores.size() < i) {
+                            throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for user!");
+                        }
 
-            if (us == null || of == null || uSource == null || iStr == null || notNumber(iStr)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
+                        final Score scoreSource = scores.get(i - 1);
+                        final String beatmapId = String.valueOf(scoreSource.getBeatmap().getId());
+                        final List<String> userIds = Arrays.stream(us.split(",")).distinct().toList();
 
-            final int i = Integer.parseInt(iStr);
+                        List<CompletableFuture<Score>> scoreFutures = userIds.stream()
+                                .map(userId -> router.executor.enqueueAsync(() ->
+                                        OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, beatmapId))
+                                ).toList();
 
-            final Optional<List<Score>> scoresOptional = router.executor.enqueue(() ->
-                    OsuAPI.getUserScores(router.tokenManager.getTokenData(), uSource, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false));
+                        return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
+                                .thenApply(_ -> scoreFutures.stream()
+                                        .map(CompletableFuture::join)
+                                        .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
+                                        .collect(Collectors.toCollection(LinkedList::new))
+                                );
+                    }).thenCompose(validScores -> {
+                        final double start = optionalDouble(context, "start");
+                        final double end = optionalDouble(context, "end");
 
-            if (scoresOptional.isEmpty() || scoresOptional.get().size() < i) {
-                context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
-
-            final Score scoreSource = scoresOptional.get().get(i - 1);
-
-            final var userIds = Arrays.stream(us.split(",")).distinct().toList();
-
-            final LinkedList<Score> scores = new LinkedList<>();
-            for (String userId : userIds) {
-                final var userScore = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), userId, String.valueOf(scoreSource.getBeatmap().getId())));
-                if (userScore.isEmpty() || userScore.get().getPp() == null || !userScore.get().getHasReplay()) continue;
-                scores.add(userScore.get());
-            }
-
-            final String startStr = context.queryParam("start");
-            final String endStr = context.queryParam("end");
-
-            Double start = null;
-            Double end = null;
-
-            if (startStr != null && !startStr.isBlank() && isDouble(startStr)) {
-                start = Double.parseDouble(startStr);
-            }
-
-            if (endStr != null && !endStr.isBlank() && isDouble(endStr)) {
-                end = Double.parseDouble(endStr);
-            }
-
-            renderShowcaseFor(context, scores, start, end);
-        }
-
-        private void renderShowcaseFor(@NotNull Context context, LinkedList<Score> scores, Double start, Double end) throws Exception {
-            if (router.replayService == null) return;
-
-            if (scores.isEmpty()) {
-                context.status(400).result(Response.error("No valid scores found!", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
-
-            final long beatmapId = scores.getFirst().getBeatmap().getId();
-            final long beatmapsetId = scores.getFirst().getBeatmap().getBeatmapsetId();
-
-            if (!router.cacheService.cacheBeatmapset(String.valueOf(beatmapsetId))) {
-                context.status(500).result(Response.error("Failed to cache beatmapset!", ErrorCode.BEATMAPSET_FETCH_FAILED).toString());
-                return;
-            }
-
-            final Optional<BeatmapExtended> beatmapOpt = router.executor.enqueue(
-                    () -> OsuAPI.getBeatmap(router.tokenManager.getTokenData(), String.valueOf(beatmapId)));
-
-            if(beatmapOpt.isEmpty()) {
-                context.status(500).result(Response.error("Failed to get beatmap!", ErrorCode.BEATMAP_FETCH_FAILED).toString());
-                return;
-            }
-
-            final BeatmapExtended beatmap = beatmapOpt.get();
-
-            final LinkedList<Path> replays = new LinkedList<>();
-
-            for (Score score : scores) {
-                try {
-                    replays.add(router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId())));
-                } catch (Exception e) {
-                    LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
-                }
-            }
-
-            final int queueSize = router.replayService.getQueueSize() + 1;
-
-            if (queueSize > router.conf.replayRender().renderQueueSize()) {
-                context.status(400).result(
-                        Response.error("Replay rendering queue is full! Please try again later."
-                                , ErrorCode.RENDER_QUEUE_FULL).toString()
-                );
-                return;
-            }
-
-            final String jobId = router.replayService.queueRenderShowcase(String.valueOf(beatmapId), replays, start, end);
-
-            final JsonArray scoresArr = getScoresArr(scores);
-
-            context.status(202).result(
-                    new Response(
-                            true,
-                            "Replay render queued!",
-                            router.GSON.toJsonTree(Map.of(
-                                    "status", "queued",
-                                    "position", queueSize,
-                                    "id", jobId,
-                                    "beatmap", Map.of(
-                                            "title", beatmap.getBeatmapset().getTitle(),
-                                            "artist", beatmap.getBeatmapset().getArtist(),
-                                            "version", beatmap.getVersion(),
-                                            "star", String.format("%.2f★", beatmap.getDifficultyRating())
-                                    ),
-                                    "scores", scoresArr
-                            ))
-                    ).toString()
+                        return renderShowcaseForAsync(context, validScores, start, end);
+                    })
             );
         }
 
-        @NotNull
+        private CompletableFuture<Void> renderShowcaseForAsync(@NotNull Context context, LinkedList<Score> scores, Double start, Double end) {
+            if (router.replayService == null) return CompletableFuture.completedFuture(null);
+
+            if (scores.isEmpty()) {
+                throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No valid scores found!");
+            }
+
+            final long beatmapId = scores.getFirst().getBeatmap().getId();
+            final long beatmapsetId = scores.getFirst().getBeatmapset().getId();
+
+            CompletableFuture<Boolean> cacheFuture = router.executor.enqueueAsync(() ->
+                    router.cacheService.cacheBeatmapset(String.valueOf(beatmapsetId)));
+
+            CompletableFuture<BeatmapExtended> beatmapFuture = router.executor.enqueueAsync(() ->
+                    OsuAPI.getBeatmap(router.tokenManager.getTokenData(), String.valueOf(beatmapId)));
+
+            return CompletableFuture.allOf(cacheFuture, beatmapFuture).thenCompose(_ -> {
+                if (!cacheFuture.join())
+                    throw new ApiException(ErrorCode.BEATMAPSET_FETCH_FAILED, "Failed to cache beatmapset!");
+                BeatmapExtended beatmap = beatmapFuture.join();
+                if (beatmap == null) throw new ApiException(ErrorCode.BEATMAP_FETCH_FAILED, "Failed to get beatmap!");
+
+                List<CompletableFuture<Path>> replayFutures = scores.stream()
+                        .map(score -> router.executor.enqueueAsync(() -> {
+                            try {
+                                return router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
+                            } catch (Exception e) {
+                                LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
+                                return null;
+                            }
+                        }))
+                        .toList();
+
+                return CompletableFuture.allOf(replayFutures.toArray(new CompletableFuture[0]))
+                        .thenAccept(_ -> {
+                            LinkedList<Path> replays = replayFutures.stream()
+                                    .map(CompletableFuture::join)
+                                    .filter(Objects::nonNull)
+                                    .collect(Collectors.toCollection(LinkedList::new));
+
+                            final int queueSize = router.replayService.getQueueSize() + 1;
+                            if (queueSize > router.conf.replayRender().renderQueueSize()) {
+                                throw new ApiException(ErrorCode.RENDER_QUEUE_FULL, "Render queue full!");
+                            }
+
+                            final String jobId = router.replayService.queueRenderShowcase(String.valueOf(beatmapId), replays, start, end);
+
+                            context.status(202).result(new Response(true, "Replay render queued!",
+                                    router.GSON.toJsonTree(Map.of(
+                                            "status", "queued",
+                                            "position", queueSize,
+                                            "id", jobId,
+                                            "beatmap", Map.of(
+                                                    "title", beatmap.getBeatmapset().getTitle(),
+                                                    "artist", beatmap.getBeatmapset().getArtist(),
+                                                    "version", beatmap.getVersion(),
+                                                    "star", String.format("%.2f★", beatmap.getDifficultyRating())
+                                            ),
+                                            "scores", getScoresArr(scores)
+                                    ))).toString());
+                        });
+            });
+        }
+
         private JsonArray getScoresArr(List<Score> scores) {
             JsonArray scoresArr = new JsonArray();
             for (Score score : scores) {
@@ -1015,330 +835,161 @@ public class Router implements Closeable {
             return scoresArr;
         }
 
-        private DiffSpec getDiffSpecForMap(BeatmapExtended beatmap, String mod) throws RosuFFI.FFIException {
-            final String rosuBeatmapPath = router.cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
+        private void getScoreOfIdAsync(@NotNull Context context) {
+            final String s = requireNumberString(context, "s");
+            context.future(() -> router.executor.enqueueAsync(() -> OsuAPI.getScore(router.tokenManager.getTokenData(), s))
+                    .thenApplyAsync(score -> {
+                        if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
+                        final BeatmapExtended beatmap = score.getBeatmap();
 
-            try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
-                 final RosuFFI.Performance perf = new RosuFFI.Performance()
-            ) {
-                final DiffSpec diffSpec = new DiffSpec();
+                        final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
 
-                final RosuFFI.Mods mods = RosuFFI.Mods.fromAcronyms(mod == null ? "" : mod, RosuFFI.Mode.Osu);
-
-                mods.removeUnknownMods();
-                mods.sanitize();
-
-                perf.setMods(mods);
-
-                perf.setAccuracy(98.0);
-                perf.setMisses(0);
-
-                var calc = perf.calculate(rosuBeatmap);
-                diffSpec.setPpFC(calc.osu.t.pp);
-
-                perf.setAccuracy(95.0);
-
-                calc = perf.calculate(rosuBeatmap);
-                diffSpec.setPp95(calc.osu.t.pp);
-
-
-                perf.setAccuracy(100.0);
-                perf.setMisses(0);
-
-                calc = perf.calculate(rosuBeatmap);
-                diffSpec.setPpSS(calc.osu.t.pp);
-
-                final RosuFFI.RosuPPLib.ScoreState scoreState = perf.generateState(rosuBeatmap);
-
-                final var attr = calc.osu.t.difficulty;
-                diffSpec.setAim(attr.aim);
-                diffSpec.setSpeed(attr.speed);
-
-                diffSpec.setBpm(beatmap.getBpm());
-                diffSpec.setLength(beatmap.getHitLength());
-                diffSpec.setTotalLength(beatmap.getTotalLength());
-                diffSpec.setStar(calc.osu.t.difficulty.stars);
-
-                if (mod != null && !mod.isEmpty()) {
-                    diffSpec.setModStr(mod);
-                    diffSpec.setModded(true);
-                }
-
-                diffSpec.setAr(calc.osu.t.difficulty.ar);
-                diffSpec.setHp(calc.osu.t.difficulty.hp);
-                diffSpec.setCs(beatmap.cs);
-                diffSpec.setOd(beatmap.accuracy);
-
-                // Calculate BPM CS Length
-
-                if (mods.contains("HR")) {
-                    diffSpec.setCs(Math.min(diffSpec.getCs() * 1.3, 10));
-                } else if (mods.contains("EZ")) {
-                    diffSpec.setCs(Math.min(diffSpec.getCs() * 0.5, 10));
-                }
-
-                if (mods.contains("DT") || mods.contains("NC")) {
-                    diffSpec.setBpm(diffSpec.getBpm() * 1.5);
-                    diffSpec.setLength(diffSpec.getLength() / 1.5);
-                    diffSpec.setTotalLength(diffSpec.getTotalLength() / 1.5);
-                } else if (mods.contains("HT") || mods.contains("DC")) {
-                    diffSpec.setBpm(diffSpec.getBpm() * 0.75);
-                    diffSpec.setLength(diffSpec.getLength() / 0.75);
-                    diffSpec.setTotalLength(diffSpec.getTotalLength() / 0.75);
-                }
-
-                // Calculate OD
-
-                boolean changingOd = false;
-                double od = beatmap.getAccuracy();
-                if (mods.contains("HR")) {
-                    changingOd = true;
-                    od = Math.min(od * 1.4, 10);
-                } else if (mods.contains("EZ")) {
-                    changingOd = true;
-                    od = od * 0.5;
-                }
-
-                double window = 80.0 - (6.0 * od);
-
-                if (mods.contains("DT") || mods.contains("NC")) {
-                    changingOd = true;
-                    window = window / 1.5;
-                } else if (mods.contains("HT") || mods.contains("DC")) {
-                    changingOd = true;
-                    window = window / 0.75;
-                }
-
-                od = (80.0 - window) / 6;
-
-                if (changingOd) {
-                    diffSpec.setOd(od);
-                }
-
-                final LinkedList<Mod> modList = new LinkedList<>();
-
-                for (JsonElement jsonElement : JsonParser.parseString(mods.toJson().toString()).getAsJsonArray().asList()) {
-                    modList.add(router.GSON.fromJson(jsonElement, Mod.class));
-                }
-
-                diffSpec.setMods(modList);
-                diffSpec.setMaxCombo(scoreState.max_combo);
-
-                return diffSpec;
-            }
+                        return router.renderer.renderScore(score, diffSpec);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
         }
 
-        private void getScoreOfId(@NotNull Context context) throws Exception {
-            final String s = context.queryParam("s");
+        private void getScoreOfBeatmapAsync(@NotNull Context context) {
+            final String m = requireNumberString(context, "m");
+            final String u = requireNumberString(context, "u");
 
-            if (s == null || notNumber(s)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
+            context.future(() -> router.executor.enqueueAsync(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, m))
+                    .thenCompose(score ->
+                            router.executor
+                                    .enqueueAsync(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(score.getBeatmap().getBeatmapsetId())))
+                                    .thenApply(beatmapset -> {
+                                        score.getBeatmap().setBeatmapset(beatmapset);
+                                        score.setBeatmapset(beatmapset);
+                                        return score;
+                                    })
+                    )
+                    .thenApplyAsync(score -> {
+                        final DiffSpec diffSpec = getDiffSpecForMap(
+                                score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
+                                score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat)
+                        );
 
-            final var scoreOptional = router.executor.enqueue(() -> OsuAPI.getScore(router.tokenManager.getTokenData(), s));
-
-            if (scoreOptional.isEmpty()) {
-                context.status(400).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
-
-            final Score score = scoreOptional.get();
-
-            final BeatmapExtended beatmap = score.getBeatmap();
-
-            final DiffSpec diffSpec = getDiffSpecForMap(beatmap, score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
-
-            final byte[] bytes = router.renderer.renderScore(score, diffSpec);
-
-            context.status(200).result(bytes);
+                        return router.renderer.renderScore(score, diffSpec);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
         }
 
-        private void getScoreOfBeatmap(@NotNull Context context) throws Exception {
-            final String m = context.queryParam("m");
-            final String u = context.queryParam("u");
-
-            if (m == null || notNumber(m) || u == null || notNumber(u)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return;
-            }
-
-            final var scoreOptional = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, m));
-
-            if (scoreOptional.isEmpty()) {
-                context.status(404).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
-                return;
-            }
-
-            final Score score = scoreOptional.get();
-
-            final BeatmapExtended beatmap = score.getBeatmap();
-            final var beatmapsetOpt = router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), String.valueOf(beatmap.getBeatmapsetId())));
-
-            if(beatmapsetOpt.isEmpty()) {
-                context.status(404).result(Response.error("No beatmapset found.", ErrorCode.NO_BEATMAPSET_FOUND).toString());
-                return;
-            }
-
-            final Beatmapset beatmapset = beatmapsetOpt.get();
-
-            beatmap.setBeatmapset(beatmapset);
-            score.setBeatmapset(beatmapset);
-
-            final DiffSpec diffSpec = getDiffSpecForMap(beatmap, score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
-
-            final byte[] bytes = router.renderer.renderScore(score, diffSpec);
-
-            context.status(200).result(bytes);
+        private void getScoreOfRefAsync(@NotNull Context context) {
+            context.future(() -> getScoreFromRefAsync(context)
+                    .thenApply(Score::getId)
+                    .thenCompose(scoreId -> router.executor.enqueueAsync(() -> OsuAPI.getScore(router.tokenManager.getTokenData(), String.valueOf(scoreId))))
+                    .thenApplyAsync(score -> {
+                        final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+                        return router.renderer.renderScore(score, diffSpec);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
         }
 
-        private void getScoreOfRef(@NotNull Context context) {
-            final Score scoreFromRef = getScoreFromRef(context);
-            if (scoreFromRef == null) {
-                return;
-            }
+        private void getScoreOfBeatmapsetAsync(@NotNull Context context) {
+            context.future(() -> getScoreFromBeatmapsetAsync(context)
+                    .thenApplyAsync(score -> {
+                        final DiffSpec diffSpec = getDiffSpecForMap(
+                                score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
+                                score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat)
+                        );
+                        return router.renderer.renderScore(score, diffSpec);
+                    }, router.renderer.getRenderExecutor())
+                    .thenAccept(bytes -> context.status(200).result(bytes)));
+        }
 
-            final var scoreId = scoreFromRef.getId();
-            router.executor.enqueue(() -> OsuAPI.getScore(router.tokenManager.getTokenData(), String.valueOf(scoreId)))
-                    .ifPresentOrElse(score -> {
-                        try {
-                            final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
-                            final byte[] bytes = router.renderer.renderScore(score, diffSpec);
-                            context.status(200).result(bytes);
-                        } catch (Exception e) {
-                            context.status(500).result(Response.error("An error occurred while processing the request!", ErrorCode.SCORE_FETCH_FAILED).toString());
-                            LOG.error("An error occurred while processing request: {}", context.queryString(), e);
+        private CompletableFuture<Score> getScoreFromBeatmapsetAsync(@NotNull Context context) {
+            final String ms = requireNumberString(context, "ms");
+            final int i = requireInt(context, "i");
+            final String u = requireNumberString(context, "u");
+
+            return router.executor.enqueueAsync(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), ms))
+                    .thenCompose(beatmapset -> {
+                        if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+
+                        final List<BeatmapExtended> beatmaps = beatmapset.getBeatmaps();
+
+                        if (beatmaps.size() < i) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
+
+                        beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
+                        final BeatmapExtended beatmap = beatmaps.get(i - 1);
+                        beatmap.setBeatmapset(beatmapset);
+                        return router.executor
+                                .enqueueAsync(() ->
+                                        OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, String.valueOf(beatmap.getId()))
+                                )
+                                .thenApply(score -> {
+                                    score.setBeatmap(beatmap);
+                                    score.setBeatmapset(beatmapset);
+                                    return score;
+                                });
+                    });
+
+        }
+
+        private CompletableFuture<Score> getScoreFromRefAsync(@NotNull Context context) {
+            final String of = requireStringFrom(context, "of", "rs", "bo");
+            final String u = requireString(context, "u");
+            final int i = requireInt(context, "i");
+
+            return router.executor
+                    .enqueueAsync(() -> OsuAPI.getUserScores(router.tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false))
+                    .thenApply(scores -> {
+                        if (scores.isEmpty() || scores.size() < i) {
+                            throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for user!");
                         }
-                    }, () -> context.status(400).result(Response.error("No scores found!", ErrorCode.NO_SCORE_FOUND).toString()));
+
+                        return scores.get(i - 1);
+                    });
         }
 
-        private void getScoreOfBeatmapset(@NotNull Context context) throws Exception {
-            final var score = getScoreFromBeatmapset(context);
-            if (score == null) return;
+        private CompletableFuture<Void> renderScoreForAsync(@NotNull Context context, Score score, Double start, Double end) {
+            if (router.replayService == null) return CompletableFuture.completedFuture(null);
 
-            final BeatmapExtended beatmap = score.getBeatmap();
-
-            final DiffSpec diffSpec = getDiffSpecForMap(beatmap, score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
-
-            final byte[] bytes = router.renderer.renderScore(score, diffSpec);
-
-            context.status(200).result(bytes);
-        }
-
-        private Score getScoreFromBeatmapset(@NotNull Context context) {
-            final String ms = context.queryParam("ms");
-            final String iStr = context.queryParam("i");
-            final String u = context.queryParam("u");
-
-            if (ms == null || u == null || iStr == null || notNumber(ms, iStr, u)) {
-                context.status(400).result(Response.error("Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return null;
-            }
-            final int i = Integer.parseInt(iStr);
-
-            final Optional<Beatmapset> enqueue = router.executor.enqueue(() -> OsuAPI.getBeatmapset(router.tokenManager.getTokenData(), ms));
-
-            if (enqueue.isEmpty() || enqueue.get().getBeatmaps().size() < i) {
-                context.status(400).result(Response.error("No beatmap found", ErrorCode.NO_BEATMAP_FOUND).toString());
-                return null;
-            }
-
-            final Beatmapset beatmapset = enqueue.get();
-            final List<BeatmapExtended> beatmaps = beatmapset.getBeatmaps();
-
-            beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
-
-            final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
-            beatmapExtended.setBeatmapset(beatmapset);
-
-            final var scoreOptional = router.executor.enqueue(() -> OsuAPI.getUserScore(router.tokenManager.getTokenData(), u, String.valueOf(beatmapExtended.getId())));
-
-            if (scoreOptional.isEmpty()) {
-                context.status(400).result(Response.error("No score found.", ErrorCode.NO_SCORE_FOUND).toString());
-                return null;
-            }
-
-            final Score score = scoreOptional.get();
-
-            score.setBeatmap(beatmapExtended);
-            score.setBeatmapset(beatmapset);
-
-            return score;
-        }
-
-        private Score getScoreFromRef(@NotNull Context context) {
-            final String of = context.queryParam("of");
-            final String u = context.queryParam("u");
-            final String iStr = context.queryParam("i");
-
-            if (u == null || iStr == null || of == null) {
-                context.status(400).result(Response.error("Invalid query parameter! Missing u", ErrorCode.ILLEGAL_ARGUMENT).toString());
-                return null;
-            }
-
-            if (!((of.startsWith("rs") || of.startsWith("bo")) && isInteger(iStr))) {
-                context.status(400).result(Response.error(
-                        "Invalid query parameter!", ErrorCode.ILLEGAL_ARGUMENT).toString()
-                );
-                return null;
-            }
-
-            final int num = Integer.parseInt(iStr);
-
-            final Optional<List<Score>> rs = router.executor.enqueue(() -> OsuAPI.getUserScores(router.tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, num, false));
-
-            if (rs.isEmpty() || rs.get().size() < num) {
-                context.status(400).result(Response.error("No scores found for user!", ErrorCode.NO_SCORE_FOUND).toString());
-                return null;
-            }
-
-            return rs.get().get(num - 1);
-        }
-
-        private void renderScoreFor(@NotNull Context context, Score score, Double start, Double end) throws Exception {
-            if (router.replayService == null) return;
             if (!score.getHasReplay()) {
-                context.status(400).result(Response.error("Replay unavailable!", ErrorCode.REPLAY_UNAVAILABLE).toString());
-                return;
+                throw new ApiException(ErrorCode.REPLAY_UNAVAILABLE, "Replay unavailable!");
             }
 
-            if (!router.cacheService.cacheBeatmapset(String.valueOf(score.getBeatmapset().getId()))) {
-                context.status(500).result(Response.error("Failed to cache beatmapset!", ErrorCode.BEATMAPSET_FETCH_FAILED).toString());
-                return;
-            }
+            return router.executor.enqueueAsync(() -> {
+                if (!router.cacheService.cacheBeatmapset(String.valueOf(score.getBeatmapset().getId()))) {
+                    throw new ApiException(ErrorCode.BEATMAPSET_FETCH_FAILED, "Failed to cache beatmapset!");
+                }
+                return null;
+            }).thenCompose(_ ->
+                    router.executor.enqueueAsync(() -> {
+                        try {
+                            return router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
+                        } catch (Exception e) {
+                            throw new ApiException(ErrorCode.REPLAY_FETCH_FAILED, "Failed to cache replay for score id: " + score.getId(), e);
+                        }
+                    })
+            ).thenAccept(replayPath -> {
+                final int queueSize = router.replayService.getQueueSize() + 1;
 
-            final Path replay = router.cacheService.getReplay(router.tokenManager.getTokenData(), String.valueOf(score.getId()));
+                if (queueSize > router.conf.replayRender().renderQueueSize()) {
+                    throw new ApiException(ErrorCode.RENDER_QUEUE_FULL, "Replay rendering queue is full!");
+                }
 
-            final int queueSize = router.replayService.getQueueSize() + 1;
+                final String jobId = router.replayService.queueRender(replayPath, start, end);
 
-            if (queueSize > router.conf.replayRender().renderQueueSize()) {
-                context.status(400).result(
-                        Response.error("Replay rendering queue is full! Please try again later."
-                                , ErrorCode.RENDER_QUEUE_FULL).toString()
+                context.status(202).result(
+                        new Response(
+                                true,
+                                "Replay render queued!",
+                                router.GSON.toJsonTree(Map.of(
+                                        "status", "queued",
+                                        "position", queueSize,
+                                        "id", jobId,
+                                        "beatmap", Map.of(
+                                                "title", score.getBeatmapset().getTitle(),
+                                                "artist", score.getBeatmapset().getArtist(),
+                                                "version", score.getBeatmap().getVersion(),
+                                                "star", String.format("%.2f★", score.getBeatmap().getDifficultyRating())
+                                        ),
+                                        "scores", getScoresArr(List.of(score))
+                                ))
+                        ).toString()
                 );
-                return;
-            }
-
-            final String jobId = router.replayService.queueRender(replay, start, end);
-
-            context.status(202).result(
-                    new Response(
-                            true,
-                            "Replay render queued!",
-                            router.GSON.toJsonTree(Map.of(
-                                    "status", "queued",
-                                    "position", queueSize,
-                                    "id", jobId,
-                                    "beatmap", Map.of(
-                                            "title", score.getBeatmapset().getTitle(),
-                                            "artist", score.getBeatmapset().getArtist(),
-                                            "version", score.getBeatmap().getVersion(),
-                                            "star", String.format("%.2f★", score.getBeatmap().getDifficultyRating())
-                                    ),
-                                    "scores", getScoresArr(List.of(score))
-                            ))
-                    ).toString()
-            );
+            });
         }
     }
 }

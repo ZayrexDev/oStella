@@ -32,23 +32,23 @@ public class WebServer implements Closeable {
             cfg.routes.before(ctx -> LOG.debug("{} {} {}", ctx.method(), ctx.path(), ctx.queryString()));
 
             cfg.routes
-                    .get("/bo", router::getBestOfN)
-                    .get("/daily", router::getDaily)
-                    .get("/mp", router::getMultiplayerRooms)
-                    .get("/rs", router::getRecentScores)
-                    .get("/m", router::getBeatmap)
-                    .get("/ms", router::getBeatmapset)
-                    .get("/sms", router::searchBeatmapSet)
-                    .get("/s", router::getScore)
-                    .get("/pk", router::getPK)
-                    .get("/lb", router::getLeaderBoard)
-                    .get("/status", router::getServerStatus);
+                    .get("/bo", router::getBestOfNAsync)
+                    .get("/daily", router::getDailyAsync)
+                    .get("/mp", router::getMultiplayerRoomsAsync)
+                    .get("/rs", router::getRecentScoresAsync)
+                    .get("/m", router::getBeatmapAsync)
+                    .get("/ms", router::getBeatmapsetAsync)
+                    .get("/sms", router::searchBeatmapSetAsync)
+                    .get("/s", router::getScoreAsync)
+                    .get("/pk", router::getPKAsync)
+                    .get("/lb", router::getLeaderBoardAsync)
+                    .get("/status", router::getServerStatusAsync);
 
 
             cfg.routes.get("/replay/status", router::getReplayRenderOverview);
             if(conf.replayRender().enabled()) {
-                cfg.routes.get("/replay/render", router::queueReplayRender)
-                        .get("/replay/showcase", router::queueShowcaseRender)
+                cfg.routes.get("/replay/render", router::queueReplayRenderAsync)
+                        .get("/replay/showcase", router::queueShowcaseRenderAsync)
                         .get("/replay/status/{jobId}", router::getReplayRenderStatus)
                         .get("/replay/video/{jobId}", router::getReplayRenderResultStream)
                         .get("/replay/video/{jobId}/replay.mp4", router::getReplayRenderResultFile)
