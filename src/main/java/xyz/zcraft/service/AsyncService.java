@@ -14,7 +14,7 @@ public class AsyncService {
     private final RateLimiter rateLimiter;
 
     public AsyncService(int requestPerSecond) {
-        executor = Executors.newCachedThreadPool();
+        executor = Executors.newVirtualThreadPerTaskExecutor();
         //noinspection UnstableApiUsage
         this.rateLimiter = RateLimiter.create(requestPerSecond);
     }
