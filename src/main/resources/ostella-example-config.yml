@@ -1,6 +1,7 @@
 # === Config for oStella ===
 ostella:
-  requestPerSecond: 10 # Maximum number of requests per second to send to the osu! API, set this according to the rate limits of the osu! API
+  requestPerSecond: 10 # Maximum number of requests per second to send to the osu! API
+  renderWorkers: 4 # Number of worker threads for rendering images
   debugMode: false # Enable debug endpoints, not recommended for production use
 
 # === Config for Javalin webserver ===

@@ -52,7 +52,7 @@ public class Router implements Closeable {
         this.tokenManager = tokenManager;
         this.executor = new AsyncService(conf.ostella().requestPerSecond());
         this.cacheService = new CacheService(executor);
-        this.renderer = new RenderService(cacheService);
+        this.renderer = new RenderService(cacheService, conf.ostella().renderWorkers());
 
         this.beatmapController = new BeatmapController(this);
         this.scoreController = new ScoreController(this);

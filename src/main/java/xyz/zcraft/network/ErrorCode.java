@@ -26,8 +26,7 @@ public enum ErrorCode {
 
     RENDER_QUEUE_FULL(5001),
 
-    ROSU_ERROR(6001),
-    IO_ERROR(6002);
+    ROSU_ERROR(6001);
 
     private final int code;
 

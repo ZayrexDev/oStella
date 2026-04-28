@@ -69,16 +69,21 @@ public class WebServer implements Closeable {
                                  ErrorCode.NO_BEATMAPSET_FOUND,
                                  ErrorCode.NO_SCORE_FOUND,
                                  ErrorCode.NO_ROOM_FOUND,
-                                 ErrorCode.NO_USER_FOUND -> ctx.status(404);
+                                 ErrorCode.NO_USER_FOUND
+                                    -> ctx.status(404);
+
                             case ErrorCode.ILLEGAL_ARGUMENT,
-                                 ErrorCode.REPLAY_UNAVAILABLE -> ctx.status(400);
+                                 ErrorCode.REPLAY_UNAVAILABLE
+                                    -> ctx.status(400);
+
                             case ErrorCode.BEATMAP_FETCH_FAILED,
                                  ErrorCode.BEATMAPSET_FETCH_FAILED,
                                  ErrorCode.SCORE_FETCH_FAILED,
                                  ErrorCode.USER_FETCH_FAILED,
                                  ErrorCode.RENDER_QUEUE_FULL,
-                                 ErrorCode.ROSU_ERROR,
-                                 ErrorCode.IO_ERROR -> ctx.status(500);
+                                 ErrorCode.ROSU_ERROR
+                                    -> ctx.status(500);
+
                             default -> ctx.status(500);
                         }
                         ctx.result(new Response(false, e.getMessage(), e.getErrorCode().toJson()).toString());
