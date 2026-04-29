@@ -15,7 +15,7 @@ import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.TokenManager;
 
 import static xyz.zcraft.util.BeatmapUtil.getDiffSpecForMap;
-import static xyz.zcraft.util.RequestUtil.requireNumberString;
+import static xyz.zcraft.util.RequestUtil.*;
 
 public class ScoreController {
     public final RenderService renderer;
@@ -49,6 +49,8 @@ public class ScoreController {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
                     final BeatmapExtended beatmap = score.getBeatmap();
 
+                    context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()));
+
                     final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     return renderer.renderScore(score, diffSpec);
@@ -59,6 +61,8 @@ public class ScoreController {
     private void getScoreOfBeatmapAsync(@NotNull Context context) {
         final String m = requireNumberString(context, "m");
         final String u = requireNumberString(context, "u");
+
+        context.header("X-Beatmap-Id", m);
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScore(tokenManager.getTokenData(), u, m))
                 .thenCompose(score ->
@@ -81,11 +85,14 @@ public class ScoreController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
+
+
     private void getScoreOfRefAsync(@NotNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenApply(Score::getId)
                 .thenCompose(scoreId -> executor.enqueueAsync(() -> OsuAPI.getScore(tokenManager.getTokenData(), String.valueOf(scoreId))))
                 .thenApplyAsync(score -> {
+                    context.header("X-Beatmap-Id", String.valueOf(score.getBeatmap().getId()));
                     final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
                     return renderer.renderScore(score, diffSpec);
                 }, renderer.getRenderExecutor())
