@@ -15,7 +15,7 @@ import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.TokenManager;
 
 import static xyz.zcraft.util.BeatmapUtil.getDiffSpecForMap;
-import static xyz.zcraft.util.RequestUtil.*;
+import static xyz.zcraft.util.RequestUtil.requireNumberString;
 
 public class ScoreController {
     public final RenderService renderer;
@@ -49,7 +49,8 @@ public class ScoreController {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
                     final BeatmapExtended beatmap = score.getBeatmap();
 
-                    context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()));
+                    context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
+                            .header("X-Score-Id", String.valueOf(score.getId()));
 
                     final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
 
@@ -65,14 +66,16 @@ public class ScoreController {
         context.header("X-Beatmap-Id", m);
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScore(tokenManager.getTokenData(), u, m))
-                .thenCompose(score ->
-                        executor
-                                .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(score.getBeatmap().getBeatmapsetId())))
-                                .thenApply(beatmapset -> {
-                                    score.getBeatmap().setBeatmapset(beatmapset);
-                                    score.setBeatmapset(beatmapset);
-                                    return score;
-                                })
+                .thenCompose(score -> {
+                            context.header("X-Score-Id", String.valueOf(score.getId()));
+                            return executor
+                                    .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(score.getBeatmap().getBeatmapsetId())))
+                                    .thenApply(beatmapset -> {
+                                        score.getBeatmap().setBeatmapset(beatmapset);
+                                        score.setBeatmapset(beatmapset);
+                                        return score;
+                                    });
+                        }
                 )
                 .thenApplyAsync(score -> {
                     final DiffSpec diffSpec = getDiffSpecForMap(
@@ -86,13 +89,13 @@ public class ScoreController {
     }
 
 
-
     private void getScoreOfRefAsync(@NotNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenApply(Score::getId)
                 .thenCompose(scoreId -> executor.enqueueAsync(() -> OsuAPI.getScore(tokenManager.getTokenData(), String.valueOf(scoreId))))
                 .thenApplyAsync(score -> {
-                    context.header("X-Beatmap-Id", String.valueOf(score.getBeatmap().getId()));
+                    context.header("X-Beatmap-Id", String.valueOf(score.getBeatmap().getId()))
+                            .header("X-Score-Id", String.valueOf(score.getId()));
                     final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
                     return renderer.renderScore(score, diffSpec);
                 }, renderer.getRenderExecutor())
@@ -102,6 +105,7 @@ public class ScoreController {
     private void getScoreOfBeatmapsetAsync(@NotNull Context context) {
         context.future(() -> router.getScoreFromBeatmapsetAsync(context)
                 .thenApplyAsync(score -> {
+                    context.header("X-Score-Id", String.valueOf(score.getId()));
                     final DiffSpec diffSpec = getDiffSpecForMap(
                             score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
                             score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat)
