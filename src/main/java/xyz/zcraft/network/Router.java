@@ -50,9 +50,9 @@ public class Router implements Closeable {
     public Router(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
-        this.executor = new AsyncService(conf.ostella().maxThreads(), conf.ostella().requestPerSecond());
+        this.executor = new AsyncService(conf.ostella().requestPerSecond());
         this.cacheService = new CacheService(executor);
-        this.renderer = new RenderService(cacheService);
+        this.renderer = new RenderService(cacheService, conf.ostella().renderWorkers());
 
         this.beatmapController = new BeatmapController(this);
         this.scoreController = new ScoreController(this);
@@ -66,6 +66,8 @@ public class Router implements Closeable {
             this.replayService = null;
             this.replayController = null;
         }
+
+        LOG.info("Router created");
     }
 
     protected void searchBeatmapSetAsync(@NotNull Context context) {
@@ -74,7 +76,10 @@ public class Router implements Closeable {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.searchBeatmapset(tokenManager.getTokenData(), query))
                 .thenApply(result -> {
                     if (result == null || result.isEmpty()) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
-                    return result.stream().map(SearchResultItem::fromBeatmapset).toList();
+                    final List<SearchResultItem> list = result.stream().map(SearchResultItem::fromBeatmapset).toList();
+                    final var ids = list.stream().map(SearchResultItem::beatmapsetId).map(String::valueOf).toList();
+                    context.header("X-Beatmapset-Ids", String.join(",", ids));
+                    return list;
                 })
                 .thenAccept(
                         result -> context.status(200).result(
@@ -264,6 +269,7 @@ public class Router implements Closeable {
                     beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
                     final BeatmapExtended beatmap = beatmaps.get(i - 1);
                     beatmap.setBeatmapset(beatmapset);
+                    context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()));
                     return executor
                             .enqueueAsync(() ->
                                     OsuAPI.getUserScore(tokenManager.getTokenData(), u, String.valueOf(beatmap.getId()))

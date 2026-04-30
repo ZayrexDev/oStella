@@ -46,7 +46,11 @@ public class ApiException extends RuntimeException {
             case REPLAY_UNAVAILABLE -> "Replay unavailable";
             case RENDER_QUEUE_FULL -> "Render queue full";
             case ROSU_ERROR -> "Rosu error";
-            default -> "Unknown error";
+            case REPLAY_FETCH_FAILED -> "Replay fetch failed";
+            case ROOM_FETCH_FAILED -> "Room fetch failed";
+            case IMAGE_FETCH_FAILED -> "Image fetch failed";
+            case TOKEN_FETCH_FAILED ->  "Token fetch failed";
+            case null -> "Unknown error";
         };
     }
 }

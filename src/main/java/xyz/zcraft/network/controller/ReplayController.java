@@ -380,7 +380,7 @@ public class ReplayController {
         }
 
         final long beatmapId = scores.getFirst().getBeatmap().getId();
-        final long beatmapsetId = scores.getFirst().getBeatmapset().getId();
+        final long beatmapsetId = scores.getFirst().getBeatmap().getBeatmapsetId();
 
         CompletableFuture<Boolean> cacheFuture = executor.enqueueAsync(() ->
                 cacheService.cacheBeatmapset(String.valueOf(beatmapsetId)));

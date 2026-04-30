@@ -126,17 +126,6 @@ Notes:
 |--------|-----------------|-------------------------------------------|---------------------|----------|
 | GET    | `/debug/bypass` | Debug passthrough call to osu! API helper | raw query string    | JSON     |
 
-## Configuration Reference
-
-| Variable              | Required | Default | Description                           |
-|-----------------------|----------|---------|---------------------------------------|
-| `OSU_CLIENT_ID`       | yes      | —       | osu! OAuth client id                  |
-| `OSU_CLIENT_SECRET`   | yes      | —       | osu! OAuth client secret              |
-| `OSTELLA_PORT`        | no       | `8721`  | HTTP server port                      |
-| `OSTELLA_MAX_THREADS` | no       | `2`     | worker pool size for async tasks      |
-| `OSTELLA_DELAY`       | no       | `1000`  | delay (ms) between requests           |
-| `OSTELLA_DEBUG`       | no       | `false` | enable debug mode and `/debug/bypass` |
-
 ## Cache Behavior
 
 `oStella` caches downloaded assets on disk to reduce repeated upstream requests.
@@ -160,6 +149,39 @@ To clear cache, stop the service and remove files under `data/cache/`; they will
 
 Image rendering depends on Playwright Chromium. If your environment is missing browser binaries, 
 when first started, Playwright will attempt to download them.
+
+## Performance & Requirements
+
+oStella is designed to be highly concurrent, but its resource usage scales directly
+with how you configure its rendering features. The core web server is incredibly lightweight,
+but image (Playwright/Chromium) and video (Danser) rendering require careful hardware consideration.
+
+### Minimum System Requirements
+* **CPU:** 2+ Cores (4+ Cores heavily recommended if video rendering is enabled)
+* **RAM:** 2 GB minimum (4 GB recommended for stable multi-worker rendering)
+* **Storage:** 5+ GB free space (for caching osu! beatmaps, replays, and rendered videos)
+
+### RAM Usage
+> Memory consumption is strictly controlled by your worker pool configurations.
+By default, oStella prevents Out-Of-Memory crashes by queuing requests rather
+than spawning infinite browser instances.
+
+* **Core Java Server:** ~250MB - 500MB (depending on JVM garbage collection and cache size).
+* **Image Rendering (Playwright/Chromium):** ~100MB - 150MB per active worker.
+  If you configure `MAX_WORKERS = 4`, expect Chromium to reserve up to ~600MB of RAM under peak load.
+* **Video Rendering (Danser):** ~200MB - 300MB per active Danser instance during an active render.
+
+### CPU Usage
+* **API Routing & Network:** Near 0% CPU impact. Asynchronous request handling allows the server to idle efficiently.
+* **Image Rendering:** Moderate, bursty CPU usage. Chromium utilizes separate OS processes for rendering,
+  meaning concurrent image requests will actively utilize multiple CPU cores for brief moments.
+* **Video Rendering (Replays):** **Extreme CPU usage.** Software encoding (e.g., `libx264`) will easily pin your CPU to 100%.
+
+### Low Resource Environments?
+If you are running oStella on a low-resource environment (e.g., 2GB RAM, 2 CPU cores), it is crucial to:
+1. Limit your Playwright worker pool to `2` or `3` to prevent memory exhaustion.
+2. Avoid enabling video rendering or limit it to a single worker with hardware encoding.
+3. Monitor your server's resource usage closely, especially under load, to ensure it remains responsive
 
 ## Logs
 

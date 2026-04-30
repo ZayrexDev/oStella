@@ -59,6 +59,7 @@ public class BeatmapController {
                     beatmaps.sort(Comparator.comparingDouble(BeatmapExtended::getDifficultyRating));
                     final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
                     beatmapExtended.setBeatmapset(beatmapset);
+                    context.header("X-Beatmap-Id", String.valueOf(beatmapExtended.getId()));
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmapExtended -> {
@@ -83,6 +84,8 @@ public class BeatmapController {
                             .findFirst()
                             .orElseThrow(() -> new ApiException(ErrorCode.NO_BEATMAP_FOUND, "No beatmap found"));
                     beatmapExtended.setBeatmapset(beatmapset);
+                    context.header("X-Beatmap-Id", String.valueOf(beatmapExtended.getId()));
+
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmap -> {
@@ -103,6 +106,7 @@ public class BeatmapController {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found");
                     final var beatmapId = scores.getLast().getBeatmap().getId();
                     final var beatmapsetId = scores.getLast().getBeatmapset().getId();
+                    context.header("X-Beatmap-Id", String.valueOf(beatmapId));
                     return executor
                             .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(beatmapsetId)))
                             .thenApply(beatmapset -> {

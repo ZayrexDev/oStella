@@ -1,8 +1,8 @@
 package xyz.zcraft.config;
 
 public record OstellaConfig(
-        int maxThreads,
         int requestPerSecond,
+        int renderWorkers,
         boolean debugMode
 ) {
 }

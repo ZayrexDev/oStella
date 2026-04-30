@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -171,10 +172,11 @@ public class CacheService {
     }
 
     private boolean downloadNekoha(String id, Path beatmapsetPath) {
-        try (final HttpClient client = HttpClient.newBuilder().build()) {
+        try (final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()) {
             String initialUrl = "https://mirror.nekoha.moe/api4/download/" + id;
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(initialUrl))
+                    .timeout(Duration.ofMinutes(3))
                     .GET()
                     .build();
 
@@ -194,10 +196,11 @@ public class CacheService {
     }
 
     private boolean downloadSayobot(String id, Path beatmapsetPath) {
-        try (final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()) {
+        try (final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).followRedirects(HttpClient.Redirect.NEVER).build()) {
             String initialUrl = "https://dl.sayobot.cn/beatmaps/download/novideo/" + id;
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(initialUrl))
+                    .timeout(Duration.ofMinutes(3))
                     .GET()
                     .build();
 

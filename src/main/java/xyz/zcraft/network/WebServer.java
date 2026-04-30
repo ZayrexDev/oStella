@@ -44,7 +44,7 @@ public class WebServer implements Closeable {
                     .get("/lb", router::getLeaderBoardAsync)
                     .get("/status", router::getServerStatusAsync);
 
-            if(conf.replayRender().enabled()) {
+            if (conf.replayRender().enabled()) {
                 cfg.routes
                         .get("/replay/status", router.replayController::getReplayRenderOverview)
                         .get("/replay/render", router.replayController::queueReplayRenderAsync)
@@ -71,21 +71,27 @@ public class WebServer implements Closeable {
                                  ErrorCode.NO_ROOM_FOUND,
                                  ErrorCode.NO_USER_FOUND
                                     -> ctx.status(404);
+
                             case ErrorCode.ILLEGAL_ARGUMENT,
                                  ErrorCode.REPLAY_UNAVAILABLE
                                     -> ctx.status(400);
+
                             case ErrorCode.BEATMAP_FETCH_FAILED,
                                  ErrorCode.BEATMAPSET_FETCH_FAILED,
                                  ErrorCode.SCORE_FETCH_FAILED,
                                  ErrorCode.USER_FETCH_FAILED,
                                  ErrorCode.RENDER_QUEUE_FULL,
-                                 ErrorCode.ROSU_ERROR,
-                                 ErrorCode.IO_ERROR
+                                 ErrorCode.ROSU_ERROR
                                     -> ctx.status(500);
+
                             default -> ctx.status(500);
                         }
                         ctx.result(new Response(false, e.getMessage(), e.getErrorCode().toJson()).toString());
-                        LOG.error("API error occurred while processing request: {} - {}", ctx.queryString(), e.getMessage());
+                        if (e.getWrappedException() != null) {
+                            LOG.error("API error occurred while processing request: {} - {}", ctx.queryString(), e.getMessage(), e.getWrappedException());
+                        } else {
+                            LOG.error("API error occurred while processing request: {} - {}", ctx.queryString(), e.getMessage());
+                        }
                     })
                     .exception(Exception.class, (e, ctx) -> {
                         ctx.status(500).result(new Response(false, "An error occurred while processing the request!", null).toString());

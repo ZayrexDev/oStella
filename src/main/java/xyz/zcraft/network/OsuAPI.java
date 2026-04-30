@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.TokenData;
@@ -27,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class OsuAPI {
+    private static final Logger LOG  = LogManager.getLogger(OsuAPI.class);
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static final String BASE_URL = "https://osu.ppy.sh/api/v2";
     private static final Gson GSON = new Gson();
@@ -60,6 +63,7 @@ public class OsuAPI {
     }
 
     public static Score getScore(TokenData tokenData, String scoreId) {
+        LOG.debug("Fetching score with id {}", scoreId);
         try {
             final var request = newRequestBuilder(tokenData, "/scores/" + scoreId)
                     .GET()
@@ -78,6 +82,7 @@ public class OsuAPI {
     }
 
     public static List<Score> getUserScores(TokenData tokenData, String id, ScoreType mode, int limit, boolean includeFails) {
+        LOG.debug("Fetching {} scores for user id {} in mode {}", mode.name().toLowerCase(), id, mode.name().toLowerCase());
         try {
             final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", id, mode.name().toLowerCase(), limit, includeFails ? 1 : 0))
                     .GET()
@@ -99,6 +104,7 @@ public class OsuAPI {
     }
 
     public static Score getUserScore(TokenData tokenData, String u, String bm) {
+        LOG.debug("Fetching score for user id {} on beatmap id {}", u, bm);
         try {
             final var request = newRequestBuilder(tokenData, String.format("/beatmaps/%s/scores/users/%s", bm, u))
                     .GET()
@@ -117,6 +123,7 @@ public class OsuAPI {
     }
 
     public static UserExtended getUser(TokenData tokenData, String id) {
+        LOG.debug("Fetching user with id {}", id);
         try {
             final var request = newRequestBuilder(tokenData, "/users/" + id)
                     .GET()
@@ -142,6 +149,7 @@ public class OsuAPI {
     }
 
     public static List<User> getUsers(TokenData tokenData, List<String> ids) {
+        LOG.debug("Fetching users with ids {}", () -> Arrays.toString(ids.toArray()));
         StringBuilder sb = new StringBuilder("?");
         for (String id : ids) {
             sb.append("ids[]=").append(id).append("&");
@@ -176,6 +184,7 @@ public class OsuAPI {
     }
 
     public static List<Beatmapset> searchBeatmapset(TokenData tokenData, String queryString) {
+        LOG.debug("Fetching beatmapsets for query {}", queryString);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmapsets/search?m=0&q=" + URLEncoder.encode(queryString, StandardCharsets.UTF_8))
                     .GET()
@@ -208,6 +217,7 @@ public class OsuAPI {
     }
 
     public static List<MultiplayerRoom> getRooms(TokenData tokenData) {
+        LOG.debug("Fetching multiplayer rooms");
         try {
             final var request = newRequestBuilder(tokenData, "/rooms")
                     .GET()
@@ -239,6 +249,7 @@ public class OsuAPI {
     }
 
     public static JsonObject byPassRequest(TokenData tokenData, String query) {
+        LOG.debug("Making bypass request with query {}", query);
         try {
             final var request = newRequestBuilder(tokenData, query)
                     .GET()
@@ -266,6 +277,7 @@ public class OsuAPI {
     }
 
     public static Beatmapset getBeatmapset(TokenData tokenData, String setId) {
+        LOG.debug("Fetching beatmapset with id {}", setId);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmapsets/" + setId)
                     .GET()
@@ -295,6 +307,7 @@ public class OsuAPI {
     }
 
     public static Beatmapset getBeatmapsetFromBeatmap(TokenData tokenData, String beatmapId) {
+        LOG.debug("Fetching beatmapset with id {}", beatmapId);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmapsets/lookup?beatmap_id=" + beatmapId)
                     .GET()
@@ -324,6 +337,7 @@ public class OsuAPI {
     }
 
     public static BeatmapExtended getBeatmap(TokenData tokenData, String beatmapId) {
+        LOG.debug("Fetching beatmap with id {}", beatmapId);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmaps/" + beatmapId)
                     .GET()
@@ -353,6 +367,7 @@ public class OsuAPI {
     }
 
     public static byte[] getBeatmapBytes(String beatmapId) {
+        LOG.debug("Fetching beatmap bytes with id {}", beatmapId);
         try {
             final var request = HttpRequest.newBuilder()
                     .uri(URI.create("https://osu.ppy.sh/osu/%s".formatted(beatmapId)))

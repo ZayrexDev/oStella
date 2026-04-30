@@ -73,6 +73,7 @@ public class PKController {
                     if (scores == null || scores.size() < i) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
 
                     final Long id = scores.get(i - 1).getBeatmap().getId();
+                    context.header("X-Beatmap-Id", String.valueOf(id));
                     return getPlacementsAsync(u, String.valueOf(id));
                 })
                 .thenApply(placements -> {
@@ -128,6 +129,8 @@ public class PKController {
         final String m = requireNumberString(context, "m");
         final String us = requireString(context, "u");
         final String[] u = Arrays.stream(us.split(",")).distinct().toArray(String[]::new);
+
+        context.header("X-Beatmap-Id", m);
 
         context.future(() -> getPlacementsAsync(u, m)
                 .thenApply(p -> {

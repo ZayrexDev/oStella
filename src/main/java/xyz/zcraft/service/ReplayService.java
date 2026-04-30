@@ -19,6 +19,7 @@ public class ReplayService implements Closeable {
             Pattern.compile("Progress: (\\d+)%, Speed: ([\\d.]+)x, ETA: (.+)");
     private final Path danserPath;
     private final Path songPath;
+    private final Path configPath;
     private final ThreadPoolExecutor executor;
     private final ScheduledExecutorService cleanUpExecutor = Executors.newSingleThreadScheduledExecutor();
     private final ConcurrentHashMap<String, JobProgress> jobProgress = new ConcurrentHashMap<>();
@@ -28,6 +29,12 @@ public class ReplayService implements Closeable {
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(1, conf.replayRender().renderThreads()));
         this.danserPath = Path.of(conf.replayRender().danserPath());
         this.songPath = danserSongPath;
+
+        if (conf.replayRender().configPath() != null && !conf.replayRender().configPath().isEmpty()) {
+            this.configPath = Path.of(conf.replayRender().configPath());
+        } else {
+            this.configPath = null;
+        }
 
         cleanUpExecutor.scheduleAtFixedRate(() -> {
             try {
@@ -87,6 +94,7 @@ public class ReplayService implements Closeable {
                         String eta = matcher.group(3);
 
                         jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING, progress + "%", speed + "x", eta));
+                        LOG.debug("Danser progress: {}% {}x ETA{}", progress, speed, eta);
                     }
 
                     DANSER_LOG.info(line);
@@ -127,11 +135,11 @@ public class ReplayService implements Closeable {
 
             tempSettingsFile = prepareDanser(c);
 
-            if(!Double.isNaN(start)) {
+            if (!Double.isNaN(start)) {
                 c.add("-start=" + start);
             }
 
-            if(!Double.isNaN(end)) {
+            if (!Double.isNaN(end)) {
                 c.add("-end=" + end);
             }
 
@@ -174,11 +182,11 @@ public class ReplayService implements Closeable {
                 replayList = replayList.replace("\"", "\\\"");
             }
 
-            if(!Double.isNaN(start)) {
+            if (!Double.isNaN(start)) {
                 c.add("-start=" + start);
             }
 
-            if(!Double.isNaN(end)) {
+            if (!Double.isNaN(end)) {
                 c.add("-end=" + end);
             }
 
@@ -212,11 +220,10 @@ public class ReplayService implements Closeable {
         c.add("-noupdatecheck");
         c.add("-quickstart");
         c.add("-record");
-        c.add("-preciseprogress");
 
         String safeSongPath = songPath.toAbsolutePath().toString().replace("\\", "/");
 
-        try (InputStream templateStream = getClass().getResourceAsStream("/danser-config.json")) {
+        try (InputStream templateStream = getConfigAsStream()) {
             if (templateStream == null) {
                 throw new RuntimeException("Could not find danser-config.json in resources!");
             }
@@ -234,6 +241,18 @@ public class ReplayService implements Closeable {
 
             return tempSettingsFile;
         }
+    }
+
+    private InputStream getConfigAsStream() throws IOException {
+        if (configPath != null) {
+            if (Files.exists(configPath)) {
+                return Files.newInputStream(configPath);
+            } else {
+                LOG.warn("Custom danser config file does not exist, default config will be used.");
+            }
+        }
+
+        return getClass().getResourceAsStream("/danser-config.json");
     }
 
     private void runDanser(String jobId, String fileName, List<String> c) throws IOException, InterruptedException {

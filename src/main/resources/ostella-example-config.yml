@@ -1,7 +1,7 @@
 # === Config for oStella ===
 ostella:
-  maxThreads: 2 # Maximum number of threads to use for interactions with the osu! API
-  requestPerSecond: 5 # Maximum number of requests per second to send to the osu! API, set this according to the rate limits of the osu! API
+  requestPerSecond: 10 # Maximum number of requests per second to send to the osu! API
+  renderWorkers: 4 # Number of worker threads for rendering images
   debugMode: false # Enable debug endpoints, not recommended for production use
 
 # === Config for Javalin webserver ===
@@ -24,5 +24,6 @@ osu:
 replayRender:
   enabled: true
   danserPath: "danser/danser-cli" # Path to the danser CLI executable, will be used to locate settings folder for danser
+  configPath: "" # Optional path to danser's config file, if not set default config will be used
   renderQueueSize: 5 # Maximum number of replays to render waiting in queue
   renderThreads: 1 # Maximum number of replays to render at the same time

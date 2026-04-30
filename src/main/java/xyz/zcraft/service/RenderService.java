@@ -22,40 +22,26 @@ import xyz.zcraft.model.user.UserExtended;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class RenderService implements AutoCloseable{
+public class RenderService implements AutoCloseable {
     private static final Logger LOG = LogManager.getLogger(RenderService.class);
     private final CacheService cacheService;
-    private final LinkedList<AutoCloseable>  resources = new LinkedList<>();
     @Getter
-    private final ExecutorService renderExecutor = Executors.newFixedThreadPool(4);
-    private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(() -> {
-        LOG.info("Starting new Playwright instance for Thread: {}", Thread.currentThread().getName());
-
-        final Playwright playwright = Playwright.create();
-        resources.add(playwright);
-
-        LOG.info("Playwright instance created for Thread: {}", Thread.currentThread().getName());
-
-        return playwright;
-    });
+    private final ExecutorService renderExecutor;
+    private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(Playwright::create);
     private final ThreadLocal<Browser> browserLocal = ThreadLocal.withInitial(() -> {
-        LOG.info("Launching Chromium for Thread: {}", Thread.currentThread().getName());
-
         final Browser browser = playwrightLocal.get().chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-
         LOG.info("Chromium launched for Thread: {}", Thread.currentThread().getName());
-
         return browser;
     });
     private final TemplateEngine templateEngine;
 
-    public RenderService(CacheService cacheService) {
+    public RenderService(CacheService cacheService, int maxWorkers) {
         this.cacheService = cacheService;
+        this.renderExecutor  = Executors.newFixedThreadPool(maxWorkers);
 
         LOG.info("Initializing template resolver");
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
@@ -169,13 +155,7 @@ public class RenderService implements AutoCloseable{
 
     @Override
     public void close() {
-        LOG.info("Closing RenderService resources");
-        for (AutoCloseable resource : resources) {
-            try {
-                resource.close();
-            } catch (Exception e) {
-                LOG.error("Failed to close resource: {}", resource.getClass().getSimpleName(), e);
-            }
-        }
+        LOG.info("Shutting down RenderService executor");
+        renderExecutor.close();
     }
 }
