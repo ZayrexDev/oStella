@@ -39,6 +39,7 @@ public class ApiException extends RuntimeException {
             case NO_SCORE_FOUND -> "No score found";
             case NO_ROOM_FOUND -> "No rooms found";
             case ILLEGAL_ARGUMENT -> "Illegal argument";
+            case FETCH_FAILED -> "Fetch failed";
             case BEATMAP_FETCH_FAILED -> "Beatmap fetch failed";
             case BEATMAPSET_FETCH_FAILED -> "Beatmapset fetch failed";
             case USER_FETCH_FAILED -> "User fetch failed";

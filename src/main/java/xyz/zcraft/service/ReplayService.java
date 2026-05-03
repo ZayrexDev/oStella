@@ -94,7 +94,7 @@ public class ReplayService implements Closeable {
                         String eta = matcher.group(3);
 
                         jobProgress.put(jobId, new JobProgress(JobStatus.RENDERING, progress + "%", speed + "x", eta));
-                        LOG.debug("Danser progress: {}% {}x ETA{}", progress, speed, eta);
+                        LOG.debug("Danser progress: {}% {}x ETA:{}", progress, speed, eta);
                     }
 
                     DANSER_LOG.info(line);
@@ -248,7 +248,8 @@ public class ReplayService implements Closeable {
             if (Files.exists(configPath)) {
                 return Files.newInputStream(configPath);
             } else {
-                LOG.warn("Custom danser config file does not exist, default config will be used.");
+                LOG.warn("Custom danser config file does not exist at '{}', default config will be used.",
+                         configPath.toAbsolutePath().normalize());
             }
         }
 

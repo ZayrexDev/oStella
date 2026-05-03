@@ -168,7 +168,7 @@ than spawning infinite browser instances.
 
 * **Core Java Server:** ~250MB - 500MB (depending on JVM garbage collection and cache size).
 * **Image Rendering (Playwright/Chromium):** ~100MB - 150MB per active worker.
-  If you configure `MAX_WORKERS = 4`, expect Chromium to reserve up to ~600MB of RAM under peak load.
+  If you configure `ostella.renderWorkers: 4`, expect Chromium to reserve up to ~600MB of RAM under peak load.
 * **Video Rendering (Danser):** ~200MB - 300MB per active Danser instance during an active render.
 
 ### CPU Usage
