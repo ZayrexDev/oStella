@@ -40,6 +40,10 @@ public class RenderService implements AutoCloseable {
     private final TemplateEngine templateEngine;
 
     public RenderService(CacheService cacheService, int maxWorkers) {
+        if (maxWorkers <= 0) {
+            throw new IllegalArgumentException("maxWorkers must be greater than 0: " + maxWorkers);
+        }
+        
         this.cacheService = cacheService;
         this.renderExecutor  = Executors.newFixedThreadPool(maxWorkers);
 
