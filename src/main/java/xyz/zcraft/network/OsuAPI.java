@@ -198,7 +198,7 @@ public class OsuAPI {
 
             if (response.statusCode() >= 400) {
                 throw new ApiException(
-                        ErrorCode.USER_FETCH_FAILED,
+                        ErrorCode.BEATMAP_FETCH_FAILED,
                         "osu! API returned status " + response.statusCode() + " query " + queryString
                 );
             }
@@ -231,7 +231,7 @@ public class OsuAPI {
 
             if (response.statusCode() >= 400) {
                 throw new ApiException(
-                        ErrorCode.USER_FETCH_FAILED,
+                        ErrorCode.ROOM_FETCH_FAILED,
                         "osu! API returned status " + response.statusCode() + " getting rooms"
                 );
             }
@@ -263,7 +263,7 @@ public class OsuAPI {
 
             if (response.statusCode() >= 400) {
                 throw new ApiException(
-                        ErrorCode.USER_FETCH_FAILED,
+                        ErrorCode.FETCH_FAILED,
                         "osu! API returned status " + response.statusCode()
                 );
             }
@@ -351,7 +351,7 @@ public class OsuAPI {
 
             if (response.statusCode() >= 400) {
                 throw new ApiException(
-                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        ErrorCode.BEATMAP_FETCH_FAILED,
                         "osu! API returned status " + response.statusCode() + " for beatmap " + beatmapId
                 );
             }
@@ -382,7 +382,7 @@ public class OsuAPI {
 
             if (response.statusCode() >= 400) {
                 throw new ApiException(
-                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        ErrorCode.BEATMAP_FETCH_FAILED,
                         "osu! API returned status " + response.statusCode() + " for beatmap " + beatmapId
                 );
             }
@@ -416,7 +416,7 @@ public class OsuAPI {
 
             if (response.statusCode() >= 400) {
                 throw new ApiException(
-                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        ErrorCode.FETCH_FAILED,
                         "osu! API returned status " + response.statusCode() + " for img " + url
                 );
             }
@@ -441,7 +441,7 @@ public class OsuAPI {
 
             if (response.statusCode() >= 400) {
                 throw new ApiException(
-                        ErrorCode.BEATMAPSET_FETCH_FAILED,
+                        ErrorCode.REPLAY_FETCH_FAILED,
                         "osu! API returned status " + response.statusCode() + " for replay " + id
                 );
             }
