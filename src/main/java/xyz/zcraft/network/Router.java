@@ -157,6 +157,8 @@ public class Router implements Closeable {
                             if (user == null) {
                                 throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found");
                             }
+                            context.header("X-User-Id", String.valueOf(user.getId()));
+                            context.header("X-Score-Ids", scores.stream().map(Score::getId).map(String::valueOf).collect(Collectors.joining(",")));
                             return renderer.renderScores(user, scores, ScoreType.RECENT);
                         }, renderer.getRenderExecutor()))
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -223,6 +225,8 @@ public class Router implements Closeable {
                     return executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
                             .thenApplyAsync(user -> {
                                 if (user == null) throw new ApiException(ErrorCode.NO_USER_FOUND);
+                                context.header("X-User-Id", String.valueOf(user.getId()));
+                                context.header("X-Score-Ids", scores.stream().map(Score::getId).map(String::valueOf).collect(Collectors.joining(",")));
                                 return renderer.renderScores(user, scores, ScoreType.BEST);
                             }, renderer.getRenderExecutor());
                 })
