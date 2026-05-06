@@ -44,6 +44,7 @@ public class BeatmapsetController {
                 })
                 .thenApplyAsync(beatmapset -> {
                     if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+                    context.header("X-Beatmapset-Id", beatmapset.getId().toString());
                     return renderer.renderBeatmapset(beatmapset);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -55,6 +56,7 @@ public class BeatmapsetController {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
                 .thenApplyAsync(ms -> {
                     if (ms == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+                    context.header("X-Beatmapset-Id", ms.getId().toString());
                     return renderer.renderBeatmapset(ms);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -66,6 +68,7 @@ public class BeatmapsetController {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
                 .thenApplyAsync(beatmapset -> {
                     if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+                    context.header("X-Beatmapset-Id", beatmapset.getId().toString());
                     return renderer.renderBeatmapset(beatmapset);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
