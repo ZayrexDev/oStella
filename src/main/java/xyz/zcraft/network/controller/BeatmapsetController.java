@@ -67,7 +67,7 @@ public class BeatmapsetController {
 
     private byte[] finalizeBeatmapset(Beatmapset beatmapset, Context context) {
         if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
-        beatmapset.getBeatmaps().sort((b1, b2) -> Double.compare(b2.getDifficultyRating(), b1.getDifficultyRating()));
+        beatmapset.getBeatmaps().sort((b1, b2) -> Double.compare(b1.getDifficultyRating(), b2.getDifficultyRating()));
         context.header("X-Beatmapset-Id", beatmapset.getId().toString())
                 .header("X-Beatmap-Ids", beatmapset.getBeatmaps().stream()
                         .map(BeatmapExtended::getId)
