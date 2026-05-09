@@ -2,6 +2,8 @@ package xyz.zcraft.network.controller;
 
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
+import xyz.zcraft.model.beatmap.BeatmapExtended;
+import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.network.ApiException;
 import xyz.zcraft.network.ErrorCode;
 import xyz.zcraft.network.OsuAPI;
@@ -9,6 +11,8 @@ import xyz.zcraft.network.Router;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.TokenManager;
+
+import java.util.stream.Collectors;
 
 import static xyz.zcraft.util.RequestUtil.requireNumberString;
 
@@ -39,14 +43,9 @@ public class BeatmapsetController {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenCompose(score -> {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
-
                     return executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(score.getBeatmapset().getId())));
                 })
-                .thenApplyAsync(beatmapset -> {
-                    if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
-                    context.header("X-Beatmapset-Id", beatmapset.getId().toString());
-                    return renderer.renderBeatmapset(beatmapset);
-                }, renderer.getRenderExecutor())
+                .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
@@ -54,11 +53,7 @@ public class BeatmapsetController {
         final String m = requireNumberString(context, "m");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
-                .thenApplyAsync(ms -> {
-                    if (ms == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
-                    context.header("X-Beatmapset-Id", ms.getId().toString());
-                    return renderer.renderBeatmapset(ms);
-                }, renderer.getRenderExecutor())
+                .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
@@ -66,11 +61,23 @@ public class BeatmapsetController {
         final String ms = requireNumberString(context, "ms");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
-                .thenApplyAsync(beatmapset -> {
-                    if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
-                    context.header("X-Beatmapset-Id", beatmapset.getId().toString());
-                    return renderer.renderBeatmapset(beatmapset);
-                }, renderer.getRenderExecutor())
+                .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
+    }
+
+    private byte[] finalizeBeatmapset(Beatmapset beatmapset, Context context) {
+        if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+        beatmapset.getBeatmaps().sort((b1, b2) -> Double.compare(b2.getDifficultyRating(), b1.getDifficultyRating()));
+        context.header("X-Beatmapset-Id", beatmapset.getId().toString())
+                .header("X-Beatmap-Ids", beatmapset.getBeatmaps().stream()
+                        .map(BeatmapExtended::getId)
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(",")))
+                .header("X-Beatmap-Stars", beatmapset.getBeatmaps().stream()
+                        .map(BeatmapExtended::getDifficultyRating)
+                        .map(d -> String.format("%.2f", d))
+                        .collect(Collectors.joining(",")));
+
+        return renderer.renderBeatmapset(beatmapset);
     }
 }
