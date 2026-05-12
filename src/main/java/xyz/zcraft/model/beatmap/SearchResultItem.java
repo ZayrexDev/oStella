@@ -6,9 +6,13 @@ public record SearchResultItem(
         String title,
         String mapperName,
         double minStar,
-        double maxStar
+        double maxStar,
+        String coverUrl
 ) {
     public static SearchResultItem fromBeatmapset(Beatmapset ms) {
-        return new SearchResultItem(ms.getId(), ms.getTitle(), ms.getArtist(), ms.getCreator(), ms.getMinStar(), ms.getMaxStar());
+        return new SearchResultItem(
+                ms.getId(), ms.getTitle(), ms.getArtist(), ms.getCreator(),
+                ms.getMinStar(), ms.getMaxStar(), ms.getCovers().getSlimcover()
+        );
     }
 }
