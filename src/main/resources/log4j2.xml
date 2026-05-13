@@ -41,9 +41,21 @@
                 <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
             </Policies>
         </RollingFile>
+
+        <RollingFile name="THYMELEAF_FILE" fileName="${LOG_DIR}/thymeleaf.log"
+                     filePattern="${LOG_DIR}/thymeleaf-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${FILE_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+        </RollingFile>
     </Appenders>
 
     <Loggers>
+        <Logger name="org.thymeleaf" level="INFO" additivity="false">
+            <AppenderRef ref="THYMELEAF_FILE"/>
+        </Logger>
+
         <Logger name="io.javalin" level="INFO" additivity="false">
             <AppenderRef ref="JAVALIN_FILE"/>
         </Logger>
