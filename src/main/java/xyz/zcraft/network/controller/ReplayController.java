@@ -75,7 +75,8 @@ public class ReplayController {
             case ReplayService.JobStatus.DONE -> context.status(200).result(
                     new Response(true, "Render complete!",
                             GSON.toJsonTree(Map.of(
-                                    "status", "done"
+                                    "status", "done",
+                                    "id", jobId
                             ))).toString());
             case ReplayService.JobStatus.FAILED -> context.status(200).result(
                     new Response(true, "Render failed",
@@ -99,6 +100,7 @@ public class ReplayController {
                 final ReplayService.JobProgress jobProgress = replayService.getJobProgress(jobId);
                 JsonObject obj = new JsonObject();
                 obj.addProperty("status", "rendering");
+                obj.addProperty("id", jobId);
                 if (jobProgress != null) {
                     obj.addProperty("progress", jobProgress.progress());
                     obj.addProperty("speed", jobProgress.speed());
