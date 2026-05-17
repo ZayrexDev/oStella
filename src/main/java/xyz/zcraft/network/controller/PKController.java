@@ -13,6 +13,7 @@ import xyz.zcraft.network.Router;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
+import xyz.zcraft.util.BeatmapUtil;
 import xyz.zcraft.util.TokenManager;
 
 import java.util.Arrays;
@@ -97,9 +98,14 @@ public class PKController {
                                 OsuAPI.getUserScore(tokenManager.getTokenData(), s, id)
                         )
                         .thenCompose(score -> {
-                            if (score == null || score.getPp() == null) {
+                            if (score == null) {
                                 return CompletableFuture.completedFuture(null);
                             }
+
+                            if (score.getPp() == null) {
+                                score.setPp(BeatmapUtil.estimatePp(score, cacheService.getRosuBeatmapPath(id, false)));
+                            }
+
                             return executor
                                     .enqueueAsync(() ->
                                             OsuAPI.getUser(tokenManager.getTokenData(), s)

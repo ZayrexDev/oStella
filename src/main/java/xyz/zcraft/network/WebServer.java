@@ -40,7 +40,7 @@ public class WebServer implements Closeable {
                     .get("/beatmapset", router.beatmapsetController::getBeatmapset)
                     .get("/searchms", router::searchBeatmapSet)
                     .get("/score", router.scoreController::getScore)
-                    .get("/mapleadboard", router.pkController::getPK)
+                    .get("/maplb", router.pkController::getPK)
                     .get("/leaderboard", router::getLeaderBoard)
                     .get("/status", router::getServerStatus)
                     .get("/friends", router::getFriends);

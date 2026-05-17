@@ -98,12 +98,12 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 ### Beatmap / Beatmapset / Score / PK
 
-| Method | Path            | Purpose                        | Query / Path Params                                                                 | Response |
-|--------|-----------------|--------------------------------|-------------------------------------------------------------------------------------|----------|
-| GET    | `/beatmap`      | Beatmap card image             | `m` (+ optional `mod`) **or** `ms` + `i` (+ optional `mod`) **or** `of` + `u` + `i` | PNG      |
-| GET    | `/beatmapset`   | Beatmapset card image          | `ms` **or** `m` **or** `of` + `u` + `i`                                             | PNG      |
-| GET    | `/score`        | Score card image               | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`                | PNG      |
-| GET    | `/mapleadboard` | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`                 | PNG      |
+| Method | Path          | Purpose                        | Query / Path Params                                                                 | Response |
+|--------|---------------|--------------------------------|-------------------------------------------------------------------------------------|----------|
+| GET    | `/beatmap`    | Beatmap card image             | `m` (+ optional `mod`) **or** `ms` + `i` (+ optional `mod`) **or** `of` + `u` + `i` | PNG      |
+| GET    | `/beatmapset` | Beatmapset card image          | `ms` **or** `m` **or** `of` + `u` + `i`                                             | PNG      |
+| GET    | `/score`      | Score card image               | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`                | PNG      |
+| GET    | `/maplb`      | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`                 | PNG      |
 
 Notes:
 - `of` references source list type (`rs` or `bo`).
