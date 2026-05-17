@@ -29,7 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class OsuAPI {
-    private static final Logger LOG  = LogManager.getLogger(OsuAPI.class);
+    private static final Logger LOG = LogManager.getLogger(OsuAPI.class);
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static final String BASE_URL = "https://osu.ppy.sh/api/v2";
     private static final Gson GSON = new Gson();
@@ -119,6 +119,27 @@ public class OsuAPI {
             return GSON.fromJson(JsonParser.parseString(body).getAsJsonObject().get("score").getAsJsonObject(), Score.class);
         } catch (Exception e) {
             throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for " + u + " on beatmap " + bm, e);
+        }
+    }
+
+    public static MultiplayerRoom getCurrentRoom(String auth) {
+        LOG.debug("Getting current room");
+        try {
+            final var request = newRequestBuilder(auth, "/rooms?mode=participated&type_group=realtime&is_active=true")
+                    .GET()
+                    .build();
+
+            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+
+            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+                return null;
+            }
+
+            final JsonArray arr = JsonParser.parseString(body).getAsJsonArray();
+
+            return GSON.fromJson(arr.get(0), MultiplayerRoom.class);
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ROOM_FETCH_FAILED, "Failed to fetch current room", e);
         }
     }
 
