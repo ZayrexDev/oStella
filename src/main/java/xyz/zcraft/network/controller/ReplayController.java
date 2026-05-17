@@ -6,6 +6,7 @@ import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.score.Score;
@@ -240,18 +241,7 @@ public class ReplayController {
                             OsuAPI.getScore(tokenManager.getTokenData(), id)) //
                     ).toList();
 
-            return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
-                    .thenApply(_ -> scoreFutures.stream()
-                            .map(CompletableFuture::join) // Safe because allOf is finished
-                            .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
-                            .collect(Collectors.toCollection(LinkedList::new))
-                    )
-                    .thenCompose(validScores -> {
-                        final double start = optionalDouble(context, "start");
-                        final double end = optionalDouble(context, "end");
-
-                        return renderShowcaseForAsync(context, validScores, start, end);
-                    });
+            return finalizeScoreRender(context, scoreFutures);
         });
     }
 
@@ -267,22 +257,26 @@ public class ReplayController {
 
             List<CompletableFuture<Score>> scoreFutures = userIds.stream()
                     .map(userId -> executor.enqueueAsync(() ->
-                            OsuAPI.getUserScore(tokenManager.getTokenData(), userId, m))
-                    ).toList();
+                            OsuAPI.getUserScore(tokenManager.getTokenData(), userId, m))).toList();
 
-            return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
-                    .thenApply(_ -> scoreFutures.stream()
-                            .map(CompletableFuture::join)
-                            .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
-                            .collect(Collectors.toCollection(LinkedList::new))
-                    )
-                    .thenCompose(validScores -> {
-                        final double start = optionalDouble(context, "start");
-                        final double end = optionalDouble(context, "end");
-
-                        return renderShowcaseForAsync(context, validScores, start, end);
-                    });
+            return finalizeScoreRender(context, scoreFutures);
         });
+    }
+
+    @NonNull
+    private CompletableFuture<?> finalizeScoreRender(@NotNull Context context, List<CompletableFuture<Score>> scoreFutures) {
+        return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
+                .thenApply(_ -> scoreFutures.stream()
+                        .map(CompletableFuture::join)
+                        .filter(s -> s != null && s.getHasReplay())
+                        .collect(Collectors.toCollection(LinkedList::new))
+                )
+                .thenCompose(validScores -> {
+                    final double start = optionalDouble(context, "start");
+                    final double end = optionalDouble(context, "end");
+
+                    return renderShowcaseForAsync(context, validScores, start, end);
+                });
     }
 
     private void renderShowcaseOfUsersRefAsync(@NotNull Context context) {
