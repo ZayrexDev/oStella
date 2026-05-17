@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.DiffSpec;
+import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
 import xyz.zcraft.network.ApiException;
 import xyz.zcraft.network.ErrorCode;
@@ -60,6 +61,7 @@ public class BeatmapController {
                     final BeatmapExtended beatmapExtended = beatmaps.get(i - 1);
                     beatmapExtended.setBeatmapset(beatmapset);
                     context.header("X-Beatmap-Id", String.valueOf(beatmapExtended.getId()));
+                    context.header("X-Beatmapset-Id", String.valueOf(beatmapExtended.getBeatmapsetId()));
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmapExtended -> {
@@ -85,6 +87,7 @@ public class BeatmapController {
                             .orElseThrow(() -> new ApiException(ErrorCode.NO_BEATMAP_FOUND, "No beatmap found"));
                     beatmapExtended.setBeatmapset(beatmapset);
                     context.header("X-Beatmap-Id", String.valueOf(beatmapExtended.getId()));
+                    context.header("X-Beatmapset-Id", String.valueOf(beatmapExtended.getBeatmapsetId()));
 
                     return beatmapExtended;
                 })
@@ -104,9 +107,15 @@ public class BeatmapController {
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty())
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found");
-                    final var beatmapId = scores.getLast().getBeatmap().getId();
-                    final var beatmapsetId = scores.getLast().getBeatmapset().getId();
+
+                    final Score score = scores.get(i - 1);
+
+                    final var beatmapId = score.getBeatmap().getId();
+                    final var beatmapsetId = score.getBeatmapset().getId();
+
                     context.header("X-Beatmap-Id", String.valueOf(beatmapId));
+                    context.header("X-Beatmapset-Id", String.valueOf(beatmapsetId));
+
                     return executor
                             .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(beatmapsetId)))
                             .thenApply(beatmapset -> {
