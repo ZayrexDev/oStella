@@ -70,7 +70,7 @@ public class Router implements Closeable {
         LOG.info("Router created");
     }
 
-    protected void searchBeatmapSetAsync(@NotNull Context context) {
+    protected void searchBeatmapSet(@NotNull Context context) {
         final String query = requireString(context, "q");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.searchBeatmapset(tokenManager.getTokenData(), query))
@@ -88,7 +88,7 @@ public class Router implements Closeable {
                 ));
     }
 
-    protected void getLeaderBoardAsync(@NotNull Context context) {
+    protected void getLeaderBoard(@NotNull Context context) {
         final String us = requireString(context, "u");
         final List<String> ids = Arrays.stream(us.split(",")).distinct().toList();
 
@@ -131,7 +131,7 @@ public class Router implements Closeable {
                 .thenAccept(r -> context.status(200).result(new Response(true, "Bypass successful", r).toString()));
     }
 
-    protected void getServerStatusAsync(@NotNull Context context) {
+    protected void getServerStatus(@NotNull Context context) {
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData()))
                 .thenAccept(r -> context.status(200)
@@ -145,7 +145,32 @@ public class Router implements Closeable {
 
     }
 
-    protected void getRecentScoresAsync(@NotNull Context context) {
+    protected void getFriends(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if(auth == null) {
+            context.status(401)
+                    .result(Response.error("Missing Authorization header", ErrorCode.UNAUTHORIZED).toString());
+            return;
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getFriends(auth))
+                .thenApply(r -> {
+                    JsonArray arr = new JsonArray();
+                    r.forEach(u -> {
+                        JsonObject json = new JsonObject();
+                        json.addProperty("id", u.getId());
+                        json.addProperty("username", u.getUsername());
+                        arr.add(json);
+                    });
+                    return arr;
+                })
+                .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString()))
+        );
+    }
+
+    protected void getRecentScores(@NotNull Context context) {
         final String u = requireNumberString(context, "u");
         final String n = requireNumberString(context, "n");
 
@@ -164,7 +189,7 @@ public class Router implements Closeable {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    protected void getMultiplayerRoomsAsync(@NotNull Context context) {
+    protected void getMultiplayerRooms(@NotNull Context context) {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
                 .thenApply(rooms -> {
                     if (rooms == null || rooms.isEmpty()) {
@@ -183,7 +208,7 @@ public class Router implements Closeable {
                 .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString())));
     }
 
-    protected void getDailyAsync(@NotNull Context context) {
+    protected void getDaily(@NotNull Context context) {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
                 .thenApply(rooms -> {
                     if (rooms == null || rooms.isEmpty()) {
@@ -213,7 +238,7 @@ public class Router implements Closeable {
                 .thenAccept(data -> context.status(200).result(new Response(true, "Success", data).toString())));
     }
 
-    protected void getBestOfNAsync(@NotNull Context context) {
+    protected void getBestOfN(@NotNull Context context) {
         final String u = requireNumberString(context, "u");
         final String n = requireNumberString(context, "n");
 

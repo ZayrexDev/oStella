@@ -2,6 +2,7 @@ package xyz.zcraft.network.controller;
 
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
+import xyz.zcraft.model.beatmap.Beatmap;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
 import xyz.zcraft.network.ApiException;
@@ -12,6 +13,7 @@ import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.TokenManager;
 
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.util.RequestUtil.requireNumberString;
@@ -29,7 +31,7 @@ public class BeatmapsetController {
         this.executor = router.executor;
     }
 
-    public void getBeatmapsetAsync(@NotNull Context context) {
+    public void getBeatmapset(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             getBeatmapsetOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
@@ -67,7 +69,7 @@ public class BeatmapsetController {
 
     private byte[] finalizeBeatmapset(Beatmapset beatmapset, Context context) {
         if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
-        beatmapset.getBeatmaps().sort((b1, b2) -> Double.compare(b1.getDifficultyRating(), b2.getDifficultyRating()));
+        beatmapset.getBeatmaps().sort(Comparator.comparingDouble(Beatmap::getDifficultyRating));
         context.header("X-Beatmapset-Id", beatmapset.getId().toString())
                 .header("X-Beatmap-Ids", beatmapset.getBeatmaps().stream()
                         .map(BeatmapExtended::getId)

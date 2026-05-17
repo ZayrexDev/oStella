@@ -41,7 +41,7 @@ public class PKController {
         this.cacheService = router.cacheService;
     }
 
-    public void getPKAsync(@NotNull Context context) {
+    public void getPK(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             getPKOfRefAsync(context);
         } else {

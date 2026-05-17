@@ -45,7 +45,7 @@ public class ReplayController {
         this.executor = router.executor;
     }
 
-    public void queueReplayRenderAsync(@NotNull Context context) {
+    public void queueReplayRender(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             queueReplayRenderOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
@@ -57,7 +57,7 @@ public class ReplayController {
         }
     }
     
-    public void queueShowcaseRenderAsync(@NotNull Context context) {
+    public void queueShowcaseRender(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             renderShowcaseOfUsersRefAsync(context);
         } else if (context.queryParam("u") != null) {

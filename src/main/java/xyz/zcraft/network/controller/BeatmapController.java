@@ -35,7 +35,7 @@ public class BeatmapController {
         this.executor = router.executor;
     }
 
-    public void getBeatmapAsync(@NotNull Context context) {
+    public void getBeatmap(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             getBeatmapOfRefAsync(context);
         } else if (context.queryParam("ms") != null) {

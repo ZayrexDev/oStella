@@ -30,7 +30,7 @@ public class ScoreController {
         this.tokenManager = router.tokenManager;
     }
 
-    public void getScoreAsync(@NotNull Context context) {
+    public void getScore(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             getScoreOfRefAsync(context);
         } else if (context.queryParam("m") != null) {

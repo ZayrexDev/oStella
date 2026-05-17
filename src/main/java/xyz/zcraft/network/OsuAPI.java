@@ -394,11 +394,15 @@ public class OsuAPI {
     }
 
     private static HttpRequest.Builder newRequestBuilder(TokenData tokenData, String endpoint) {
+        return newRequestBuilder("Bearer " + tokenData.token(), endpoint);
+    }
+
+    private static HttpRequest.Builder newRequestBuilder(String auth, String endpoint) {
         return HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + endpoint))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + tokenData.token());
+                .header("Authorization", auth);
     }
 
     public static byte[] getImageBytes(String url) {
@@ -463,6 +467,35 @@ public class OsuAPI {
             return response.statusCode() == 200;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    public static List<User> getFriends(String auth) {
+        LOG.debug("Fetching friends");
+        try {
+            final var request = newRequestBuilder(auth, "/friends")
+                    .GET()
+                    .build();
+
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for friend list"
+                );
+            }
+
+            final JsonArray users = JsonParser.parseString(response.body()).getAsJsonArray();
+            final LinkedList<User> userList = new LinkedList<>();
+            users.forEach(u -> userList.add(GSON.fromJson(u, User.class)));
+            return userList;
+        } catch (IOException | InterruptedException e) {
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
         }
     }
 }
