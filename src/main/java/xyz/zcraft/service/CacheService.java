@@ -192,28 +192,22 @@ public class CacheService {
         final Path folderPath = DANSER_SONG_CACHE.resolve(id);
 
         if (Files.exists(folderPath) && Files.isDirectory(folderPath)) {
-            ZipOutputStream zos = new ZipOutputStream(out);
+            try (ZipOutputStream zos = new ZipOutputStream(out);
+                 Stream<Path> files = Files.walk(folderPath)) {
+                zos.setLevel(Deflater.BEST_COMPRESSION);
 
-            zos.setLevel(Deflater.BEST_COMPRESSION);
-
-            try (Stream<Path> files = Files.list(folderPath)) {
-                files.forEach(path -> {
+                files.filter(Files::isRegularFile).forEach(path -> {
                     try {
-                        String zipEntryName = folderPath.relativize(path).toString();
+                        String zipEntryName = folderPath.relativize(path).toString().replace('\\', '/');
 
                         zos.putNextEntry(new ZipEntry(zipEntryName));
-
                         Files.copy(path, zos);
-
                         zos.closeEntry();
                     } catch (IOException e) {
                         throw new UncheckedIOException("Failed to zip file: " + path, e);
                     }
                 });
             }
-
-            zos.close();
-            out.close();
         }
 
     }
