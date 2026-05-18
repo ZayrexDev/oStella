@@ -1,9 +1,6 @@
 package xyz.zcraft.network;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.config.AppConfig;
@@ -132,11 +129,13 @@ public class OsuAPI {
 
             final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
 
-            if (JsonParser.parseString(body).getAsJsonObject().has("error")) {
+            final JsonElement jsonElement = JsonParser.parseString(body);
+
+            if (jsonElement.isJsonObject() && jsonElement.getAsJsonObject().has("error")) {
                 return null;
             }
 
-            final JsonArray arr = JsonParser.parseString(body).getAsJsonArray();
+            final JsonArray arr = jsonElement.getAsJsonArray();
 
             return GSON.fromJson(arr.get(0), MultiplayerRoom.class);
         } catch (Exception e) {

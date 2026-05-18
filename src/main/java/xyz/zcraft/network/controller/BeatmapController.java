@@ -119,7 +119,7 @@ public class BeatmapController {
 
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
-                .thenApplyAsync(room -> {
+                .thenCompose(room -> {
                     if (room == null)
                         throw new ApiException(ErrorCode.NO_ROOM_FOUND, "No multiplayer room found");
 
@@ -127,18 +127,19 @@ public class BeatmapController {
                     if (currentPlaylistItem == null || currentPlaylistItem.getBeatmap() == null)
                         throw new ApiException(ErrorCode.NO_BEATMAP_FOUND, "No beatmap found for current multiplayer room");
 
-                    final BeatmapExtended beatmap = currentPlaylistItem.getBeatmap();
-                    final var beatmapId = beatmap.getId();
-                    final var beatmapsetId = beatmap.getBeatmapsetId();
+                    final BeatmapExtended currentBm = currentPlaylistItem.getBeatmap();
+                    final var beatmapId = currentBm.getId();
+                    final var beatmapsetId = currentBm.getBeatmapsetId();
 
                     context.header("X-Beatmap-Id", String.valueOf(beatmapId));
                     context.header("X-Beatmapset-Id", String.valueOf(beatmapsetId));
 
-                    return renderer.renderBeatmap(beatmap, BeatmapUtil.getDiffSpecForMap(
-                            beatmap, router.getRosuPath(beatmap.getId()),
-                            currentPlaylistItem.getRequiredMods().stream().map(Mod::getAcronym).reduce("", String::concat))
-                    );
-                }, renderer.getRenderExecutor())
+                    return executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(beatmapId)))
+                            .thenApplyAsync(beatmap -> renderer.renderBeatmap(beatmap, BeatmapUtil.getDiffSpecForMap(
+                                    beatmap, router.getRosuPath(beatmap.getId()),
+                                    currentPlaylistItem.getRequiredMods().stream().map(Mod::getAcronym).reduce("", String::concat))
+                            ), renderer.getRenderExecutor());
+                })
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
