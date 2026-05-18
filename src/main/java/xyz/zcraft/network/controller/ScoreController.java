@@ -12,6 +12,7 @@ import xyz.zcraft.network.OsuAPI;
 import xyz.zcraft.network.Router;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.RenderService;
+import xyz.zcraft.util.BeatmapUtil;
 import xyz.zcraft.util.TokenManager;
 
 import static xyz.zcraft.util.BeatmapUtil.getDiffSpecForMap;
@@ -54,6 +55,10 @@ public class ScoreController {
 
                     final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
 
+                    if (score.getPp() == null) {
+                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                    }
+
                     return renderer.renderScore(score, diffSpec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -87,11 +92,14 @@ public class ScoreController {
                             score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat)
                     );
 
+                    if (score.getPp() == null) {
+                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                    }
+
                     return renderer.renderScore(score, diffSpec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
-
 
     private void getScoreOfRefAsync(@NotNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
@@ -100,7 +108,13 @@ public class ScoreController {
                 .thenApplyAsync(score -> {
                     context.header("X-Beatmap-Id", String.valueOf(score.getBeatmap().getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
+
                     final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+
+                    if (score.getPp() == null) {
+                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                    }
+
                     return renderer.renderScore(score, diffSpec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -114,6 +128,11 @@ public class ScoreController {
                             score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
                             score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat)
                     );
+
+                    if (score.getPp() == null) {
+                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                    }
+
                     return renderer.renderScore(score, diffSpec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));

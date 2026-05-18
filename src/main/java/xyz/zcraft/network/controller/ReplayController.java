@@ -162,6 +162,10 @@ public class ReplayController {
                             final double start = optionalDouble(context, "start");
                             final double end = optionalDouble(context, "end");
 
+                            if (score.getPp() == null) {
+                                score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                            }
+
                             return renderScoreForAsync(context, score, start, end);
                         })
         );
@@ -182,6 +186,10 @@ public class ReplayController {
                     final double start = optionalDouble(context, "start");
                     final double end = optionalDouble(context, "end");
 
+                    if (score.getPp() == null) {
+                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                    }
+
                     return renderScoreForAsync(context, score, start, end);
                 })
         );
@@ -197,6 +205,10 @@ public class ReplayController {
 
                             final double start = optionalDouble(context, "start");
                             final double end = optionalDouble(context, "end");
+
+                            if (score.getPp() == null) {
+                                score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                            }
 
                             return renderScoreForAsync(context, score, start, end);
                         })
@@ -216,6 +228,10 @@ public class ReplayController {
 
                     final double start = optionalDouble(context, "start");
                     final double end = optionalDouble(context, "end");
+
+                    if (score.getPp() == null) {
+                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                    }
 
                     return renderScoreForAsync(context, score, start, end);
                 })
@@ -312,7 +328,12 @@ public class ReplayController {
                     return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
                             .thenApply(_ -> scoreFutures.stream()
                                     .map(CompletableFuture::join)
-                                    .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
+                                    .filter(s -> s != null && s.getHasReplay())
+                                    .peek(score -> {
+                                        if (score.getPp() == null) {
+                                            score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                                        }
+                                    })
                                     .collect(Collectors.toCollection(LinkedList::new))
                             );
                 }).thenCompose(validScores -> {
