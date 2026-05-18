@@ -34,7 +34,8 @@ public class WebServer implements Closeable {
             cfg.routes
                     .get("/bestof", router::getBestOfN)
                     .get("/daily", router::getDaily)
-                    .get("/mp", router::getMultiplayerRooms)
+                    .get("/mp", router::getCurrentRoom)
+                    .get("/mp/current", router::getCurrentRoomItem)
                     .get("/recent", router::getRecentScores)
                     .get("/beatmap", router.beatmapController::getBeatmap)
                     .get("/beatmapset", router.beatmapsetController::getBeatmapset)

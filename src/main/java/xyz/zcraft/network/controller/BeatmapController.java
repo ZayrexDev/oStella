@@ -2,7 +2,9 @@ package xyz.zcraft.network.controller;
 
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import xyz.zcraft.model.Mod;
+import xyz.zcraft.model.MultiplayerRoom;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.DiffSpec;
 import xyz.zcraft.model.score.Score;
@@ -13,6 +15,7 @@ import xyz.zcraft.network.OsuAPI;
 import xyz.zcraft.network.Router;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.RenderService;
+import xyz.zcraft.util.BeatmapUtil;
 import xyz.zcraft.util.TokenManager;
 
 import java.util.Comparator;
@@ -21,7 +24,6 @@ import java.util.Objects;
 
 import static xyz.zcraft.util.BeatmapUtil.getDiffSpecForMap;
 import static xyz.zcraft.util.RequestUtil.*;
-import static xyz.zcraft.util.RequestUtil.requireNumberString;
 
 public class BeatmapController {
     final RenderService renderer;
@@ -99,7 +101,48 @@ public class BeatmapController {
     }
 
     private void getBeatmapOfRefAsync(@NotNull Context context) {
-        final String of = requireStringFrom(context, "of", "rs", "bo");
+        final String of = requireStringFrom(context, "of", "rs", "bo", "mp");
+
+        if ("mp".equals(of)) {
+            getBeatmapOfSomeRoom(context);
+        } else {
+            getBeatmapOfSomeScore(context, of);
+        }
+    }
+
+    private void getBeatmapOfSomeRoom(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                .thenApplyAsync(room -> {
+                    if (room == null)
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "No multiplayer room found");
+
+                    final MultiplayerRoom.CurrentPlaylistItem currentPlaylistItem = room.getCurrentPlaylistItem();
+                    if (currentPlaylistItem == null || currentPlaylistItem.getBeatmap() == null)
+                        throw new ApiException(ErrorCode.NO_BEATMAP_FOUND, "No beatmap found for current multiplayer room");
+
+                    final BeatmapExtended beatmap = currentPlaylistItem.getBeatmap();
+                    final var beatmapId = beatmap.getId();
+                    final var beatmapsetId = beatmap.getBeatmapsetId();
+
+                    context.header("X-Beatmap-Id", String.valueOf(beatmapId));
+                    context.header("X-Beatmapset-Id", String.valueOf(beatmapsetId));
+
+                    return renderer.renderBeatmap(beatmap, BeatmapUtil.getDiffSpecForMap(
+                            beatmap, router.getRosuPath(beatmap.getId()),
+                            currentPlaylistItem.getRequiredMods().stream().map(Mod::getAcronym).reduce("", String::concat))
+                    );
+                }, renderer.getRenderExecutor())
+                .thenAccept(bytes -> context.status(200).result(bytes)));
+    }
+
+    private void getBeatmapOfSomeScore(@NonNull Context context, @NotNull String of) {
         final int i = requireInt(context, "i");
         final String u = requireNumberString(context, "u");
 

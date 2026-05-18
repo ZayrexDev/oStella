@@ -34,13 +34,13 @@ import static xyz.zcraft.util.RequestUtil.*;
 
 public class Router implements Closeable {
     static final Logger LOG = LogManager.getLogger(Router.class);
-    final Gson GSON = new Gson();
     public final RenderService renderer;
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final ReplayService replayService;
     public final CacheService cacheService;
     public final AppConfig conf;
+    final Gson GSON = new Gson();
     final ReplayController replayController;
     final BeatmapController beatmapController;
     final ScoreController scoreController;
@@ -148,7 +148,7 @@ public class Router implements Closeable {
     protected void getFriends(@NotNull Context context) {
         final String auth = context.header("Authorization");
 
-        if(auth == null) {
+        if (auth == null) {
             context.status(401)
                     .result(Response.error("Missing Authorization header", ErrorCode.UNAUTHORIZED).toString());
             return;
@@ -257,7 +257,7 @@ public class Router implements Closeable {
                 })
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
-    
+
     public String getRosuPath(Long id) {
         return cacheService.getRosuBeatmapPath(String.valueOf(id), true);
     }
@@ -326,5 +326,49 @@ public class Router implements Closeable {
 
                     return scores.get(i - 1);
                 });
+    }
+
+    public void getCurrentRoom(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                .thenApply(room -> {
+                    if (room == null) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "User is not in a room!");
+                    }
+                    return room;
+                })
+                .thenAccept(room -> context.status(200).result(new Response(true, "Success", GSON.toJsonTree(room)).toString()))
+        );
+    }
+
+    public void getCurrentRoomItem(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                .thenApply(room -> {
+                    if (room == null) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "User is not in a room!");
+                    }
+                    return room.getCurrentPlaylistItem();
+                })
+                .thenApply(c -> {
+                    JsonObject res = new JsonObject();
+                    res.addProperty("beatmap_id", c.getBeatmapId());
+                    res.addProperty("beatmapset_id", c.getBeatmap().getBeatmapsetId());
+                    return res;
+                })
+                .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString()))
+        );
     }
 }

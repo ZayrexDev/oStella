@@ -2,6 +2,7 @@ package xyz.zcraft.network.controller;
 
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import xyz.zcraft.model.beatmap.Beatmap;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
@@ -17,6 +18,7 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.util.RequestUtil.requireNumberString;
+import static xyz.zcraft.util.RequestUtil.requireString;
 
 public class BeatmapsetController {
     public final RenderService renderer;
@@ -42,6 +44,32 @@ public class BeatmapsetController {
     }
 
     private void getBeatmapsetOfRefAsync(@NotNull Context context) {
+        final String of = requireString(context, "of");
+        if ("mp".equals(of)) {
+            getBeatmapsetFromCurrentRoom(context);
+        } else {
+            getBeatmapsetFromSomeScore(context);
+        }
+    }
+
+    private void getBeatmapsetFromCurrentRoom(@NonNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                .thenCompose(room -> {
+                    if (room == null) throw new ApiException(ErrorCode.NO_ROOM_FOUND);
+                    return executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), String.valueOf(room.getCurrentPlaylistItem().getBeatmapId())));
+                })
+                .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
+                .thenAccept(bytes -> context.status(200).result(bytes)));
+    }
+
+    private void getBeatmapsetFromSomeScore(@NonNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenCompose(score -> {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
