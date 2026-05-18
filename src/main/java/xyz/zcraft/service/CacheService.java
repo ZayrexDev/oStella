@@ -185,7 +185,6 @@ public class CacheService {
 
         if (Files.exists(oszPath)) {
             Files.copy(oszPath, out);
-            out.close();
             return;
         }
 

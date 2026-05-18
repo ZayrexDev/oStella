@@ -74,6 +74,7 @@ public class BeatmapsetController {
                 .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
                 .thenCompose(room -> {
                     if (room == null) throw new ApiException(ErrorCode.NO_ROOM_FOUND);
+                    if (room.getCurrentPlaylistItem() == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
                     return executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), String.valueOf(room.getCurrentPlaylistItem().getBeatmapId())));
                 })
                 .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
@@ -158,11 +159,18 @@ public class BeatmapsetController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    private void downloadBeatmapsetOfId(@NotNull Context context) throws IOException {
+    private void downloadBeatmapsetOfId(@NotNull Context context) {
         final String ms = requireNumberString(context, "ms");
-        context.contentType("application/zip");
-        context.header("Content-Disposition", "attachment; filename=\"" + ms + ".osz\"");
-        cacheService.extractBeatmapset(String.valueOf(ms), context.outputStream());
+        context.future(() -> executor.enqueueAsync(() -> {
+            context.contentType("application/zip");
+            context.header("Content-Disposition", "attachment; filename=\"" + ms + ".osz\"");
+            try {
+                cacheService.extractBeatmapset(String.valueOf(ms), context.outputStream());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return null;
+        }));
     }
 
     private byte[] finalizeBeatmapset(Beatmapset beatmapset, Context context) {
@@ -181,7 +189,7 @@ public class BeatmapsetController {
         return renderer.renderBeatmapset(beatmapset);
     }
 
-    public void downloadBeatmapset(@NotNull Context context) throws IOException {
+    public void downloadBeatmapset(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             downloadBeatmapsetOfRef(context);
         } else if (context.queryParam("m") != null) {

@@ -127,15 +127,35 @@ public class OsuAPI {
                     .GET()
                     .build();
 
-            final String body = CLIENT.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 
-            final JsonElement jsonElement = JsonParser.parseString(body);
+            if (response.statusCode() == 401 || response.statusCode() == 403) {
+                throw new ApiException(
+                        ErrorCode.UNAUTHORIZED,
+                        "Unauthorized to fetch current room: status " + response.statusCode()
+                );
+            }
 
-            if (jsonElement.isJsonObject() && jsonElement.getAsJsonObject().has("error")) {
-                return null;
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.ROOM_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " while fetching current room"
+                );
+            }
+
+            final JsonElement jsonElement = JsonParser.parseString(response.body());
+            if (!jsonElement.isJsonArray()) {
+                if (jsonElement.isJsonObject() && jsonElement.getAsJsonObject().has("error")) {
+                    return null;
+                }
+                throw new ApiException(ErrorCode.ROOM_FETCH_FAILED, "Unexpected response while fetching current room");
             }
 
             final JsonArray arr = jsonElement.getAsJsonArray();
+
+            if (arr.isEmpty()) {
+                return null;
+            }
 
             return GSON.fromJson(arr.get(0), MultiplayerRoom.class);
         } catch (Exception e) {

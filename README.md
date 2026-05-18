@@ -11,7 +11,7 @@ and also provides a standalone API for other clients to consume.
 - PNG score panels for best (`/bestof`) and recent (`/recent`) osu! scores
 - PNG beatmap card endpoint (`/beatmap`)
 - PNG beatmapset card endpoint (`/beatmapset`)
-- PNG player comparison leaderboard endpoint (`/mapleadboard`)
+- PNG player comparison leaderboard endpoint (`/maplb`)
 - PNG user PP leaderboard endpoint (`/leaderboard`)
 - Replay video generation for solo and multiplayer replay showcases (`/replay`)
 - Multiplayer room summary endpoint (`/mp`)
@@ -90,7 +90,7 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 |--------|----------------|--------------------------------------|--------------------------------|----------|
 | GET    | `/status`      | Service health and osu! API health   | none                           | JSON     |
 | GET    | `/daily`       | Current daily challenge room summary | none                           | JSON     |
-| GET    | `/mp`          | Top multiplayer rooms (up to 20)     | none                           | JSON     |
+| GET    | `/mp`          | Current multiplayer room             | none                           | JSON     |
 | GET    | `/searchms`    | Search beatmapsets                   | `q` (search keyword)           | JSON     |
 | GET    | `/leaderboard` | User PP leaderboard image            | `u` (comma-separated user IDs) | PNG      |
 | GET    | `/bestof`      | Best-of-N scores image               | `u` (user ID), `n` (count)     | PNG      |

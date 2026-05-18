@@ -75,6 +75,8 @@ public class WebServer implements Closeable {
                                  ErrorCode.NO_ROOM_FOUND,
                                  ErrorCode.NO_USER_FOUND -> ctx.status(404);
 
+                            case ErrorCode.UNAUTHORIZED -> ctx.status(401);
+
                             case ErrorCode.ILLEGAL_ARGUMENT,
                                  ErrorCode.REPLAY_UNAVAILABLE -> ctx.status(400);
 

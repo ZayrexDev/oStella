@@ -15,6 +15,7 @@ import xyz.zcraft.network.*;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.ReplayService;
+import xyz.zcraft.util.BeatmapUtil;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.IOException;
@@ -268,6 +269,12 @@ public class ReplayController {
                 .thenApply(_ -> scoreFutures.stream()
                         .map(CompletableFuture::join)
                         .filter(s -> s != null && s.getHasReplay())
+                        .peek(score -> {
+                            if (score.getPp() == null) {
+                                final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(score.getBeatmap().getId()), false);
+                                score.setPp(BeatmapUtil.estimatePp(score, rosuBeatmapPath));
+                            }
+                        })
                         .collect(Collectors.toCollection(LinkedList::new))
                 )
                 .thenCompose(validScores -> {

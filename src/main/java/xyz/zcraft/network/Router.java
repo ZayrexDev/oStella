@@ -157,6 +157,7 @@ public class Router implements Closeable {
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.getFriends(auth))
                 .thenApply(r -> {
+                    if (r == null) throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
                     JsonArray arr = new JsonArray();
                     r.forEach(ur -> {
                         JsonObject json = new JsonObject();
@@ -361,12 +362,21 @@ public class Router implements Closeable {
                     if (room == null) {
                         throw new ApiException(ErrorCode.NO_ROOM_FOUND, "User is not in a room!");
                     }
-                    return room.getCurrentPlaylistItem();
+                    final var currentPlaylistItem = room.getCurrentPlaylistItem();
+                    if (currentPlaylistItem == null) {
+                        throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND, "Room has no current playlist item!");
+                    }
+                    return currentPlaylistItem;
                 })
                 .thenApply(c -> {
+                    final BeatmapExtended beatmap = c.getBeatmap();
+                    if (beatmap == null) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "Current playlist item has no beatmap!");
+                    }
+
                     JsonObject res = new JsonObject();
-                    res.addProperty("beatmap_id", c.getBeatmapId());
-                    res.addProperty("beatmapset_id", c.getBeatmap().getBeatmapsetId());
+                    res.addProperty("beatmap_id", beatmap.getId());
+                    res.addProperty("beatmapset_id", beatmap.getBeatmapsetId());
                     return res;
                 })
                 .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString()))
