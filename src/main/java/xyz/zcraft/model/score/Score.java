@@ -69,7 +69,7 @@ public class Score {
     public Weight weight;
 
     public String getRelativeTime() {
-        if(createdAt == null) return "";
+        if (createdAt == null) return "";
         return getRelativeTimeAgo(createdAt);
     }
 

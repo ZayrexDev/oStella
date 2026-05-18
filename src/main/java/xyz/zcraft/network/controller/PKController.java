@@ -24,8 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.util.RequestUtil.*;
-import static xyz.zcraft.util.RequestUtil.requireNumberString;
-import static xyz.zcraft.util.RequestUtil.requireString;
 
 public class PKController {
     public final RenderService renderer;
@@ -49,6 +47,7 @@ public class PKController {
             getPKOfIdsAsync(context);
         }
     }
+
     private byte[] getPKFinalBytes(LinkedList<Placement> placements, BeatmapExtended beatmap, String rosuBeatmapPath) {
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
              final RosuFFI.Performance perfSS = new RosuFFI.Performance()

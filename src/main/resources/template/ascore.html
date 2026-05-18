@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>oStella - Single Score</title>
@@ -393,21 +393,24 @@
 
 <div class="score-card">
     <div class="hero-banner"
-         th:style="'background-image: url(' + ${cache.getImageSrc(score.getBeatmapset().getCovers().getCover())} + ');'"
-         style="background-image: url('https://assets.ppy.sh/beatmaps/98842/covers/cover.jpg?1622065270');">
+         style="background-image: url('https://assets.ppy.sh/beatmaps/98842/covers/cover.jpg?1622065270');"
+         th:style="'background-image: url(' + ${cache.getImageSrc(score.getBeatmapset().getCovers().getCover())} + ');'">
         <div class="hero-overlay">
             <div class="mod-badges" th:if="${diff.isModded()}">
-                <div class="mod-badge" th:each="amod : ${score.getModsList()}" th:text="${amod.getAcronym()}"
-                     th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'">
+                <div class="mod-badge" th:each="amod : ${score.getModsList()}" th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'"
+                     th:text="${amod.getAcronym()}">
                     HD
                 </div>
             </div>
 
-            <div class="grade-letter" th:text="${score.getRank()}" th:style="'color: ' + ${score.getRankColor()}">S
+            <div class="grade-letter" th:style="'color: ' + ${score.getRankColor()}" th:text="${score.getRank()}">S
             </div>
             <div class="id-info">
-                <div th:text="${'MS' + score.getBeatmapset().getId() + ' - ' + 'M' + score.getBeatmap().getId()}">MS1234567 - M1234567</div>
-                <div th:text="${'U' + score.getUser().getId() + ' - ' + 'S' + score.getId()}">U123456789 - S1234567890</div>
+                <div th:text="${'MS' + score.getBeatmapset().getId() + ' - ' + 'M' + score.getBeatmap().getId()}">
+                    MS1234567 - M1234567
+                </div>
+                <div th:text="${'U' + score.getUser().getId() + ' - ' + 'S' + score.getId()}">U123456789 - S1234567890
+                </div>
             </div>
         </div>
     </div>
@@ -424,7 +427,7 @@
 
             <div class="diff-row">
                 <div class="diff-badge" th:style="'background: ' + ${diff.getDiffColor()} + ';'">
-                    <svg th:styleappend="'fill: ' + ${diff.getDiffTextColor()} + ';'" style="width: 16px; height: 16px;"
+                    <svg style="width: 16px; height: 16px;" th:styleappend="'fill: ' + ${diff.getDiffTextColor()} + ';'"
                          viewBox="0 0 20 20">
                         <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                     </svg>
@@ -444,20 +447,20 @@
 
         <div class="player-info">
             <div class="player-identity">
-                <img th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}"
-                     src="https://osu.ppy.sh/images/flags/AU.png" style="width: 32px; border-radius: 4px;" alt="flag">
+                <img alt="flag"
+                     src="https://osu.ppy.sh/images/flags/AU.png" style="width: 32px; border-radius: 4px;" th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + score.getUser().getCountryCode() + '.png')}">
 
                 <span class="player-name" th:text="${score.getUser().getUsername()}">PlayerName</span>
 
-                <svg th:if="${score.getUser().isSupporter()}" viewBox="0 0 24 24" class="supporter-icon">
+                <svg class="supporter-icon" th:if="${score.getUser().isSupporter()}" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
 
-                <img class="player-avatar" th:src="${cache.getImageSrc(score.getUser().getAvatarUrl())}"
-                     src="https://a.ppy.sh/2" alt="Avatar">
+                <img alt="Avatar" class="player-avatar"
+                     src="https://a.ppy.sh/2" th:src="${cache.getImageSrc(score.getUser().getAvatarUrl())}">
             </div>
             <div class="score-time">
-                <span th:if="${score.getHasReplay()}" class="replay-badge">▶</span>
+                <span class="replay-badge" th:if="${score.getHasReplay()}">▶</span>
                 <span th:text="${score.getRelativeTime()}">15 mins ago</span>
             </div>
             <span class="score-time-long" th:text="${score.getCreatedAt()}">2026-04-19T16:19:16Z</span>
@@ -525,7 +528,7 @@
                 340.2pp
             </div>
             <div class="data-sub">
-                <span th:if="${diff != null}" class="if-fc"
+                <span class="if-fc" th:if="${diff != null}"
                       th:text="'MAX ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">MAX 412.5pp</span>
             </div>
         </div>
@@ -538,7 +541,7 @@
             </div>
             <div class="data-sub">
                 <span th:text="${score.getMaxCombo()} + 'x / ' + ${diff.getMaxCombo()} + 'x'">850x / 908x</span>
-                <span th:if="${score.getIsPerfectCombo()}" class="fc-badge">PERFECT</span>
+                <span class="fc-badge" th:if="${score.getIsPerfectCombo()}">PERFECT</span>
             </div>
         </div>
 

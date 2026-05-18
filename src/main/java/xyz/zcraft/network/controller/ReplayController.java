@@ -25,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.util.RequestUtil.*;
-import static xyz.zcraft.util.RequestUtil.optionalDouble;
 
 public class ReplayController {
     private static final Logger LOG = LogManager.getLogger(ReplayController.class);
@@ -57,7 +56,7 @@ public class ReplayController {
             queueReplayRenderOfIdAsync(context);
         }
     }
-    
+
     public void queueShowcaseRender(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             renderShowcaseOfUsersRefAsync(context);
@@ -67,7 +66,7 @@ public class ReplayController {
             renderShowcaseOfIdsAsync(context);
         }
     }
-    
+
     public void getReplayRenderStatus(@NotNull Context context) {
         String jobId = context.pathParam("jobId");
         ReplayService.JobStatus status = replayService.getJobStatus(jobId);

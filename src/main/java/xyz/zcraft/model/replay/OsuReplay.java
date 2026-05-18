@@ -27,5 +27,6 @@ public record OsuReplay(
             float cursorX,
             float cursorY,
             int key
-    ) {}
+    ) {
+    }
 }

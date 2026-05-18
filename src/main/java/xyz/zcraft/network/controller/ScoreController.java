@@ -70,7 +70,7 @@ public class ScoreController {
                             if (score == null) {
                                 throw new ApiException(ErrorCode.NO_SCORE_FOUND);
                             }
-                    
+
                             context.header("X-Score-Id", String.valueOf(score.getId()));
                             return executor
                                     .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(score.getBeatmap().getBeatmapsetId())))

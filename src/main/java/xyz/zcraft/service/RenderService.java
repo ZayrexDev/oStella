@@ -43,9 +43,9 @@ public class RenderService implements AutoCloseable {
         if (maxWorkers <= 0) {
             throw new IllegalArgumentException("maxWorkers must be greater than 0: " + maxWorkers);
         }
-        
+
         this.cacheService = cacheService;
-        this.renderExecutor  = Executors.newFixedThreadPool(maxWorkers);
+        this.renderExecutor = Executors.newFixedThreadPool(maxWorkers);
 
         LOG.info("Initializing template resolver");
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();

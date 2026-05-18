@@ -7,7 +7,10 @@ import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.TokenData;
 import xyz.zcraft.network.OsuAPI;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -181,9 +184,9 @@ public class CacheService {
         final Path oszPath = DANSER_SONG_CACHE.resolve(id + ".osz");
 
         if (Files.exists(oszPath)) {
-           Files.copy(oszPath, out);
-           out.close();
-           return;
+            Files.copy(oszPath, out);
+            out.close();
+            return;
         }
 
         final Path folderPath = DANSER_SONG_CACHE.resolve(id);

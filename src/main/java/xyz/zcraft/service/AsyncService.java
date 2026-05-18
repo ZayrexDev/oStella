@@ -16,7 +16,7 @@ public class AsyncService {
     public AsyncService(int requestPerSecond) {
         executor = Executors.newVirtualThreadPerTaskExecutor();
         //noinspection UnstableApiUsage
-        this.rateLimiter = RateLimiter.create(Math.max(1,requestPerSecond));
+        this.rateLimiter = RateLimiter.create(Math.max(1, requestPerSecond));
     }
 
     public <T> CompletableFuture<T> enqueueAsync(Supplier<T> supplier) {

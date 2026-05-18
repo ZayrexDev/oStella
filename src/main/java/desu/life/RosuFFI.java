@@ -18,6 +18,28 @@ import java.util.Optional;
 public class RosuFFI {
     private static final Cleaner cleaner = Cleaner.create();
 
+    public static OwnedString debugDifficyltyAttributes(RosuPPLib.DifficultyAttributes attr) throws FFIException {
+        var s = new OwnedString();
+        RosuPPLib.debug_difficylty_attributes(attr, s.getContext());
+        return s;
+    }
+
+    public static OwnedString debugPerformanceAttributes(RosuPPLib.PerformanceAttributes attr) throws FFIException {
+        var s = new OwnedString();
+        RosuPPLib.debug_performance_attributes(attr, s.getContext());
+        return s;
+    }
+
+    public static OwnedString debugScoreState(RosuPPLib.ScoreState attr) throws FFIException {
+        var s = new OwnedString();
+        RosuPPLib.debug_score_state(attr, s.getContext());
+        return s;
+    }
+
+    public static double calculateAccuacy(RosuPPLib.ScoreState state, RosuPPLib.DifficultyAttributes attr, OsuScoreOrigin origin) {
+        return RosuPPLib.calculate_accuacy(state, attr, origin.value);
+    }
+
     public enum Mode {
         /// osu!standard
         Osu(0),
@@ -34,10 +56,6 @@ public class RosuFFI {
             this.value = value;
         }
 
-        public int getValue() {
-            return value;
-        }
-
         public static Mode fromValue(int value) {
             for (Mode v : values()) {
                 if (v.value == value) {
@@ -45,6 +63,10 @@ public class RosuFFI {
                 }
             }
             throw new IllegalArgumentException("Unknown mode value: " + value);
+        }
+
+        public int getValue() {
+            return value;
         }
     }
 
@@ -58,10 +80,6 @@ public class RosuFFI {
             this.value = value;
         }
 
-        public int getValue() {
-            return value;
-        }
-
         public static HitResultPriority fromValue(int value) {
             for (HitResultPriority v : values()) {
                 if (v.value == value) {
@@ -69,6 +87,10 @@ public class RosuFFI {
                 }
             }
             throw new IllegalArgumentException("Unknown mode value: " + value);
+        }
+
+        public int getValue() {
+            return value;
         }
     }
 
@@ -86,10 +108,6 @@ public class RosuFFI {
             this.value = value;
         }
 
-        public int getValue() {
-            return value;
-        }
-
         public static OsuScoreOrigin fromValue(int value) {
             for (OsuScoreOrigin v : values()) {
                 if (v.value == value) {
@@ -97,6 +115,10 @@ public class RosuFFI {
                 }
             }
             throw new IllegalArgumentException("Unknown mode value: " + value);
+        }
+
+        public int getValue() {
+            return value;
         }
     }
 
@@ -117,6 +139,21 @@ public class RosuFFI {
         // JNA 为 dll 名称
         // RosuPPLib INSTANCE = Native.load("rosu_pp_ffi", RosuPPLib.class);
 
+        static {
+
+            // 根据系统选择库文件
+            String libName = System.getProperty("os.name").toLowerCase().contains("win") ? "native/rosu_pp_ffi.dll" : "native/librosu_pp_ffi.so";
+
+            // 从 resources 提取库到临时文件
+            try {
+                File tempFile = extractLibrary(libName);
+                // 加载本地库
+                Native.register(tempFile.getAbsolutePath());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         private static File extractLibrary(String libName) throws IOException {
             // 从 classpath 中读取库文件
             InputStream input = RosuFFI.class.getClassLoader().getResourceAsStream(libName);
@@ -131,21 +168,6 @@ public class RosuFFI {
             Files.copy(input, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             input.close();
             return tempFile;
-        }
-
-        static {
-
-            // 根据系统选择库文件
-            String libName = System.getProperty("os.name").toLowerCase().contains("win") ? "native/rosu_pp_ffi.dll" : "native/librosu_pp_ffi.so";
-
-            // 从 resources 提取库到临时文件
-            try {
-                File tempFile = extractLibrary(libName);
-                // 加载本地库
-                Native.register(tempFile.getAbsolutePath());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
 
         /// Destroys the given instance.
@@ -258,7 +280,7 @@ public class RosuFFI {
         public static native int performance_s_mods(Pointer context, String str);
 
         public static native void performance_passed_objects(Pointer context, long passed_objects);
-        
+
         public static native void performance_legacy_total_score(Pointer context, long legacy_total_score);
 
         public static native void performance_clock_rate(Pointer context, double clock_rate);
@@ -311,7 +333,7 @@ public class RosuFFI {
 
         public static native double performance_get_clock_rate(Pointer context);
 
-        
+
         /// Destroys the given instance.
         ///
         /// # Safety
@@ -443,10 +465,14 @@ public class RosuFFI {
                 this.len = data.length;
             }
 
-            public Sliceu8() {}
+            public Sliceu8() {
+            }
 
-            public static class ByReference extends Sliceu8 implements Structure.ByReference {}
-            public static class ByValue extends Sliceu8 implements Structure.ByValue {}
+            public static class ByReference extends Sliceu8 implements Structure.ByReference {
+            }
+
+            public static class ByValue extends Sliceu8 implements Structure.ByValue {
+            }
         }
 
         @Structure.FieldOrder({"t", "is_some"})
@@ -454,11 +480,14 @@ public class RosuFFI {
             public double t;
             public byte is_some;
 
-            public static class ByReference extends Optionf64 implements Structure.ByReference {}
-            public static class ByValue extends Optionf64 implements Structure.ByValue {}
-
             public Optional<Double> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
+            }
+
+            public static class ByReference extends Optionf64 implements Structure.ByReference {
+            }
+
+            public static class ByValue extends Optionf64 implements Structure.ByValue {
             }
         }
 
@@ -467,11 +496,14 @@ public class RosuFFI {
             public int t;
             public byte is_some;
 
-            public static class ByReference extends Optionu32 implements Structure.ByReference {}
-            public static class ByValue extends Optionu32 implements Structure.ByValue {}
-
             public Optional<Integer> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
+            }
+
+            public static class ByReference extends Optionu32 implements Structure.ByReference {
+            }
+
+            public static class ByValue extends Optionu32 implements Structure.ByValue {
             }
         }
 
@@ -480,11 +512,14 @@ public class RosuFFI {
             public DifficultyAttributes t;
             public byte is_some;
 
-            public static class ByReference extends OptionDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionDifficultyAttributes implements Structure.ByValue {}
-
             public Optional<DifficultyAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
+            }
+
+            public static class ByReference extends OptionDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionDifficultyAttributes implements Structure.ByValue {
             }
         }
 
@@ -493,21 +528,24 @@ public class RosuFFI {
             public PerformanceAttributes t;
             public byte is_some;
 
-            public static class ByReference extends OptionPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionPerformanceAttributes implements Structure.ByValue {}
-
             public Optional<PerformanceAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "aim", "aim_difficult_slider_count", "speed", "flashlight", "slider_factor",
-            "aim_top_weighted_slider_factor", "speed_top_weighted_slider_factor",
-            "speed_note_count", "aim_difficult_strain_count", "speed_difficult_strain_count",
-            "nested_score_per_object", "legacy_score_base_multiplier", "maximum_legacy_combo_score",
+        @Structure.FieldOrder({"aim", "aim_difficult_slider_count", "speed", "flashlight", "slider_factor",
+                "aim_top_weighted_slider_factor", "speed_top_weighted_slider_factor",
+                "speed_note_count", "aim_difficult_strain_count", "speed_difficult_strain_count",
+                "nested_score_per_object", "legacy_score_base_multiplier", "maximum_legacy_combo_score",
                 "ar", "great_hit_window", "ok_hit_window", "meh_hit_window", "hp",
                 "n_circles", "n_sliders", "n_large_ticks", "n_spinners",
-                "stars", "max_combo" })
+                "stars", "max_combo"})
         public static class OsuDifficultyAttributes extends Structure {
             public double aim;                           // Difficulty of the aim skill
             public double aim_difficult_slider_count;    // The number of sliders weighted by difficulty.
@@ -534,14 +572,17 @@ public class RosuFFI {
             public double stars;                        // Final star rating
             public int max_combo;                       // Maximum combo (unsigned int -> int)
 
-            public static class ByReference extends OsuDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends OsuDifficultyAttributes implements Structure.ByValue {}
+            public static class ByReference extends OsuDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OsuDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "difficulty", "pp", "pp_acc", "pp_aim",
-            "pp_flashlight", "pp_speed", "effective_miss_count", "speed_deviation",
-            "combo_based_estimated_miss_count", "score_based_estimated_miss_count",
-            "aim_estimated_slider_breaks", "speed_estimated_slider_breaks" })
+        @Structure.FieldOrder({"difficulty", "pp", "pp_acc", "pp_aim",
+                "pp_flashlight", "pp_speed", "effective_miss_count", "speed_deviation",
+                "combo_based_estimated_miss_count", "score_based_estimated_miss_count",
+                "aim_estimated_slider_breaks", "speed_estimated_slider_breaks"})
         public static class OsuPerformanceAttributes extends Structure {
             public OsuDifficultyAttributes difficulty; // Nested structure for difficulty attributes
             public double pp;                          // Final performance points
@@ -556,14 +597,17 @@ public class RosuFFI {
             public double aim_estimated_slider_breaks;
             public double speed_estimated_slider_breaks;
 
-            public static class ByReference extends OsuPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends OsuPerformanceAttributes implements Structure.ByValue {}
+            public static class ByReference extends OsuPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OsuPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "stamina", "rhythm", "color", "reading",
-            "great_hit_window", "ok_hit_window", "mono_stamina_factor",
-            "mechanical_difficulty", "consistency_factor",
-                "stars", "max_combo", "is_convert" })
+        @Structure.FieldOrder({"stamina", "rhythm", "color", "reading",
+                "great_hit_window", "ok_hit_window", "mono_stamina_factor",
+                "mechanical_difficulty", "consistency_factor",
+                "stars", "max_combo", "is_convert"})
         public static class TaikoDifficultyAttributes extends Structure {
             public double stamina;               // Difficulty of the stamina skill
             public double rhythm;                // Difficulty of the rhythm skill
@@ -578,12 +622,15 @@ public class RosuFFI {
             public int max_combo;                // Maximum combo (unsigned int -> int)
             public boolean is_convert;           // Whether the beatmap is a convert (osu!standard)
 
-            public static class ByReference extends TaikoDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends TaikoDifficultyAttributes implements Structure.ByValue {}
+            public static class ByReference extends TaikoDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends TaikoDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "difficulty", "pp", "pp_acc", "pp_difficulty",
-            "estimated_unstable_rate" })
+        @Structure.FieldOrder({"difficulty", "pp", "pp_acc", "pp_difficulty",
+                "estimated_unstable_rate"})
         public static class TaikoPerformanceAttributes extends Structure {
             public TaikoDifficultyAttributes difficulty;   // Difficulty attributes used for performance calculation
             public double pp;                              // Final performance points
@@ -591,11 +638,14 @@ public class RosuFFI {
             public double pp_difficulty;                   // Strain portion of the final pp
             public Optionf64 estimated_unstable_rate;      // Estimated unstable rate (optional value)
 
-            public static class ByReference extends TaikoPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends TaikoPerformanceAttributes implements Structure.ByValue {}
+            public static class ByReference extends TaikoPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends TaikoPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "stars", "preempt", "n_fruits", "n_droplets", "n_tiny_droplets", "is_convert" })
+        @Structure.FieldOrder({"stars", "preempt", "n_fruits", "n_droplets", "n_tiny_droplets", "is_convert"})
         public static class CatchDifficultyAttributes extends Structure {
             public double stars;        // Final star rating
             public double preempt;      // Time preempt (AR time window)
@@ -604,20 +654,26 @@ public class RosuFFI {
             public int n_tiny_droplets; // Number of tiny droplets (unsigned int -> use int in Java)
             public boolean is_convert;  // Whether the beatmap is a convert (bool)
 
-            public static class ByReference extends CatchDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends CatchDifficultyAttributes implements Structure.ByValue {}
+            public static class ByReference extends CatchDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends CatchDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "difficulty", "pp" })
+        @Structure.FieldOrder({"difficulty", "pp"})
         public static class CatchPerformanceAttributes extends Structure {
             public CatchDifficultyAttributes difficulty; // Nested CatchDifficultyAttributes structure
             public double pp;                            // Final performance points
 
-            public static class ByReference extends CatchPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends CatchPerformanceAttributes implements Structure.ByValue {}
+            public static class ByReference extends CatchPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends CatchPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "stars", "n_objects", "n_hold_notes", "max_combo", "is_convert" })
+        @Structure.FieldOrder({"stars", "n_objects", "n_hold_notes", "max_combo", "is_convert"})
         public static class ManiaDifficultyAttributes extends Structure {
             public double stars;        // Final star rating
             public int n_objects;       // Number of hit objects (unsigned int -> int in Java)
@@ -625,73 +681,91 @@ public class RosuFFI {
             public int max_combo;       // Maximum achievable combo (unsigned int -> int in Java)
             public boolean is_convert;  // Whether the beatmap is a convert
 
-            public static class ByReference extends ManiaDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends ManiaDifficultyAttributes implements Structure.ByValue {}
+            public static class ByReference extends ManiaDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends ManiaDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "difficulty", "pp", "pp_difficulty" })
+        @Structure.FieldOrder({"difficulty", "pp", "pp_difficulty"})
         public static class ManiaPerformanceAttributes extends Structure {
             public ManiaDifficultyAttributes difficulty; // Nested ManiaDifficultyAttributes structure
             public double pp;                            // Final performance points
             public double pp_difficulty;                 // Difficulty portion of the final pp
 
-            public static class ByReference extends ManiaPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends ManiaPerformanceAttributes implements Structure.ByValue {}
+            public static class ByReference extends ManiaPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends ManiaPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionOsuDifficultyAttributes extends Structure {
             public OsuDifficultyAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionOsuDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionOsuDifficultyAttributes implements Structure.ByValue {}
-
             public Optional<OsuDifficultyAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionOsuDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionOsuDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionTaikoDifficultyAttributes extends Structure {
             public TaikoDifficultyAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionTaikoDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionTaikoDifficultyAttributes implements Structure.ByValue {}
-
             public Optional<TaikoDifficultyAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionTaikoDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionTaikoDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionCatchDifficultyAttributes extends Structure {
             public CatchDifficultyAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionCatchDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionCatchDifficultyAttributes implements Structure.ByValue {}
-
             public Optional<CatchDifficultyAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionCatchDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionCatchDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionManiaDifficultyAttributes extends Structure {
             public ManiaDifficultyAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionManiaDifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionManiaDifficultyAttributes implements Structure.ByValue {}
-
             public Optional<ManiaDifficultyAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionManiaDifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionManiaDifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "osu", "taiko", "fruit", "mania", "mode" })
+        @Structure.FieldOrder({"osu", "taiko", "fruit", "mania", "mode"})
         public static class DifficultyAttributes extends Structure {
             public OptionOsuDifficultyAttributes osu;   // Option for osu!difficulty attributes
             public OptionTaikoDifficultyAttributes taiko; // Option for taiko difficulty attributes
@@ -699,63 +773,78 @@ public class RosuFFI {
             public OptionManiaDifficultyAttributes mania; // Option for mania difficulty attributes
             public int mode;                            // Mode enum (osu!, taiko, catch, mania)
 
-            public static class ByReference extends DifficultyAttributes implements Structure.ByReference {}
-            public static class ByValue extends DifficultyAttributes implements Structure.ByValue {}
+            public static class ByReference extends DifficultyAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends DifficultyAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionOsuPerformanceAttributes extends Structure {
             public OsuPerformanceAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionOsuPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionOsuPerformanceAttributes implements Structure.ByValue {}
-
             public Optional<OsuPerformanceAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionOsuPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionOsuPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionTaikoPerformanceAttributes extends Structure {
             public TaikoPerformanceAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionTaikoPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionTaikoPerformanceAttributes implements Structure.ByValue {}
-
             public Optional<TaikoPerformanceAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionTaikoPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionTaikoPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionCatchPerformanceAttributes extends Structure {
             public CatchPerformanceAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionCatchPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionCatchPerformanceAttributes implements Structure.ByValue {}
-
             public Optional<CatchPerformanceAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionCatchPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionCatchPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "t", "is_some" })
+        @Structure.FieldOrder({"t", "is_some"})
         public static class OptionManiaPerformanceAttributes extends Structure {
             public ManiaPerformanceAttributes t;     // Element that is maybe valid
             public byte is_some;                  // 1 means element t is valid
 
-            public static class ByReference extends OptionManiaPerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends OptionManiaPerformanceAttributes implements Structure.ByValue {}
-
             public Optional<ManiaPerformanceAttributes> toOptional() {
                 return is_some == 1 ? Optional.of(t) : Optional.empty();
             }
+
+            public static class ByReference extends OptionManiaPerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends OptionManiaPerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "osu", "taiko", "fruit", "mania", "mode" })
+        @Structure.FieldOrder({"osu", "taiko", "fruit", "mania", "mode"})
         public static class PerformanceAttributes extends Structure {
             public OptionOsuPerformanceAttributes osu;   // Option for osu!difficulty attributes
             public OptionTaikoPerformanceAttributes taiko; // Option for taiko difficulty attributes
@@ -763,11 +852,14 @@ public class RosuFFI {
             public OptionManiaPerformanceAttributes mania; // Option for mania difficulty attributes
             public int mode;                            // Mode enum (osu!, taiko, catch, mania)
 
-            public static class ByReference extends PerformanceAttributes implements Structure.ByReference {}
-            public static class ByValue extends PerformanceAttributes implements Structure.ByValue {}
+            public static class ByReference extends PerformanceAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends PerformanceAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "ar", "od_perfect", "od_great", "od_good", "od_ok", "od_meh" })
+        @Structure.FieldOrder({"ar", "od_perfect", "od_great", "od_good", "od_ok", "od_meh"})
         public static class HitWindows extends Structure {
             /// Hit window for approach rate i.e. TimePreempt in milliseconds.
             public Optionf64 ar;
@@ -782,11 +874,14 @@ public class RosuFFI {
             /// Hit window for overall difficulty i.e. time to hit a 50 ("Meh") in milliseconds.
             public Optionf64 od_meh;
 
-            public static class ByReference extends HitWindows implements Structure.ByReference {}
-            public static class ByValue extends HitWindows implements Structure.ByValue {}
+            public static class ByReference extends HitWindows implements Structure.ByReference {
+            }
+
+            public static class ByValue extends HitWindows implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "ar", "od", "cs", "hp", "clock_rate", "hit_windows" })
+        @Structure.FieldOrder({"ar", "od", "cs", "hp", "clock_rate", "hit_windows"})
         public static class BeatmapAttributes extends Structure {
             public double ar;         // Approach rate
             public double od;         // Overall difficulty
@@ -795,12 +890,15 @@ public class RosuFFI {
             public double clock_rate; // Clock rate with respect to mods
             public HitWindows hit_windows; // Nested hit windows structure
 
-            public static class ByReference extends BeatmapAttributes implements Structure.ByReference {}
-            public static class ByValue extends BeatmapAttributes implements Structure.ByValue {}
+            public static class ByReference extends BeatmapAttributes implements Structure.ByReference {
+            }
+
+            public static class ByValue extends BeatmapAttributes implements Structure.ByValue {
+            }
         }
 
-        @Structure.FieldOrder({ "max_combo", "osu_large_tick_hits", "osu_small_tick_hits", "slider_end_hits",
-            "n_geki", "n_katu", "n300", "n100", "n50", "misses", "legacy_total_score" })
+        @Structure.FieldOrder({"max_combo", "osu_large_tick_hits", "osu_small_tick_hits", "slider_end_hits",
+                "n_geki", "n_katu", "n300", "n100", "n50", "misses", "legacy_total_score"})
         public static class ScoreState extends Structure {
             public int max_combo;            // Maximum combo (unsigned int -> int)
             /// "Large tick" hits for osu!standard.
@@ -833,8 +931,11 @@ public class RosuFFI {
             public int misses;               // Current misses (unsigned int -> int)
             public Optionu32 legacy_total_score;
 
-            public static class ByReference extends ScoreState implements Structure.ByReference {}
-            public static class ByValue extends ScoreState implements Structure.ByValue {}
+            public static class ByReference extends ScoreState implements Structure.ByReference {
+            }
+
+            public static class ByValue extends ScoreState implements Structure.ByValue {
+            }
         }
     }
 
@@ -961,11 +1062,6 @@ public class RosuFFI {
             }
         }
 
-        // Method to set clock rate
-        public void setClockRate(double clockRate) {
-            RosuPPLib.beatmap_attributes_clock_rate(getContext(), clockRate);
-        }
-
         // Method to set AR (approach rate)
         public void setAr(float ar) {
             RosuPPLib.beatmap_attributes_ar(getContext(), ar);
@@ -989,6 +1085,11 @@ public class RosuFFI {
         // Method to get the clock rate
         public double getClockRate() {
             return RosuPPLib.beatmap_attributes_get_clock_rate(getContext());
+        }
+
+        // Method to set clock rate
+        public void setClockRate(double clockRate) {
+            RosuPPLib.beatmap_attributes_clock_rate(getContext(), clockRate);
         }
 
         // Method to build BeatmapAttributes
@@ -1045,11 +1146,6 @@ public class RosuFFI {
             RosuPPLib.difficulty_passed_objects(getContext(), passedObjects);
         }
 
-        // Method to set clock rate
-        public void setClockRate(double clockRate) {
-            RosuPPLib.difficulty_clock_rate(getContext(), clockRate);
-        }
-
         // Method to set AR (approach rate)
         public void setAr(float ar) {
             RosuPPLib.difficulty_ar(getContext(), ar);
@@ -1088,6 +1184,11 @@ public class RosuFFI {
         // Method to get clock rate
         public double getClockRate() {
             return RosuPPLib.difficulty_get_clock_rate(getContext());
+        }
+
+        // Method to set clock rate
+        public void setClockRate(double clockRate) {
+            RosuPPLib.difficulty_clock_rate(getContext(), clockRate);
         }
 
         // Getter for context
@@ -1149,11 +1250,6 @@ public class RosuFFI {
             RosuPPLib.performance_passed_objects(getContext(), passedObjects);
         }
 
-        // Method to set clock rate
-        public void setClockRate(double clockRate) {
-            RosuPPLib.performance_clock_rate(getContext(), clockRate);
-        }
-
         // Method to set AR (approach rate)
         public void setAr(float ar) {
             RosuPPLib.performance_ar(getContext(), ar);
@@ -1189,7 +1285,7 @@ public class RosuFFI {
         }
 
         public void setState(RosuPPLib.ScoreState state) {
-            RosuPPLib.performance_state(getContext(), (RosuPPLib.ScoreState.ByValue)state);
+            RosuPPLib.performance_state(getContext(), (RosuPPLib.ScoreState.ByValue) state);
         }
 
         public void setAccuracy(double accuracy) {
@@ -1207,7 +1303,6 @@ public class RosuFFI {
         public void setSmallTickHits(long smallTickHits) {
             RosuPPLib.performance_small_tick_hits(getContext(), smallTickHits);
         }
-
 
         public void setSliderEndHits(long sliderEndHits) {
             RosuPPLib.performance_slider_end_hits(getContext(), sliderEndHits);
@@ -1243,7 +1338,7 @@ public class RosuFFI {
         }
 
         public RosuPPLib.ScoreState generateStateFromDifficulty(RosuPPLib.DifficultyAttributes difficultyAttributes) {
-            return RosuPPLib.performance_generate_state_from_difficulty(getContext(), (RosuPPLib.DifficultyAttributes.ByValue)difficultyAttributes);
+            return RosuPPLib.performance_generate_state_from_difficulty(getContext(), (RosuPPLib.DifficultyAttributes.ByValue) difficultyAttributes);
         }
 
         // Method to calculate PerformanceAttributes from beatmap
@@ -1253,12 +1348,17 @@ public class RosuFFI {
 
         // Method to calculate PerformanceAttributes from DifficultyAttributes
         public RosuPPLib.PerformanceAttributes calculateFromDifficulty(RosuPPLib.DifficultyAttributes difficultyAttributes) {
-            return RosuPPLib.performance_calculate_from_difficulty(getContext(), (RosuPPLib.DifficultyAttributes.ByValue)difficultyAttributes);
+            return RosuPPLib.performance_calculate_from_difficulty(getContext(), (RosuPPLib.DifficultyAttributes.ByValue) difficultyAttributes);
         }
 
         // Method to get clock rate
         public double getClockRate() {
             return RosuPPLib.performance_get_clock_rate(getContext());
+        }
+
+        // Method to set clock rate
+        public void setClockRate(double clockRate) {
+            RosuPPLib.performance_clock_rate(getContext(), clockRate);
         }
 
         // Getter for context
@@ -1372,15 +1472,15 @@ public class RosuFFI {
         }
 
         public RosuPPLib.OptionPerformanceAttributes.ByValue Next(RosuPPLib.ScoreState state) {
-            return RosuPPLib.gradual_performance_next(getContext(), (RosuPPLib.ScoreState.ByValue)state);
+            return RosuPPLib.gradual_performance_next(getContext(), (RosuPPLib.ScoreState.ByValue) state);
         }
 
         public RosuPPLib.OptionPerformanceAttributes.ByValue Last(RosuPPLib.ScoreState state) {
-            return RosuPPLib.gradual_performance_last(getContext(), (RosuPPLib.ScoreState.ByValue)state);
+            return RosuPPLib.gradual_performance_last(getContext(), (RosuPPLib.ScoreState.ByValue) state);
         }
 
         public RosuPPLib.OptionPerformanceAttributes.ByValue Nth(long n, RosuPPLib.ScoreState state) {
-            return RosuPPLib.gradual_performance_nth(getContext(), (RosuPPLib.ScoreState.ByValue)state, n);
+            return RosuPPLib.gradual_performance_nth(getContext(), (RosuPPLib.ScoreState.ByValue) state, n);
         }
 
         public long Len() {
@@ -1504,7 +1604,6 @@ public class RosuFFI {
         }
     }
 
-
     public static class OwnedString {
 
         @SuppressWarnings("unused")
@@ -1560,30 +1659,9 @@ public class RosuFFI {
         }
     }
 
-    public static OwnedString debugDifficyltyAttributes(RosuPPLib.DifficultyAttributes attr) throws FFIException {
-        var s = new OwnedString();
-        RosuPPLib.debug_difficylty_attributes(attr, s.getContext());
-        return s;
-    }
-
-    public static OwnedString debugPerformanceAttributes(RosuPPLib.PerformanceAttributes attr) throws FFIException {
-        var s = new OwnedString();
-        RosuPPLib.debug_performance_attributes(attr, s.getContext());
-        return s;
-    }
-
-    public static OwnedString debugScoreState(RosuPPLib.ScoreState attr) throws FFIException {
-        var s = new OwnedString();
-        RosuPPLib.debug_score_state(attr, s.getContext());
-        return s;
-    }
-
-    public static double calculateAccuacy(RosuPPLib.ScoreState state, RosuPPLib.DifficultyAttributes attr, OsuScoreOrigin origin) {
-        return RosuPPLib.calculate_accuacy(state, attr, origin.value);
-    }
-
     public static class FFIException extends Exception {
         public int code;
+
         public FFIException(String message, int code) {
             super(message + ", code: " + code);
             this.code = code;

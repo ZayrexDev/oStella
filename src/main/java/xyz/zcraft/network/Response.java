@@ -14,6 +14,10 @@ public class Response {
     private String message;
     private JsonElement data;
 
+    public static Response error(String message, ErrorCode errorCode) {
+        return new Response(false, message, errorCode.toJson());
+    }
+
     @Override
     public String toString() {
         final JsonObject obj = new JsonObject();
@@ -22,9 +26,5 @@ public class Response {
         obj.add("data", data);
 
         return obj.toString();
-    }
-
-    public static Response error(String message, ErrorCode errorCode) {
-        return new Response(false, message, errorCode.toJson());
     }
 }

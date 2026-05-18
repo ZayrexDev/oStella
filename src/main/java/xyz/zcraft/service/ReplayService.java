@@ -249,7 +249,7 @@ public class ReplayService implements Closeable {
                 return Files.newInputStream(configPath);
             } else {
                 LOG.warn("Custom danser config file does not exist at '{}', default config will be used.",
-                         configPath.toAbsolutePath().normalize());
+                        configPath.toAbsolutePath().normalize());
             }
         }
 
