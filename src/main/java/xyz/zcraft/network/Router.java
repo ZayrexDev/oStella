@@ -22,6 +22,7 @@ import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
 import xyz.zcraft.service.ReplayService;
+import xyz.zcraft.util.BeatmapUtil;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.Closeable;
@@ -157,7 +158,8 @@ public class Router implements Closeable {
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.getFriends(auth))
                 .thenApply(r -> {
-                    if (r == null) throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
+                    if (r == null)
+                        throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
                     JsonArray arr = new JsonArray();
                     r.forEach(ur -> {
                         JsonObject json = new JsonObject();
@@ -186,6 +188,13 @@ public class Router implements Closeable {
                             }
                             context.header("X-User-Id", String.valueOf(user.getId()));
                             context.header("X-Score-Ids", scores.stream().map(Score::getId).map(String::valueOf).collect(Collectors.joining(",")));
+
+                            for (Score score : scores) {
+                                if (score.getPp() == null) {
+                                    score.setPp(BeatmapUtil.estimatePp(score, getRosuPath(score.getBeatmap().getId())));
+                                }
+                            }
+
                             return renderer.renderScores(user, scores, ScoreType.RECENT);
                         }, renderer.getRenderExecutor()))
                 .thenAccept(bytes -> context.status(200).result(bytes)));
