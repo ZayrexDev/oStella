@@ -11,9 +11,11 @@ import xyz.zcraft.network.ErrorCode;
 import xyz.zcraft.network.OsuAPI;
 import xyz.zcraft.network.Router;
 import xyz.zcraft.service.AsyncService;
+import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
 import xyz.zcraft.util.TokenManager;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
@@ -25,12 +27,14 @@ public class BeatmapsetController {
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final Router router;
+    public final CacheService cacheService;
 
     public BeatmapsetController(Router router) {
         this.router = router;
         this.renderer = router.renderer;
         this.tokenManager = router.tokenManager;
         this.executor = router.executor;
+        this.cacheService = router.cacheService;
     }
 
     public void getBeatmapset(@NotNull Context context) {
@@ -52,6 +56,15 @@ public class BeatmapsetController {
         }
     }
 
+    private void downloadBeatmapsetOfRef(@NotNull Context context) {
+        final String of = requireString(context, "of");
+        if ("mp".equals(of)) {
+            downloadBeatmapsetFromCurrentRoom(context);
+        } else {
+            downloadBeatmapsetFromSomeScore(context);
+        }
+    }
+
     private void getBeatmapsetFromCurrentRoom(@NonNull Context context) {
         final String auth = context.header("Authorization");
 
@@ -69,6 +82,28 @@ public class BeatmapsetController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
+    private void downloadBeatmapsetFromCurrentRoom(@NonNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                .thenAccept(room -> {
+                    if (room == null) throw new ApiException(ErrorCode.NO_ROOM_FOUND);
+                    final Long beatmapsetId = room.getCurrentPlaylistItem().getBeatmap().getBeatmapsetId();
+                    context.contentType("application/zip");
+                    context.header("Content-Disposition", "attachment; filename=\"" + beatmapsetId + ".osz\"");
+                    try {
+                        cacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }));
+    }
+
     private void getBeatmapsetFromSomeScore(@NonNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenCompose(score -> {
@@ -79,6 +114,21 @@ public class BeatmapsetController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
+    private void downloadBeatmapsetFromSomeScore(@NonNull Context context) {
+        context.future(() -> router.getScoreFromRefAsync(context)
+                .thenAccept(score -> {
+                    if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
+                    final Long beatmapsetId = score.getBeatmap().getBeatmapsetId();
+                    context.contentType("application/zip");
+                    context.header("Content-Disposition", "attachment; filename=\"" + beatmapsetId + ".osz\"");
+                    try {
+                        cacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }));
+    }
+
     private void getBeatmapsetOfMapAsync(@NotNull Context context) {
         final String m = requireNumberString(context, "m");
 
@@ -87,12 +137,34 @@ public class BeatmapsetController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
+    private void downloadBeatmapsetOfMap(@NotNull Context context) {
+        final String m = requireNumberString(context, "m");
+
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
+                .thenAccept(beatmapset -> {
+                    context.contentType("application/zip");
+                    context.header("Content-Disposition", "attachment; filename=\"" + beatmapset.getId() + ".osz\"");
+                    try {
+                        cacheService.extractBeatmapset(String.valueOf(beatmapset.getId()), context.outputStream());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }));
+    }
+
     private void getBeatmapsetOfIdAsync(@NotNull Context context) {
         final String ms = requireNumberString(context, "ms");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
                 .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
+    }
+
+    private void downloadBeatmapsetOfId(@NotNull Context context) throws IOException {
+        final String ms = requireNumberString(context, "ms");
+        context.contentType("application/zip");
+        context.header("Content-Disposition", "attachment; filename=\"" + ms + ".osz\"");
+        cacheService.extractBeatmapset(String.valueOf(ms), context.outputStream());
     }
 
     private byte[] finalizeBeatmapset(Beatmapset beatmapset, Context context) {
@@ -109,5 +181,15 @@ public class BeatmapsetController {
                         .collect(Collectors.joining(",")));
 
         return renderer.renderBeatmapset(beatmapset);
+    }
+
+    public void downloadBeatmapset(@NotNull Context context) throws IOException {
+        if (context.queryParam("of") != null) {
+            downloadBeatmapsetOfRef(context);
+        } else if (context.queryParam("m") != null) {
+            downloadBeatmapsetOfMap(context);
+        } else {
+            downloadBeatmapsetOfId(context);
+        }
     }
 }

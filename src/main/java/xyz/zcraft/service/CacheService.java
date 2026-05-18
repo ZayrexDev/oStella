@@ -7,8 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.model.TokenData;
 import xyz.zcraft.network.OsuAPI;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -23,6 +22,9 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.stream.Stream;
+import java.util.zip.Deflater;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class CacheService {
     private static final Logger LOG = LogManager.getLogger(CacheService.class);
@@ -169,6 +171,48 @@ public class CacheService {
         }
 
         return true;
+    }
+
+    public void extractBeatmapset(String id, OutputStream out) throws IOException {
+        if (!cacheBeatmapset(id)) {
+            return;
+        }
+
+        final Path oszPath = DANSER_SONG_CACHE.resolve(id + ".osz");
+
+        if (Files.exists(oszPath)) {
+           Files.copy(oszPath, out);
+           out.close();
+           return;
+        }
+
+        final Path folderPath = DANSER_SONG_CACHE.resolve(id);
+
+        if (Files.exists(folderPath) && Files.isDirectory(folderPath)) {
+            ZipOutputStream zos = new ZipOutputStream(out);
+
+            zos.setLevel(Deflater.BEST_COMPRESSION);
+
+            try (Stream<Path> files = Files.list(folderPath)) {
+                files.forEach(path -> {
+                    try {
+                        String zipEntryName = folderPath.relativize(path).toString();
+
+                        zos.putNextEntry(new ZipEntry(zipEntryName));
+
+                        Files.copy(path, zos);
+
+                        zos.closeEntry();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException("Failed to zip file: " + path, e);
+                    }
+                });
+            }
+
+            zos.close();
+            out.close();
+        }
+
     }
 
     private boolean downloadNekoha(String id, Path beatmapsetPath) {

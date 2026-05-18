@@ -44,7 +44,8 @@ public class WebServer implements Closeable {
                     .get("/maplb", router.pkController::getPK)
                     .get("/leaderboard", router::getLeaderBoard)
                     .get("/status", router::getServerStatus)
-                    .get("/friends", router::getFriends);
+                    .get("/friends", router::getFriends)
+                    .get("/dl", router.beatmapsetController::downloadBeatmapset);
 
             if (conf.replayRender().enabled()) {
                 cfg.routes
