@@ -158,10 +158,11 @@ public class Router implements Closeable {
                 .enqueueAsync(() -> OsuAPI.getFriends(auth))
                 .thenApply(r -> {
                     JsonArray arr = new JsonArray();
-                    r.forEach(u -> {
+                    r.forEach(ur -> {
                         JsonObject json = new JsonObject();
-                        json.addProperty("id", u.getId());
-                        json.addProperty("username", u.getUsername());
+                        json.addProperty("id", ur.targetId());
+                        json.addProperty("username", ur.target().getUsername());
+                        json.addProperty("mutual", ur.mutual());
                         arr.add(json);
                     });
                     return arr;

@@ -15,6 +15,7 @@ import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
 import xyz.zcraft.model.user.User;
 import xyz.zcraft.model.user.UserExtended;
+import xyz.zcraft.model.user.UserRelation;
 
 import java.io.IOException;
 import java.net.URI;
@@ -491,10 +492,11 @@ public class OsuAPI {
         }
     }
 
-    public static List<User> getFriends(String auth) {
+    public static List<UserRelation> getFriends(String auth) {
         LOG.debug("Fetching friends");
         try {
             final var request = newRequestBuilder(auth, "/friends")
+                    .header("X-Api-Version", "20241022")
                     .GET()
                     .build();
 
@@ -512,8 +514,8 @@ public class OsuAPI {
             }
 
             final JsonArray users = JsonParser.parseString(response.body()).getAsJsonArray();
-            final LinkedList<User> userList = new LinkedList<>();
-            users.forEach(u -> userList.add(GSON.fromJson(u, User.class)));
+            final LinkedList<UserRelation> userList = new LinkedList<>();
+            users.forEach(u -> userList.add(GSON.fromJson(u, UserRelation.class)));
             return userList;
         } catch (IOException | InterruptedException e) {
             throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
