@@ -7,6 +7,7 @@ import desu.life.RosuFFI;
 import xyz.zcraft.model.Mod;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.DiffSpec;
+import xyz.zcraft.model.score.Score;
 import xyz.zcraft.network.ApiException;
 import xyz.zcraft.network.ErrorCode;
 
@@ -125,6 +126,26 @@ public class BeatmapUtil {
             return diffSpec;
         } catch (RosuFFI.FFIException e) {
             throw new ApiException(ErrorCode.ROSU_ERROR, "Failed to calculate difficulty with RosuFFI: " + e.getMessage(), e);
+        }
+    }
+
+    public static double estimatePp(Score score, String rosuPath) {
+        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuPath);
+             final RosuFFI.Performance perf = new RosuFFI.Performance()
+        ) {
+            perf.setMods(RosuFFI.Mods.fromAcronyms(score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat), RosuFFI.Mode.Osu));
+
+            perf.setAccuracy(score.getAccuracy() * 100);
+            perf.setN300(score.getStatistics().get("count_300"));
+            perf.setN100(score.getStatistics().get("count_100"));
+            perf.setN50(score.getStatistics().get("count_50"));
+            perf.setMisses(score.getStatistics().get("count_miss"));
+
+            var calc = perf.calculate(rosuBeatmap);
+
+            return calc.osu.t.pp;
+        } catch (RosuFFI.FFIException e) {
+            throw new ApiException(ErrorCode.ROSU_ERROR, "Failed to estimate pp with RosuFFI: " + e.getMessage(), e);
         }
     }
 }

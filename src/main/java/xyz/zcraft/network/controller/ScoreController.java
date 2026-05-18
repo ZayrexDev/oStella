@@ -30,7 +30,7 @@ public class ScoreController {
         this.tokenManager = router.tokenManager;
     }
 
-    public void getScoreAsync(@NotNull Context context) {
+    public void getScore(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             getScoreOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
@@ -70,7 +70,7 @@ public class ScoreController {
                             if (score == null) {
                                 throw new ApiException(ErrorCode.NO_SCORE_FOUND);
                             }
-                    
+
                             context.header("X-Score-Id", String.valueOf(score.getId()));
                             return executor
                                     .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(score.getBeatmap().getBeatmapsetId())))

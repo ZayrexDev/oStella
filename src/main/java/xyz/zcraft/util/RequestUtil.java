@@ -19,7 +19,7 @@ public class RequestUtil {
     public static double optionalDouble(Context context, String param) throws ApiException {
         try {
             final String obj = context.queryParam(param);
-            if(obj == null) return Double.NaN;
+            if (obj == null) return Double.NaN;
             return Double.parseDouble(obj);
         } catch (Exception e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);

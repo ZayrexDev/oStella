@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -470,7 +470,7 @@
             overflow: hidden;
             font-size: 0.85em;
             font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             text-transform: lowercase;
         }
 
@@ -478,7 +478,7 @@
             background: rgba(102, 255, 204, 0.15);
             color: #66ffcc;
             padding: 4px 4px;
-            border-right: 1px solid rgba(0,0,0,0.2);
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
         }
 
         .tag-num {
@@ -509,21 +509,21 @@
 <div class="root">
     <div class="main-wrapper">
         <div class="cover-wrapper" style="position: relative;">
-            <div class="rank-status" th:text="${beatmap.status}"
-                 th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'">
+            <div class="rank-status" th:style="'background: ' +  ${beatmap.getStatusColor()} + '; color: ' + ${beatmap.getStatusTextColor()} + ';'"
+                 th:text="${beatmap.status}">
                 Ranked
             </div>
             <div class="badges">
                 <div class="video-badge" th:if="${beatmap.beatmapset.getVideo()}">
-                    <svg viewBox="0 0 1024 1024" width="16" style="fill: white;">
+                    <svg style="fill: white;" viewBox="0 0 1024 1024" width="16">
                         <path d="M934.4 981.312H89.6a46.08 46.08 0 0 1-46.912-46.848V89.6A46.08 46.08 0 0 1 89.6 42.688h844.8a46.08 46.08 0 0 1 46.912 46.848V934.4c0 24.96-20.352 46.848-46.912 46.848zM136.512 887.68h750.976V136.384H136.512v751.232z"></path>
                         <path d="M781.056 979.776a46.08 46.08 0 0 1-46.912-46.848V89.536a46.08 46.08 0 0 1 46.912-46.848 46.08 46.08 0 0 1 46.976 46.848v843.392c0 24.96-20.352 46.848-46.976 46.848zM242.944 772.032H89.6a46.08 46.08 0 0 1-46.912-46.848 46.08 46.08 0 0 1 46.912-46.848h153.344a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.848z"></path>
-                        <path d="M934.4 558.08H89.6a46.08 46.08 0 0 1-46.912-46.848 46.08 46.08 0 0 1 46.912-46.848h844.8a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.848zM242.944 344.128H89.6a46.08 46.08 0 0 1-46.912-46.912 46.08 46.08 0 0 1 46.912-46.848h153.344a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.912zM934.4 772.032h-153.344a46.08 46.08 0 0 1-46.912-46.848 46.08 46.08 0 0 1 46.912-46.848H934.4a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.848zM934.4 344.128h-153.344a46.08 46.08 0 0 1-46.912-46.912 46.08 46.08 0 0 1 46.912-46.848H934.4a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.912z" ></path>
+                        <path d="M934.4 558.08H89.6a46.08 46.08 0 0 1-46.912-46.848 46.08 46.08 0 0 1 46.912-46.848h844.8a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.848zM242.944 344.128H89.6a46.08 46.08 0 0 1-46.912-46.912 46.08 46.08 0 0 1 46.912-46.848h153.344a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.912zM934.4 772.032h-153.344a46.08 46.08 0 0 1-46.912-46.848 46.08 46.08 0 0 1 46.912-46.848H934.4a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.848zM934.4 344.128h-153.344a46.08 46.08 0 0 1-46.912-46.912 46.08 46.08 0 0 1 46.912-46.848H934.4a46.08 46.08 0 0 1 46.912 46.848 46.08 46.08 0 0 1-46.912 46.912z"></path>
                         <path d="M242.88 979.776a46.08 46.08 0 0 1-46.912-46.848V89.536a46.08 46.08 0 0 1 46.912-46.848 46.08 46.08 0 0 1 46.976 46.848v843.392c0 24.96-20.352 46.848-46.976 46.848z"></path>
                     </svg>
                 </div>
                 <div class="storyboard-badge" th:if="${beatmap.beatmapset.getStoryboard()}">
-                    <svg viewBox="0 0 1024 1024" width="16" style="fill: white;">
+                    <svg style="fill: white;" viewBox="0 0 1024 1024" width="16">
                         <path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zM338 304c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64z m513.9 437.1c-1.4 1.2-3.3 1.9-5.2 1.9H177.2c-4.4 0-8-3.6-8-8 0-1.9 0.7-3.7 1.9-5.2l170.3-202c2.8-3.4 7.9-3.8 11.3-1 0.3 0.3 0.7 0.6 1 1l99.4 118 158.1-187.5c2.8-3.4 7.9-3.8 11.3-1 0.3 0.3 0.7 0.6 1 1l229.6 271.6c2.6 3.3 2.2 8.4-1.2 11.2z"></path>
                     </svg>
                 </div>
@@ -531,13 +531,13 @@
                 <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
             </div>
             <div class="mod-badges" th:if="${diff.modded}">
-                <div class="mod-badge" th:each="amod : ${diff.getMods()}" th:text="${amod.getAcronym()}"
-                     th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'">
+                <div class="mod-badge" th:each="amod : ${diff.getMods()}" th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'"
+                     th:text="${amod.getAcronym()}">
                     XY
                 </div>
             </div>
-            <img class="song-cover" th:src="${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())}"
-                 src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" alt="jacket">
+            <img alt="jacket" class="song-cover"
+                 src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" th:src="${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())}">
         </div>
 
         <div class="meta">
@@ -546,7 +546,8 @@
             </div>
             <div class="title-sub">
                 <div class="song-artist" th:text="${beatmap.beatmapset.artist}">This Is An Example Artist</div>
-                <div class="beatmap-id" th:text="${'MS' + beatmap.beatmapset.id + ' - M' + beatmap.id}">MS123465 - M987654
+                <div class="beatmap-id" th:text="${'MS' + beatmap.beatmapset.id + ' - M' + beatmap.id}">MS123465 -
+                    M987654
                 </div>
             </div>
             <div class="diff">
@@ -690,8 +691,8 @@
                     <div class="stat-label">Pass%</div>
                     <div class="progress-wrapper">
                         <div class="progress-track">
-                            <div class="progress-fill" th:style="'width: ' + ${beatmap.passRate} + '%;'"
-                                 style="width: 23%;"></div>
+                            <div class="progress-fill" style="width: 23%;"
+                                 th:style="'width: ' + ${beatmap.passRate} + '%;'"></div>
                         </div>
                         <span class="progress-text"
                               th:text="${#numbers.formatDecimal(beatmap.passRate, 1, 2)} + '%'">12.7%</span>
@@ -705,8 +706,10 @@
                     <div class="stat-label">Tags</div>
                     <span th:text="${beatmap.getTagString()}">tag tag tag tag tag tag tag tag tag tag tag tag tag tag tag</span>
                 </div>
-                <div class="community-tags" th:if="${beatmap.getTopUserTagIds() != null and !beatmap.getTopUserTagIds().isEmpty()}">
-                    <div class="tag-badge" th:each="tag, iterStat : ${beatmap.getTopUserTagIds()}" th:if="${iterStat.index < 2}">
+                <div class="community-tags"
+                     th:if="${beatmap.getTopUserTagIds() != null and !beatmap.getTopUserTagIds().isEmpty()}">
+                    <div class="tag-badge" th:each="tag, iterStat : ${beatmap.getTopUserTagIds()}"
+                         th:if="${iterStat.index < 2}">
                         <span class="tag-name" th:text="${beatmap.getBeatmapset().getTagName(tag.getTagId())}">additions/combo colors</span>
                         <span class="tag-num" th:text="${tag.getCount()}">123</span>
                     </div>

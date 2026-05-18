@@ -8,11 +8,11 @@ and also provides a standalone API for other clients to consume.
 
 ## What You Get
 
-- PNG score panels for best (`/bo`) and recent (`/rs`) osu! scores
-- PNG beatmap card endpoint (`/m`)
-- PNG beatmapset card endpoint (`/ms`)
-- PNG player comparison leaderboard endpoint (`/pk`)
-- PNG user PP leaderboard endpoint (`/lb`)
+- PNG score panels for best (`/bestof`) and recent (`/recent`) osu! scores
+- PNG beatmap card endpoint (`/beatmap`)
+- PNG beatmapset card endpoint (`/beatmapset`)
+- PNG player comparison leaderboard endpoint (`/maplb`)
+- PNG user PP leaderboard endpoint (`/leaderboard`)
 - Replay video generation for solo and multiplayer replay showcases (`/replay`)
 - Multiplayer room summary endpoint (`/mp`)
 - Current daily challenge endpoint (`/daily`)
@@ -86,24 +86,24 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 ### Core Endpoints
 
-| Method | Path      | Purpose                              | Query / Path Params            | Response |
-|--------|-----------|--------------------------------------|--------------------------------|----------|
-| GET    | `/status` | Service health and osu! API health   | none                           | JSON     |
-| GET    | `/daily`  | Current daily challenge room summary | none                           | JSON     |
-| GET    | `/mp`     | Top multiplayer rooms (up to 20)     | none                           | JSON     |
-| GET    | `/sms`    | Search beatmapsets                   | `q` (search keyword)           | JSON     |
-| GET    | `/lb`     | User PP leaderboard image            | `u` (comma-separated user IDs) | PNG      |
-| GET    | `/bo`     | Best-of-N scores image               | `u` (user ID), `n` (count)     | PNG      |
-| GET    | `/rs`     | Recent scores image                  | `u` (user ID), `n` (count)     | PNG      |
+| Method | Path           | Purpose                              | Query / Path Params            | Response |
+|--------|----------------|--------------------------------------|--------------------------------|----------|
+| GET    | `/status`      | Service health and osu! API health   | none                           | JSON     |
+| GET    | `/daily`       | Current daily challenge room summary | none                           | JSON     |
+| GET    | `/mp`          | Current multiplayer room             | none                           | JSON     |
+| GET    | `/searchms`    | Search beatmapsets                   | `q` (search keyword)           | JSON     |
+| GET    | `/leaderboard` | User PP leaderboard image            | `u` (comma-separated user IDs) | PNG      |
+| GET    | `/bestof`      | Best-of-N scores image               | `u` (user ID), `n` (count)     | PNG      |
+| GET    | `/recent`      | Recent scores image                  | `u` (user ID), `n` (count)     | PNG      |
 
 ### Beatmap / Beatmapset / Score / PK
 
-| Method | Path  | Purpose                        | Query / Path Params                                                                 | Response |
-|--------|-------|--------------------------------|-------------------------------------------------------------------------------------|----------|
-| GET    | `/m`  | Beatmap card image             | `m` (+ optional `mod`) **or** `ms` + `i` (+ optional `mod`) **or** `of` + `u` + `i` | PNG      |
-| GET    | `/ms` | Beatmapset card image          | `ms` **or** `m` **or** `of` + `u` + `i`                                             | PNG      |
-| GET    | `/s`  | Score card image               | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`                | PNG      |
-| GET    | `/pk` | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`                 | PNG      |
+| Method | Path          | Purpose                        | Query / Path Params                                                                 | Response |
+|--------|---------------|--------------------------------|-------------------------------------------------------------------------------------|----------|
+| GET    | `/beatmap`    | Beatmap card image             | `m` (+ optional `mod`) **or** `ms` + `i` (+ optional `mod`) **or** `of` + `u` + `i` | PNG      |
+| GET    | `/beatmapset` | Beatmapset card image          | `ms` **or** `m` **or** `of` + `u` + `i`                                             | PNG      |
+| GET    | `/score`      | Score card image               | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`                | PNG      |
+| GET    | `/maplb`      | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`                 | PNG      |
 
 Notes:
 - `of` references source list type (`rs` or `bo`).

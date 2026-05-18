@@ -34,13 +34,13 @@ import static xyz.zcraft.util.RequestUtil.*;
 
 public class Router implements Closeable {
     static final Logger LOG = LogManager.getLogger(Router.class);
-    final Gson GSON = new Gson();
     public final RenderService renderer;
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final ReplayService replayService;
     public final CacheService cacheService;
     public final AppConfig conf;
+    final Gson GSON = new Gson();
     final ReplayController replayController;
     final BeatmapController beatmapController;
     final ScoreController scoreController;
@@ -70,7 +70,7 @@ public class Router implements Closeable {
         LOG.info("Router created");
     }
 
-    protected void searchBeatmapSetAsync(@NotNull Context context) {
+    protected void searchBeatmapSet(@NotNull Context context) {
         final String query = requireString(context, "q");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.searchBeatmapset(tokenManager.getTokenData(), query))
@@ -88,7 +88,7 @@ public class Router implements Closeable {
                 ));
     }
 
-    protected void getLeaderBoardAsync(@NotNull Context context) {
+    protected void getLeaderBoard(@NotNull Context context) {
         final String us = requireString(context, "u");
         final List<String> ids = Arrays.stream(us.split(",")).distinct().toList();
 
@@ -131,7 +131,7 @@ public class Router implements Closeable {
                 .thenAccept(r -> context.status(200).result(new Response(true, "Bypass successful", r).toString()));
     }
 
-    protected void getServerStatusAsync(@NotNull Context context) {
+    protected void getServerStatus(@NotNull Context context) {
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData()))
                 .thenAccept(r -> context.status(200)
@@ -145,7 +145,34 @@ public class Router implements Closeable {
 
     }
 
-    protected void getRecentScoresAsync(@NotNull Context context) {
+    protected void getFriends(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            context.status(401)
+                    .result(Response.error("Missing Authorization header", ErrorCode.UNAUTHORIZED).toString());
+            return;
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getFriends(auth))
+                .thenApply(r -> {
+                    if (r == null) throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
+                    JsonArray arr = new JsonArray();
+                    r.forEach(ur -> {
+                        JsonObject json = new JsonObject();
+                        json.addProperty("id", ur.targetId());
+                        json.addProperty("username", ur.target().getUsername());
+                        json.addProperty("mutual", ur.mutual());
+                        arr.add(json);
+                    });
+                    return arr;
+                })
+                .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString()))
+        );
+    }
+
+    protected void getRecentScores(@NotNull Context context) {
         final String u = requireNumberString(context, "u");
         final String n = requireNumberString(context, "n");
 
@@ -164,7 +191,7 @@ public class Router implements Closeable {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    protected void getMultiplayerRoomsAsync(@NotNull Context context) {
+    protected void getMultiplayerRooms(@NotNull Context context) {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
                 .thenApply(rooms -> {
                     if (rooms == null || rooms.isEmpty()) {
@@ -183,7 +210,7 @@ public class Router implements Closeable {
                 .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString())));
     }
 
-    protected void getDailyAsync(@NotNull Context context) {
+    protected void getDaily(@NotNull Context context) {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
                 .thenApply(rooms -> {
                     if (rooms == null || rooms.isEmpty()) {
@@ -213,7 +240,7 @@ public class Router implements Closeable {
                 .thenAccept(data -> context.status(200).result(new Response(true, "Success", data).toString())));
     }
 
-    protected void getBestOfNAsync(@NotNull Context context) {
+    protected void getBestOfN(@NotNull Context context) {
         final String u = requireNumberString(context, "u");
         final String n = requireNumberString(context, "n");
 
@@ -232,7 +259,7 @@ public class Router implements Closeable {
                 })
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
-    
+
     public String getRosuPath(Long id) {
         return cacheService.getRosuBeatmapPath(String.valueOf(id), true);
     }
@@ -301,5 +328,58 @@ public class Router implements Closeable {
 
                     return scores.get(i - 1);
                 });
+    }
+
+    public void getCurrentRoom(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                .thenApply(room -> {
+                    if (room == null) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "User is not in a room!");
+                    }
+                    return room;
+                })
+                .thenAccept(room -> context.status(200).result(new Response(true, "Success", GSON.toJsonTree(room)).toString()))
+        );
+    }
+
+    public void getCurrentRoomItem(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                .thenApply(room -> {
+                    if (room == null) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "User is not in a room!");
+                    }
+                    final var currentPlaylistItem = room.getCurrentPlaylistItem();
+                    if (currentPlaylistItem == null) {
+                        throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND, "Room has no current playlist item!");
+                    }
+                    return currentPlaylistItem;
+                })
+                .thenApply(c -> {
+                    final BeatmapExtended beatmap = c.getBeatmap();
+                    if (beatmap == null) {
+                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "Current playlist item has no beatmap!");
+                    }
+
+                    JsonObject res = new JsonObject();
+                    res.addProperty("beatmap_id", beatmap.getId());
+                    res.addProperty("beatmapset_id", beatmap.getBeatmapsetId());
+                    return res;
+                })
+                .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString()))
+        );
     }
 }

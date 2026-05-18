@@ -32,23 +32,27 @@ public class WebServer implements Closeable {
             cfg.routes.before(ctx -> LOG.debug("{} {} {}", ctx.method(), ctx.path(), ctx.queryString()));
 
             cfg.routes
-                    .get("/bo", router::getBestOfNAsync)
-                    .get("/daily", router::getDailyAsync)
-                    .get("/mp", router::getMultiplayerRoomsAsync)
-                    .get("/rs", router::getRecentScoresAsync)
-                    .get("/m", router.beatmapController::getBeatmapAsync)
-                    .get("/ms", router.beatmapsetController::getBeatmapsetAsync)
-                    .get("/sms", router::searchBeatmapSetAsync)
-                    .get("/s", router.scoreController::getScoreAsync)
-                    .get("/pk", router.pkController::getPKAsync)
-                    .get("/lb", router::getLeaderBoardAsync)
-                    .get("/status", router::getServerStatusAsync);
+                    .get("/bestof", router::getBestOfN)
+                    .get("/daily", router::getDaily)
+                    .get("/mp", router::getCurrentRoom)
+                    .get("/mp/current", router::getCurrentRoomItem)
+                    .get("/recent", router::getRecentScores)
+                    .get("/beatmap", router.beatmapController::getBeatmap)
+                    .get("/beatmapset", router.beatmapsetController::getBeatmapset)
+                    .get("/searchms", router::searchBeatmapSet)
+                    .get("/score", router.scoreController::getScore)
+                    .get("/maplb", router.pkController::getPK)
+                    .get("/leaderboard", router::getLeaderBoard)
+                    .get("/status", router::getServerStatus)
+                    .get("/friends", router::getFriends)
+                    .get("/dl", router.beatmapsetController::downloadBeatmapset)
+                    .get("/lookup/beatmapset", router.beatmapsetController::lookupBeatmapset);
 
             if (conf.replayRender().enabled()) {
                 cfg.routes
                         .get("/replay/status", router.replayController::getReplayRenderOverview)
-                        .get("/replay/render", router.replayController::queueReplayRenderAsync)
-                        .get("/replay/showcase", router.replayController::queueShowcaseRenderAsync)
+                        .get("/replay/render", router.replayController::queueReplayRender)
+                        .get("/replay/showcase", router.replayController::queueShowcaseRender)
                         .get("/replay/status/{jobId}", router.replayController::getReplayRenderStatus)
                         .get("/replay/video/{jobId}", router.replayController::getReplayRenderResultStream)
                         .get("/replay/video/{jobId}/replay.mp4", router.replayController::getReplayRenderResultFile)
@@ -69,20 +73,19 @@ public class WebServer implements Closeable {
                                  ErrorCode.NO_BEATMAPSET_FOUND,
                                  ErrorCode.NO_SCORE_FOUND,
                                  ErrorCode.NO_ROOM_FOUND,
-                                 ErrorCode.NO_USER_FOUND
-                                    -> ctx.status(404);
+                                 ErrorCode.NO_USER_FOUND -> ctx.status(404);
+
+                            case ErrorCode.UNAUTHORIZED -> ctx.status(401);
 
                             case ErrorCode.ILLEGAL_ARGUMENT,
-                                 ErrorCode.REPLAY_UNAVAILABLE
-                                    -> ctx.status(400);
+                                 ErrorCode.REPLAY_UNAVAILABLE -> ctx.status(400);
 
                             case ErrorCode.BEATMAP_FETCH_FAILED,
                                  ErrorCode.BEATMAPSET_FETCH_FAILED,
                                  ErrorCode.SCORE_FETCH_FAILED,
                                  ErrorCode.USER_FETCH_FAILED,
                                  ErrorCode.RENDER_QUEUE_FULL,
-                                 ErrorCode.ROSU_ERROR
-                                    -> ctx.status(500);
+                                 ErrorCode.ROSU_ERROR -> ctx.status(500);
 
                             default -> ctx.status(500);
                         }

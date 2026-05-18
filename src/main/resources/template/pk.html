@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>oStella - Group PK</title>
@@ -319,10 +319,11 @@
 <body>
 
 <div class="pk-card">
-    <div class="pk-banner" th:style="'background-image: url(' + ${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())} + ');'"
-         style="background-image: url('https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233')">
-        <div class="pk-status" th:text="${beatmap.status}"
-             th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'">
+    <div class="pk-banner"
+         style="background-image: url('https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233')"
+         th:style="'background-image: url(' + ${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())} + ');'">
+        <div class="pk-status" th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'"
+             th:text="${beatmap.status}">
             RANKED
         </div>
         <div class="pk-banner-overlay">
@@ -339,8 +340,8 @@
                          th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.72
                     </div>
                 </div>
-                <div class="pk-map-diff" th:text="${beatmap.version}"
-                     th:style="'color: ' + ${beatmap.getDiffColor()} + ';'">ExampleVersion
+                <div class="pk-map-diff" th:style="'color: ' + ${beatmap.getDiffColor()} + ';'"
+                     th:text="${beatmap.version}">ExampleVersion
                 </div>
                 <div class="pk-mapper">
                     <span>By</span>
@@ -363,11 +364,11 @@
 
         <div class="pk-list">
             <div class="pk-row"
-                 th:each="placement, iterStat : ${placements}"
-                 th:classappend="${iterStat.index == 0} ? 'first-place' : ''">
+                 th:classappend="${iterStat.index == 0} ? 'first-place' : ''"
+                 th:each="placement, iterStat : ${placements}">
 
                 <div class="pk-rank" th:text="'#' + ${iterStat.count}">#1</div>
-                <img class="pk-avatar" th:src="${cache.getImageSrc(placement.getUser().getAvatarUrl())}" alt="Avatar">
+                <img alt="Avatar" class="pk-avatar" th:src="${cache.getImageSrc(placement.getUser().getAvatarUrl())}">
 
                 <div class="pk-name-box">
                     <div class="pk-name">
@@ -381,8 +382,8 @@
                 </div>
 
                 <div class="pk-rank-box">
-                    <div class="pk-level" th:text="${placement.score.rank}"
-                         th:style="'color: ' + ${placement.score.getRankColor()} + ';'">XH
+                    <div class="pk-level" th:style="'color: ' + ${placement.score.getRankColor()} + ';'"
+                         th:text="${placement.score.rank}">XH
                     </div>
                 </div>
 

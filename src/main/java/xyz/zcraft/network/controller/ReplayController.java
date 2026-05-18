@@ -6,6 +6,7 @@ import io.javalin.http.Context;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import xyz.zcraft.config.AppConfig;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.score.Score;
@@ -14,6 +15,7 @@ import xyz.zcraft.network.*;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.ReplayService;
+import xyz.zcraft.util.BeatmapUtil;
 import xyz.zcraft.util.TokenManager;
 
 import java.io.IOException;
@@ -24,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.util.RequestUtil.*;
-import static xyz.zcraft.util.RequestUtil.optionalDouble;
 
 public class ReplayController {
     private static final Logger LOG = LogManager.getLogger(ReplayController.class);
@@ -45,7 +46,7 @@ public class ReplayController {
         this.executor = router.executor;
     }
 
-    public void queueReplayRenderAsync(@NotNull Context context) {
+    public void queueReplayRender(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             queueReplayRenderOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
@@ -56,8 +57,8 @@ public class ReplayController {
             queueReplayRenderOfIdAsync(context);
         }
     }
-    
-    public void queueShowcaseRenderAsync(@NotNull Context context) {
+
+    public void queueShowcaseRender(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             renderShowcaseOfUsersRefAsync(context);
         } else if (context.queryParam("u") != null) {
@@ -66,7 +67,7 @@ public class ReplayController {
             renderShowcaseOfIdsAsync(context);
         }
     }
-    
+
     public void getReplayRenderStatus(@NotNull Context context) {
         String jobId = context.pathParam("jobId");
         ReplayService.JobStatus status = replayService.getJobStatus(jobId);
@@ -75,7 +76,8 @@ public class ReplayController {
             case ReplayService.JobStatus.DONE -> context.status(200).result(
                     new Response(true, "Render complete!",
                             GSON.toJsonTree(Map.of(
-                                    "status", "done"
+                                    "status", "done",
+                                    "id", jobId
                             ))).toString());
             case ReplayService.JobStatus.FAILED -> context.status(200).result(
                     new Response(true, "Render failed",
@@ -99,6 +101,7 @@ public class ReplayController {
                 final ReplayService.JobProgress jobProgress = replayService.getJobProgress(jobId);
                 JsonObject obj = new JsonObject();
                 obj.addProperty("status", "rendering");
+                obj.addProperty("id", jobId);
                 if (jobProgress != null) {
                     obj.addProperty("progress", jobProgress.progress());
                     obj.addProperty("speed", jobProgress.speed());
@@ -238,18 +241,7 @@ public class ReplayController {
                             OsuAPI.getScore(tokenManager.getTokenData(), id)) //
                     ).toList();
 
-            return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
-                    .thenApply(_ -> scoreFutures.stream()
-                            .map(CompletableFuture::join) // Safe because allOf is finished
-                            .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
-                            .collect(Collectors.toCollection(LinkedList::new))
-                    )
-                    .thenCompose(validScores -> {
-                        final double start = optionalDouble(context, "start");
-                        final double end = optionalDouble(context, "end");
-
-                        return renderShowcaseForAsync(context, validScores, start, end);
-                    });
+            return finalizeScoreRender(context, scoreFutures);
         });
     }
 
@@ -265,22 +257,32 @@ public class ReplayController {
 
             List<CompletableFuture<Score>> scoreFutures = userIds.stream()
                     .map(userId -> executor.enqueueAsync(() ->
-                            OsuAPI.getUserScore(tokenManager.getTokenData(), userId, m))
-                    ).toList();
+                            OsuAPI.getUserScore(tokenManager.getTokenData(), userId, m))).toList();
 
-            return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
-                    .thenApply(_ -> scoreFutures.stream()
-                            .map(CompletableFuture::join)
-                            .filter(s -> s != null && s.getPp() != null && s.getHasReplay())
-                            .collect(Collectors.toCollection(LinkedList::new))
-                    )
-                    .thenCompose(validScores -> {
-                        final double start = optionalDouble(context, "start");
-                        final double end = optionalDouble(context, "end");
-
-                        return renderShowcaseForAsync(context, validScores, start, end);
-                    });
+            return finalizeScoreRender(context, scoreFutures);
         });
+    }
+
+    @NonNull
+    private CompletableFuture<?> finalizeScoreRender(@NotNull Context context, List<CompletableFuture<Score>> scoreFutures) {
+        return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
+                .thenApply(_ -> scoreFutures.stream()
+                        .map(CompletableFuture::join)
+                        .filter(s -> s != null && s.getHasReplay())
+                        .peek(score -> {
+                            if (score.getPp() == null) {
+                                final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(score.getBeatmap().getId()), false);
+                                score.setPp(BeatmapUtil.estimatePp(score, rosuBeatmapPath));
+                            }
+                        })
+                        .collect(Collectors.toCollection(LinkedList::new))
+                )
+                .thenCompose(validScores -> {
+                    final double start = optionalDouble(context, "start");
+                    final double end = optionalDouble(context, "end");
+
+                    return renderShowcaseForAsync(context, validScores, start, end);
+                });
     }
 
     private void renderShowcaseOfUsersRefAsync(@NotNull Context context) {

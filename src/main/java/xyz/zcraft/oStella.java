@@ -24,7 +24,7 @@ public class oStella {
     static void main() {
         LOG.info("Reading config.yml");
 
-        if(!ConfigLoader.configExists()) {
+        if (!ConfigLoader.configExists()) {
             LOG.warn("Config file does not exist, copying default config. Please check your config file.");
             try {
                 ConfigLoader.copyDefaultConfig();

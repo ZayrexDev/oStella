@@ -1,9 +1,6 @@
 package xyz.zcraft.network;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.config.AppConfig;
@@ -15,6 +12,7 @@ import xyz.zcraft.model.score.Score;
 import xyz.zcraft.model.score.ScoreType;
 import xyz.zcraft.model.user.User;
 import xyz.zcraft.model.user.UserExtended;
+import xyz.zcraft.model.user.UserRelation;
 
 import java.io.IOException;
 import java.net.URI;
@@ -29,7 +27,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class OsuAPI {
-    private static final Logger LOG  = LogManager.getLogger(OsuAPI.class);
+    private static final Logger LOG = LogManager.getLogger(OsuAPI.class);
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static final String BASE_URL = "https://osu.ppy.sh/api/v2";
     private static final Gson GSON = new Gson();
@@ -119,6 +117,49 @@ public class OsuAPI {
             return GSON.fromJson(JsonParser.parseString(body).getAsJsonObject().get("score").getAsJsonObject(), Score.class);
         } catch (Exception e) {
             throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for " + u + " on beatmap " + bm, e);
+        }
+    }
+
+    public static MultiplayerRoom getCurrentRoom(String auth) {
+        LOG.debug("Getting current room");
+        try {
+            final var request = newRequestBuilder(auth, "/rooms?mode=participated&type_group=realtime&is_active=true")
+                    .GET()
+                    .build();
+
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 401 || response.statusCode() == 403) {
+                throw new ApiException(
+                        ErrorCode.UNAUTHORIZED,
+                        "Unauthorized to fetch current room: status " + response.statusCode()
+                );
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.ROOM_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " while fetching current room"
+                );
+            }
+
+            final JsonElement jsonElement = JsonParser.parseString(response.body());
+            if (!jsonElement.isJsonArray()) {
+                if (jsonElement.isJsonObject() && jsonElement.getAsJsonObject().has("error")) {
+                    return null;
+                }
+                throw new ApiException(ErrorCode.ROOM_FETCH_FAILED, "Unexpected response while fetching current room");
+            }
+
+            final JsonArray arr = jsonElement.getAsJsonArray();
+
+            if (arr.isEmpty()) {
+                return null;
+            }
+
+            return GSON.fromJson(arr.get(0), MultiplayerRoom.class);
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ROOM_FETCH_FAILED, "Failed to fetch current room", e);
         }
     }
 
@@ -394,11 +435,15 @@ public class OsuAPI {
     }
 
     private static HttpRequest.Builder newRequestBuilder(TokenData tokenData, String endpoint) {
+        return newRequestBuilder("Bearer " + tokenData.token(), endpoint);
+    }
+
+    private static HttpRequest.Builder newRequestBuilder(String auth, String endpoint) {
         return HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + endpoint))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + tokenData.token());
+                .header("Authorization", auth);
     }
 
     public static byte[] getImageBytes(String url) {
@@ -463,6 +508,36 @@ public class OsuAPI {
             return response.statusCode() == 200;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    public static List<UserRelation> getFriends(String auth) {
+        LOG.debug("Fetching friends");
+        try {
+            final var request = newRequestBuilder(auth, "/friends")
+                    .header("X-Api-Version", "20241022")
+                    .GET()
+                    .build();
+
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for friend list"
+                );
+            }
+
+            final JsonArray users = JsonParser.parseString(response.body()).getAsJsonArray();
+            final LinkedList<UserRelation> userList = new LinkedList<>();
+            users.forEach(u -> userList.add(GSON.fromJson(u, UserRelation.class)));
+            return userList;
+        } catch (IOException | InterruptedException e) {
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
         }
     }
 }

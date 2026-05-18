@@ -13,6 +13,7 @@ import xyz.zcraft.network.Router;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
+import xyz.zcraft.util.BeatmapUtil;
 import xyz.zcraft.util.TokenManager;
 
 import java.util.Arrays;
@@ -23,8 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.util.RequestUtil.*;
-import static xyz.zcraft.util.RequestUtil.requireNumberString;
-import static xyz.zcraft.util.RequestUtil.requireString;
 
 public class PKController {
     public final RenderService renderer;
@@ -41,13 +40,14 @@ public class PKController {
         this.cacheService = router.cacheService;
     }
 
-    public void getPKAsync(@NotNull Context context) {
+    public void getPK(@NotNull Context context) {
         if (context.queryParam("of") != null) {
             getPKOfRefAsync(context);
         } else {
             getPKOfIdsAsync(context);
         }
     }
+
     private byte[] getPKFinalBytes(LinkedList<Placement> placements, BeatmapExtended beatmap, String rosuBeatmapPath) {
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
              final RosuFFI.Performance perfSS = new RosuFFI.Performance()
@@ -97,9 +97,14 @@ public class PKController {
                                 OsuAPI.getUserScore(tokenManager.getTokenData(), s, id)
                         )
                         .thenCompose(score -> {
-                            if (score == null || score.getPp() == null) {
+                            if (score == null) {
                                 return CompletableFuture.completedFuture(null);
                             }
+
+                            if (score.getPp() == null) {
+                                score.setPp(BeatmapUtil.estimatePp(score, cacheService.getRosuBeatmapPath(id, false)));
+                            }
+
                             return executor
                                     .enqueueAsync(() ->
                                             OsuAPI.getUser(tokenManager.getTokenData(), s)

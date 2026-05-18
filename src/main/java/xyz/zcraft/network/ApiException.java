@@ -39,6 +39,7 @@ public class ApiException extends RuntimeException {
             case NO_SCORE_FOUND -> "No score found";
             case NO_ROOM_FOUND -> "No rooms found";
             case ILLEGAL_ARGUMENT -> "Illegal argument";
+            case UNAUTHORIZED -> "Unauthorized";
             case FETCH_FAILED -> "Fetch failed";
             case BEATMAP_FETCH_FAILED -> "Beatmap fetch failed";
             case BEATMAPSET_FETCH_FAILED -> "Beatmapset fetch failed";
@@ -50,7 +51,7 @@ public class ApiException extends RuntimeException {
             case REPLAY_FETCH_FAILED -> "Replay fetch failed";
             case ROOM_FETCH_FAILED -> "Room fetch failed";
             case IMAGE_FETCH_FAILED -> "Image fetch failed";
-            case TOKEN_FETCH_FAILED ->  "Token fetch failed";
+            case TOKEN_FETCH_FAILED -> "Token fetch failed";
             case null -> "Unknown error";
         };
     }

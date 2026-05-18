@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html" lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -430,20 +430,20 @@
 
 <div class="profile-header">
     <div class="profile-main">
-        <img class="avatar" th:src="${cache.getImageSrc(user.getAvatarUrl())}" src="https://a.ppy.sh/2" alt="avatar">
+        <img alt="avatar" class="avatar" src="https://a.ppy.sh/2" th:src="${cache.getImageSrc(user.getAvatarUrl())}">
         <div class="profile-details">
             <div class="profile-name-row">
-                <img class="flag"
-                     th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + user.getCountryCode() + '.png')}"
-                     src="https://osu.ppy.sh/images/flags/AU.png" alt="flag">
+                <img alt="flag"
+                     class="flag"
+                     src="https://osu.ppy.sh/images/flags/AU.png" th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + user.getCountryCode() + '.png')}">
                 <span class="username" th:text="${user.username}">ExampleUser</span>
                 <svg class="supporter-heart" th:if="${user.isSupporter}" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
-                <img class="teamFlag" th:if="${user.team != null}"
-                     th:src="${cache.getImageSrc(user.getTeam().getFlagUrl())}"
+                <img alt="team-flag" class="teamFlag"
                      src="https://assets.ppy.sh/teams/flag/41211/7e1c4a9bf4562f0375e955d230f56e06a579ea1881691b423d0a015572abf645.png"
-                     alt="team-flag">
+                     th:if="${user.team != null}"
+                     th:src="${cache.getImageSrc(user.getTeam().getFlagUrl())}">
                 <span class="teamName" th:if="${user.team != null}" th:text="${user.team.name}">Team Name</span>
                 <div class="rank-change-column">
                     <div class="rank-change" th:if="${change.hasData[0]}">
@@ -526,16 +526,16 @@
 <div class="grid-container">
     <div class="card" th:each="score, iterstat : ${scores}">
         <div class="song-cover">
-            <div class="rank-badge" th:text="${score.rank}" th:style="'background:' + ${score.getRankColor()}">SS</div>
+            <div class="rank-badge" th:style="'background:' + ${score.getRankColor()}" th:text="${score.rank}">SS</div>
             <div class="mod-badges" th:if="${score.mods != null and !score.mods.isEmpty()}">
-                <div class="mod-badge" th:each="amod : ${score.getModsList()}" th:text="${amod.getAcronym()}"
-                     th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'">
+                <div class="mod-badge" th:each="amod : ${score.getModsList()}" th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'"
+                     th:text="${amod.getAcronym()}">
                     AA
                 </div>
             </div>
-            <img class="jacket" th:src="${cache.getImageSrc(score.getBeatmapset().getCovers().getCover())}"
+            <img alt="jacket" class="jacket"
                  src="https://assets.ppy.sh/beatmaps/320118/covers/cover.jpg?1650632079"
-                 alt="jacket"></div>
+                 th:src="${cache.getImageSrc(score.getBeatmapset().getCovers().getCover())}"></div>
 
         <div class="song-title" th:text="${score.beatmapset.title}">This Is An Example Song Title</div>
         <div class="title-sub">
@@ -569,7 +569,8 @@
         <div class="score-stats">
             <span class="acc-number"
                   th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '% ' + ${score.maxCombo} + 'x'">100.00% 456x</span>
-            <div class="score-id" th:text="'#' + ${iterstat.index + 1} + ' ' + ${score.getWeightPP()}">#1 ↪123.45pp</div>
+            <div class="score-id" th:text="'#' + ${iterstat.index + 1} + ' ' + ${score.getWeightPP()}">#1 ↪123.45pp
+            </div>
         </div>
         <div class="score-record">
             <div class="score-id" th:text="'S' + ${score.getId()}">S1234567890</div>
