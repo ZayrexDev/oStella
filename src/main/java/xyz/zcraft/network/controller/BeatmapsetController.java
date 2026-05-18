@@ -1,15 +1,13 @@
 package xyz.zcraft.network.controller;
 
+import com.google.gson.Gson;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import xyz.zcraft.model.beatmap.Beatmap;
 import xyz.zcraft.model.beatmap.BeatmapExtended;
 import xyz.zcraft.model.beatmap.Beatmapset;
-import xyz.zcraft.network.ApiException;
-import xyz.zcraft.network.ErrorCode;
-import xyz.zcraft.network.OsuAPI;
-import xyz.zcraft.network.Router;
+import xyz.zcraft.network.*;
 import xyz.zcraft.service.AsyncService;
 import xyz.zcraft.service.CacheService;
 import xyz.zcraft.service.RenderService;
@@ -17,10 +15,10 @@ import xyz.zcraft.util.TokenManager;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-import static xyz.zcraft.util.RequestUtil.requireNumberString;
-import static xyz.zcraft.util.RequestUtil.requireString;
+import static xyz.zcraft.util.RequestUtil.*;
 
 public class BeatmapsetController {
     public final RenderService renderer;
@@ -190,6 +188,66 @@ public class BeatmapsetController {
             downloadBeatmapsetOfMap(context);
         } else {
             downloadBeatmapsetOfId(context);
+        }
+    }
+
+    public void lookupBeatmapset(@NotNull Context context) {
+        if (context.queryParam("of") != null) {
+            final String of = requireString(context, "of");
+            if ("mp".equals(of)) {
+                final String auth = context.header("Authorization");
+
+                if (auth == null) {
+                    throw new ApiException(ErrorCode.UNAUTHORIZED);
+                }
+
+                context.future(() -> executor
+                        .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
+                        .thenAccept(room -> {
+                            if (room == null) throw new ApiException(ErrorCode.NO_ROOM_FOUND);
+                            final Long beatmapsetId = room.getCurrentPlaylistItem().getBeatmap().getBeatmapsetId();
+                            context.status(200).result(
+                                    new Response(
+                                            true,
+                                            "Lookup successful",
+                                            new Gson().toJsonTree(Map.of("id", beatmapsetId))
+                                    ).toString()
+                            );
+                        }));
+            } else {
+                context.future(() -> router.getScoreFromRefAsync(context)
+                        .thenAccept(score -> {
+                            if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
+                            final Long beatmapsetId = score.getBeatmap().getBeatmapsetId();
+                            context.status(200).result(
+                                    new Response(
+                                            true,
+                                            "Lookup successful",
+                                            new Gson().toJsonTree(Map.of("id", beatmapsetId))
+                                    ).toString()
+                            );
+                        }));
+            }
+        } else if (context.queryParam("m") != null) {
+            final String m = requireNumberString(context, "m");
+
+            context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
+                    .thenAccept(beatmapset -> context.status(200).result(
+                            new Response(
+                                    true,
+                                    "Lookup successful",
+                                    new Gson().toJsonTree(Map.of("id", beatmapset.getId()))
+                            ).toString()
+                    )));
+        } else {
+            final int ms = requireInt(context, "ms");
+            context.status(200).result(
+                    new Response(
+                            true,
+                            "Lookup successful",
+                            new Gson().toJsonTree(Map.of("id", ms))
+                    ).toString()
+            );
         }
     }
 }
