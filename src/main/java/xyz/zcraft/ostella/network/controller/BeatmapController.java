@@ -16,6 +16,7 @@ import xyz.zcraft.ostella.network.Router;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.BeatmapUtil;
+import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 
 import java.util.Comparator;
@@ -172,7 +173,7 @@ public class BeatmapController {
                                 return beatmapExtended;
                             })
                             .thenApplyAsync(beatmap -> {
-                                final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), scores.getLast().getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+                                final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), ScoreFormatUtil.getModsList(scores.getLast()).stream().map(Mod::getAcronym).reduce("", String::concat));
                                 return renderer.renderBeatmap(beatmap, diffSpec);
                             }, renderer.getRenderExecutor());
                 })

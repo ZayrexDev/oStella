@@ -6,7 +6,6 @@ import lombok.Data;
 import xyz.zcraft.ostella.model.user.UserExtended;
 
 import java.util.List;
-import java.util.Optional;
 
 @Data
 public class Beatmapset {
@@ -99,59 +98,6 @@ public class Beatmapset {
     @SerializedName("track_id")
     public Long trackId;
 
-    public String getTagName(int id) {
-        if (relatedTags == null) return null;
-
-        return relatedTags.stream().filter(tag -> tag.getId() == id)
-                .findFirst()
-                .map(UserTag::getName)
-                .orElse(null);
-    }
-
-    public String getRatingString() {
-        return Optional.ofNullable(rating)
-                .map(r -> String.format("%.2f", r))
-                .orElse("--");
-    }
-
-    public String getGenreString() {
-        return Optional.ofNullable(genre)
-                .map(g -> g.name)
-                .filter(s -> !s.isBlank())
-
-                .orElse("--");
-    }
-
-    public String getSourceString() {
-        return Optional.ofNullable(source)
-                .filter(s -> !s.isBlank())
-                .orElse("--");
-    }
-
-    public String getLanguageString() {
-        return Optional.ofNullable(language)
-                .map(k -> k.name)
-                .filter(s -> !s.isBlank())
-                .orElse("--");
-    }
-
-    public double getMaxStar() {
-        if (beatmaps == null || beatmaps.isEmpty()) return 0;
-        double result = beatmaps.getFirst().getDifficultyRating();
-        for (BeatmapExtended beatmap : beatmaps) {
-            result = Math.max(beatmap.getDifficultyRating(), result);
-        }
-        return result;
-    }
-
-    public double getMinStar() {
-        if (beatmaps == null || beatmaps.isEmpty()) return 0;
-        double result = beatmaps.getFirst().getDifficultyRating();
-        for (BeatmapExtended beatmap : beatmaps) {
-            result = Math.min(beatmap.getDifficultyRating(), result);
-        }
-        return result;
-    }
 
     @Data
     public static class Description {

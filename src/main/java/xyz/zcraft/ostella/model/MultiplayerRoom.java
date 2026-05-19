@@ -110,5 +110,4 @@ public class MultiplayerRoom {
         @SerializedName("ruleset_ids")
         private List<Integer> rulesetIds;
     }
-
 }

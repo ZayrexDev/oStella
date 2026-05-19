@@ -2,11 +2,8 @@ package xyz.zcraft.ostella.model.beatmap;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
-import xyz.zcraft.ostella.util.Colors;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @Data
 public class Beatmap {
@@ -25,26 +22,4 @@ public class Beatmap {
     @SerializedName("top_tag_ids")
     public List<UserTagId> topUserTagIds;
 
-    public String getDiffColor() {
-        return Colors.getBeatmapDiffColor(difficultyRating);
-    }
-
-    public String getDiffTextColor() {
-        return Colors.getBeatmapDiffTextColor(difficultyRating);
-    }
-
-    public String getStatusColor() {
-        return Colors.getBeatmapStatusColor(status);
-    }
-
-    public String getStatusTextColor() {
-        return Colors.getBeatmapStatusTextColor(status);
-    }
-
-    public boolean hasLeaderboard() {
-        return Optional.ofNullable(getStatus())
-                .map(String::toUpperCase)
-                .map(s -> Objects.equals(s, "RANKED") || Objects.equals(s, "LOVED"))
-                .orElse(false);
-    }
 }

@@ -5,8 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -65,25 +63,6 @@ public class BeatmapExtended extends Beatmap {
     public FailTimes failtimes;
 
     public List<Owner> owners;
-
-    public String getOwnersString() {
-        return owners.stream()
-                .map(owner -> owner.username)
-                .collect(Collectors.joining(", "));
-    }
-
-    public double getPassRate() {
-        if (passcount == null || playcount == null) return 0;
-        if (playcount == 0) return 0;
-        return ((double) passcount / playcount) * 100.0;
-    }
-
-    public String getTagString() {
-        return Optional.ofNullable(beatmapset)
-                .map(Beatmapset::getTags)
-                .map(t -> t.substring(0, Math.min(t.length(), 80)) + (t.length() > 80 ? "..." : ""))
-                .orElse("");
-    }
 
     @Data
     public static class Owner {

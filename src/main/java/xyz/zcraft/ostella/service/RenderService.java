@@ -18,6 +18,8 @@ import xyz.zcraft.ostella.model.score.Score;
 import xyz.zcraft.ostella.model.score.ScoreType;
 import xyz.zcraft.ostella.model.user.User;
 import xyz.zcraft.ostella.model.user.UserExtended;
+import xyz.zcraft.ostella.util.*;
+import xyz.zcraft.ostella.util.format.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -80,6 +82,18 @@ public class RenderService implements AutoCloseable {
 
     private Context createContext() {
         Context ctx = new Context();
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("Colors", new Colors());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("Beatmaps", new BeatmapFormatUtil());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("Beatmapsets", new BeatmapsetFormatUtil());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("Scores", new ScoreFormatUtil());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("Users", new UserFormatUtil());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("Mods", new ModFormatUtil());
         return ctx;
     }
 
@@ -92,7 +106,7 @@ public class RenderService implements AutoCloseable {
             case BEST -> "Best of " + scores.size() + " Scores";
             case RECENT -> "Most recent " + scores.size() + " Scores";
         });
-        ctx.setVariable("change", user.getScoreChange());
+        ctx.setVariable("change", UserFormatUtil.getScoreChange(user));
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
         String finalHtml = templateEngine.process("scores", ctx);

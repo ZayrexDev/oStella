@@ -10,6 +10,7 @@ import xyz.zcraft.ostella.model.beatmap.DiffSpec;
 import xyz.zcraft.ostella.model.score.Score;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
+import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 
 import java.util.LinkedList;
 
@@ -133,7 +134,7 @@ public class BeatmapUtil {
         try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuPath);
              final RosuFFI.Performance perf = new RosuFFI.Performance()
         ) {
-            perf.setMods(RosuFFI.Mods.fromAcronyms(score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat), RosuFFI.Mode.Osu));
+            perf.setMods(RosuFFI.Mods.fromAcronyms(ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat), RosuFFI.Mode.Osu));
 
             perf.setAccuracy(score.getAccuracy() * 100);
             perf.setN300(score.getStatistics().get("count_300"));

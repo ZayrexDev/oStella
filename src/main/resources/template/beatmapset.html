@@ -287,7 +287,8 @@
          style="background-image: url('https://assets.ppy.sh/beatmaps/320118/covers/cover.jpg?1650632079')"
          th:style="'background-image: url(' + ${cache.getImageSrc(beatmapset.getCovers().getCover())} + ');'">
         <div class="status-badge"
-             th:style="'background: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? beatmapset.beatmaps[0].statusColor : '#ffffff'} + '; color: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? beatmapset.beatmaps[0].statusTextColor : '#1a1a2e'} + ';'"
+             th:style="'background: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? Colors.getBeatmapStatusColor(beatmapset.getBeatmaps().get(0).getStatus()) : '#ffffff'} + '; '
+                 + 'color: ' + ${(beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()) ? Colors.getBeatmapStatusTextColor(beatmapset.getBeatmaps().get(0).getStatus()) : '#1a1a2e'} + ';'"
              th:text="${beatmapset.status}">RANKED
         </div>
         <div class="banner-badges">
@@ -323,15 +324,15 @@
         </div>
         <div class="detail-item">
             <span class="detail-label">Source</span>
-            <span class="detail-value" th:text="${beatmapset.getSourceString()}">--</span>
+            <span class="detail-value" th:text="${Beatmapsets.getSourceString(beatmapset)}">--</span>
         </div>
         <div class="detail-item">
             <span class="detail-label">Genre</span>
-            <span class="detail-value" th:text="${beatmapset.getGenreString()}">--</span>
+            <span class="detail-value" th:text="${Beatmapsets.getGenreString(beatmapset)}">--</span>
         </div>
         <div class="detail-item">
             <span class="detail-label">Language</span>
-            <span class="detail-value" th:text="${beatmapset.getLanguageString()}">--</span>
+            <span class="detail-value" th:text="${Beatmapsets.getLanguageString(beatmapset)}">--</span>
         </div>
         <div class="detail-item">
             <span class="detail-label">BPM</span>
@@ -339,7 +340,7 @@
         </div>
         <div class="detail-item">
             <span class="detail-label">Rating</span>
-            <span class="detail-value" th:text="${beatmapset.getRatingString()}">9.23</span>
+            <span class="detail-value" th:text="${Beatmapsets.getRatingString(beatmapset)}">9.23</span>
         </div>
         <div class="detail-item">
             <span class="detail-label">Play Count</span>
@@ -368,8 +369,8 @@
     <div class="diff-list" th:if="${beatmapset.beatmaps != null and !beatmapset.beatmaps.isEmpty()}">
         <div class="diff-row" th:each="bm, iterStat : ${beatmapset.beatmaps}">
             <div class="star-badge"
-                 th:style="'background: ' + ${bm.diffColor} + '; color: ' + ${bm.diffTextColor} + ';'">
-                <svg class="diff-star" th:style="'fill: ' + ${bm.diffTextColor} + ';'" viewBox="0 0 20 20">
+                 th:style="'background: ' + ${Colors.getBeatmapDiffColor(bm.getDifficultyRating())} + '; color: ' + ${Colors.getBeatmapDiffTextColor(bm.getDifficultyRating())} + ';'">
+                <svg class="diff-star" th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(bm.getDifficultyRating())} + ';'" viewBox="0 0 20 20">
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                 </svg>
                 <div class="star-num" th:text="${#numbers.formatDecimal(bm.difficultyRating, 1, 2)}">5.24
@@ -379,7 +380,7 @@
 
             <div class="diff-info">
                 <div class="diff-version" th:text="${bm.version}">Insane</div>
-                <div class="diff-mapper" th:text="${'Mapped by ' + bm.ownersString}">Mapped by VINXIS</div>
+                <div class="diff-mapper" th:text="${'Mapped by ' + Beatmaps.getOwnersString(bm)}">Mapped by VINXIS</div>
             </div>
 
             <div class="diff-stats">

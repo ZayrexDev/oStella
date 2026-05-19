@@ -2,17 +2,12 @@ package xyz.zcraft.ostella.model.score;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
-import xyz.zcraft.ostella.model.Mod;
 import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
 import xyz.zcraft.ostella.model.beatmap.Beatmapset;
 import xyz.zcraft.ostella.model.user.User;
-import xyz.zcraft.ostella.util.Colors;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import static xyz.zcraft.ostella.util.MiscUtil.getRelativeTimeAgo;
 
 @Data
 public class Score {
@@ -68,39 +63,6 @@ public class Score {
     public Beatmapset beatmapset;
     public Weight weight;
 
-    public String getRelativeTime() {
-        if (createdAt == null) return "";
-        return getRelativeTimeAgo(createdAt);
-    }
-
-    public List<Mod> getModsList() {
-        if (mods == null) return new ArrayList<>();
-        return mods.stream().map(s -> new Mod(s, null)).toList();
-    }
-
-    public String getWeightPP() {
-        if (weight != null && weight.percentage != null && weight.pp != null) {
-            return String.format("%d%% ↪%.1fpp", weight.percentage.intValue(), weight.pp);
-        } else {
-            return "";
-        }
-    }
-
-    public String getRankColor() {
-        return Colors.getScoreRankColor(rank);
-    }
-
-    public String getModString() {
-        if (mods == null || mods.isEmpty()) return "[NM]";
-
-        StringBuilder sb = new StringBuilder("[");
-        for (String mod : mods) {
-            sb.append(mod);
-        }
-        sb.append("]");
-
-        return sb.toString();
-    }
 
     public static class ScoreStatistics extends HashMap<String, Long> {
     }

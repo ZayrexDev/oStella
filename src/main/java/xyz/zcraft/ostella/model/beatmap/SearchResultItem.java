@@ -1,5 +1,7 @@
 package xyz.zcraft.ostella.model.beatmap;
 
+import xyz.zcraft.ostella.util.format.BeatmapsetFormatUtil;
+
 public record SearchResultItem(
         long beatmapsetId,
         String artist,
@@ -12,7 +14,7 @@ public record SearchResultItem(
     public static SearchResultItem fromBeatmapset(Beatmapset ms) {
         return new SearchResultItem(
                 ms.getId(), ms.getTitle(), ms.getArtist(), ms.getCreator(),
-                ms.getMinStar(), ms.getMaxStar(), ms.getCovers().getSlimcover()
+                BeatmapsetFormatUtil.getMinStar(ms), BeatmapsetFormatUtil.getMaxStar(ms), ms.getCovers().getSlimcover()
         );
     }
 }

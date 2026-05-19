@@ -4,13 +4,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import xyz.zcraft.ostella.model.score.ScoreChange;
 
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -117,57 +112,6 @@ public class UserExtended extends User {
     public RankHistory rankHistory;
     public Team team;
 
-    public String getFormattedJoinDate() {
-        if (this.joinDate == null || this.joinDate.isEmpty()) {
-            return "Unknown";
-        }
-
-        try {
-            OffsetDateTime parsedDate = OffsetDateTime.parse(this.joinDate);
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
-
-            return parsedDate.format(formatter);
-
-        } catch (Exception e) {
-            System.err.println("Failed to parse date: " + this.joinDate);
-            return this.joinDate;
-        }
-    }
-
-    public ScoreChange getScoreChange() {
-        final ScoreChange scoreChange = new ScoreChange();
-        final List<Long> data = Optional.ofNullable(getRankHistory())
-                .map(RankHistory::getData)
-                .map(List::reversed)
-                .orElse(List.of());
-
-        if (data.size() < 2) {
-            return scoreChange;
-        }
-        scoreChange.hasData[3] = true;
-        scoreChange.data[3] = Math.toIntExact(data.get(1) - data.getFirst());
-
-        if (data.size() < 7) {
-            return scoreChange;
-        }
-        scoreChange.hasData[2] = true;
-        scoreChange.data[2] = Math.toIntExact(data.get(6) - data.getFirst());
-
-        if (data.size() < 30) {
-            return scoreChange;
-        }
-        scoreChange.hasData[1] = true;
-        scoreChange.data[1] = Math.toIntExact(data.get(29) - data.getFirst());
-
-        if (data.size() < 90) {
-            return scoreChange;
-        }
-        scoreChange.hasData[0] = true;
-        scoreChange.data[0] = Math.toIntExact(data.get(89) - data.getFirst());
-
-        return scoreChange;
-    }
 
     @Data
     public static class Kudosu {

@@ -13,6 +13,7 @@ import xyz.zcraft.ostella.network.Router;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.BeatmapUtil;
+import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 
 import static xyz.zcraft.ostella.util.BeatmapUtil.getDiffSpecForMap;
@@ -53,7 +54,7 @@ public class ScoreController {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+                    final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
                         score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
@@ -89,7 +90,7 @@ public class ScoreController {
                 .thenApplyAsync(score -> {
                     final DiffSpec diffSpec = getDiffSpecForMap(
                             score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
-                            score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat)
+                            ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat)
                     );
 
                     if (score.getPp() == null) {
@@ -109,7 +110,7 @@ public class ScoreController {
                     context.header("X-Beatmap-Id", String.valueOf(score.getBeatmap().getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat));
+                    final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
                         score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
@@ -126,7 +127,7 @@ public class ScoreController {
                     context.header("X-Score-Id", String.valueOf(score.getId()));
                     final DiffSpec diffSpec = getDiffSpecForMap(
                             score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
-                            score.getModsList().stream().map(Mod::getAcronym).reduce("", String::concat)
+                            ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat)
                     );
 
                     if (score.getPp() == null) {
