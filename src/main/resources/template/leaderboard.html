@@ -224,17 +224,17 @@
 
                 <div class="lb-stat-box">
                     <div class="lb-global"
-                         th:text="${user.getRankStr()}">#123,456,789
+                         th:text="${Users.getRankStr(user)}">#123,456,789
                     </div>
                 </div>
 
                 <div class="lb-score-box">
                     <div class="lb-pp"
-                         th:text="${!user.doHavePp() ? '--' : #numbers.formatDecimal(user.getStatisticsRulesets().getOsu().getPp(), 1, 1)} + ' PP'">
+                         th:text="${!Users.havePp(user) ? '--' : #numbers.formatDecimal(user.getStatisticsRulesets().getOsu().getPp(), 1, 1)} + ' PP'">
                         340 PP
                     </div>
                     <div class="lb-diff"
-                         th:if="${iterStat.index != 0 && user.doHavePp()}"
+                         th:if="${iterStat.index != 0 && Users.havePp(user)}"
                          th:text="'-' + ${#numbers.formatDecimal(users[iterStat.index - 1].getStatisticsRulesets().getOsu().getPp() - user.getStatisticsRulesets().getOsu().getPp(), 1, 1) + ' PP'}">
                         -42.5 PP
                     </div>

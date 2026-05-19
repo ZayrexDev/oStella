@@ -322,7 +322,7 @@
     <div class="pk-banner"
          style="background-image: url('https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233')"
          th:style="'background-image: url(' + ${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())} + ');'">
-        <div class="pk-status" th:style="'background: ' +  ${beatmap.statusColor} + '; color: ' + ${beatmap.statusTextColor} + ';'"
+        <div class="pk-status" th:style="'background: ' +  ${Colors.getBeatmapStatusColor(beatmap.getStatus())} + '; color: ' + ${Colors.getBeatmapStatusTextColor(beatmap.getStatus())} + ';'"
              th:text="${beatmap.status}">
             RANKED
         </div>
@@ -332,20 +332,23 @@
                 <div class="pk-map-artist" th:text="${beatmap.beatmapset.artist}">ExampleArtist</div>
             </div>
             <div class="pk-diff-row">
-                <div class="pk-diff-badge" th:style="'background: ' + ${beatmap.diffColor} + ';'">
-                    <svg class="pk-diff-star" th:style="'fill: ' + ${beatmap.diffTextColor} + ';'" viewBox="0 0 20 20">
+                <div class="pk-diff-badge"
+                     th:style="'background: ' + ${Colors.getBeatmapDiffColor(beatmap.getDifficultyRating())} + ';'">
+                    <svg class="pk-diff-star"
+                         th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(beatmap.getDifficultyRating())} + ';'" viewBox="0 0 20 20">
                         <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                     </svg>
-                    <div class="pk-diff-rating" th:style="'color: ' + ${beatmap.diffTextColor} + ';'"
+                    <div class="pk-diff-rating"
+                         th:style="'color: ' + ${Colors.getBeatmapDiffTextColor(beatmap.getDifficultyRating())} + ';'"
                          th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.72
                     </div>
                 </div>
-                <div class="pk-map-diff" th:style="'color: ' + ${beatmap.getDiffColor()} + ';'"
+                <div class="pk-map-diff" th:style="'color: ' + ${Colors.getBeatmapDiffColor(beatmap.getDifficultyRating())} + ';'"
                      th:text="${beatmap.version}">ExampleVersion
                 </div>
                 <div class="pk-mapper">
                     <span>By</span>
-                    <span th:text="${beatmap.ownersString}">ExampleMapper</span>
+                    <span th:text="${Beatmaps.getOwnersString(beatmap)}">ExampleMapper</span>
                 </div>
             </div>
         </div>
@@ -358,7 +361,7 @@
             </div>
         </div>
 
-        <div class="pk-not-available" th:if="${!beatmap.hasLeaderboard()}">Leaderboard is not available for this
+        <div class="pk-not-available" th:if="${!Beatmaps.hasLeaderboard(beatmap)}">Leaderboard is not available for this
             map...
         </div>
 
@@ -375,14 +378,14 @@
                         <span class="pk-username" th:text="${placement.user.username}">ABCDEFGHIJKLMN</span>
                     </div>
                     <span class="pk-mods" th:if="${placement.score.mods != 'NM'}"
-                          th:text="${placement.score.modString}">[HDHRDT]</span>
+                          th:text="${Scores.getModString(placement.score)}">[HDHRDT]</span>
                     <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">U25234487965
                         // S1234234567896
                     </div>
                 </div>
 
                 <div class="pk-rank-box">
-                    <div class="pk-level" th:style="'color: ' + ${placement.score.getRankColor()} + ';'"
+                    <div class="pk-level" th:style="'color: ' + ${Scores.getRankColor(placement.score)} + ';'"
                          th:text="${placement.score.rank}">XH
                     </div>
                 </div>

@@ -484,7 +484,7 @@
                     <span class="stat-label">Play Time</span>
                     <span class="stat-value"
                           th:text="${#numbers.formatInteger(user.statistics.playTime / 3600, 1, 'COMMA')} + ' hrs'">450 hrs</span>
-                    <span class="stat-sub" th:text="'From ' + ${user.formattedJoinDate}">From May 2000</span>
+                    <span class="stat-sub" th:text="'From ' + ${Users.getFormattedJoinDate(user)}">From May 2000</span>
                 </div>
                 <div class="stat-group">
                     <span class="stat-label">Play Count</span>
@@ -526,9 +526,9 @@
 <div class="grid-container">
     <div class="card" th:each="score, iterstat : ${scores}">
         <div class="song-cover">
-            <div class="rank-badge" th:style="'background:' + ${score.getRankColor()}" th:text="${score.rank}">SS</div>
+            <div class="rank-badge" th:style="'background:' + ${Scores.getRankColor(score)}" th:text="${score.rank}">SS</div>
             <div class="mod-badges" th:if="${score.mods != null and !score.mods.isEmpty()}">
-                <div class="mod-badge" th:each="amod : ${score.getModsList()}" th:style="'background: ' + ${amod.getColorHex()} + '; color: ' + ${amod.getTextColorHex()} + ';'"
+                <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}" th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
                      th:text="${amod.getAcronym()}">
                     AA
                 </div>
@@ -543,12 +543,15 @@
             <div class="beatmap-id" th:text="${'M' + score.beatmap.id}">M123456789</div>
         </div>
         <div class="diff">
-            <div class="diff-badge" th:style="'background: ' + ${score.beatmap.diffColor} + ';'">
-                <svg class="diff-star" th:style="'fill: ' + ${score.beatmap.diffTextColor} + ';'"
+            <div class="diff-badge"
+                 th:style="'background: ' + ${Colors.getBeatmapDiffColor(score.getBeatmap().getDifficultyRating())} + ';'">
+                <svg class="diff-star"
+                     th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(score.getBeatmap().getDifficultyRating())} + ';'"
                      viewBox="0 0 20 20">
                     <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                 </svg>
-                <div class="diff-rating" th:style="'color: ' + ${score.beatmap.diffTextColor} + ';'"
+                <div class="diff-rating"
+                     th:style="'color: ' + ${Colors.getBeatmapDiffTextColor(score.getBeatmap().getDifficultyRating())} + ';'"
                      th:text="${#numbers.formatDecimal(score.beatmap.difficultyRating, 1, 2)}">
                     5.78
                 </div>
@@ -569,7 +572,7 @@
         <div class="score-stats">
             <span class="acc-number"
                   th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '% ' + ${score.maxCombo} + 'x'">100.00% 456x</span>
-            <div class="score-id" th:text="'#' + ${iterstat.index + 1} + ' ' + ${score.getWeightPP()}">#1 ↪123.45pp
+            <div class="score-id" th:text="'#' + ${iterstat.index + 1} + ' ' + ${Scores.getWeightPP(score)}">#1 ↪123.45pp
             </div>
         </div>
         <div class="score-record">
