@@ -8,19 +8,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.data.beatmap.SearchResultItem;
-import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.ostella.data.SearchResultItem;
+import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.osu.model.*;
 import xyz.zcraft.ostella.network.controller.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.service.ReplayService;
-import xyz.zcraft.ostella.util.BeatmapUtil;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -184,7 +185,7 @@ public class Router implements Closeable {
 
                             for (Score score : scores) {
                                 if (score.getPp() == null) {
-                                    score.setPp(BeatmapUtil.estimatePp(score, getRosuPath(score.getBeatmap().getId())));
+                                    score.setPp(OsuParser.estimatePp(score, getRosuPath(score.getBeatmap().getId())));
                                 }
                             }
 
@@ -262,7 +263,7 @@ public class Router implements Closeable {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    public String getRosuPath(Long id) {
+    public Path getRosuPath(Long id) {
         return cacheService.getRosuBeatmapPath(String.valueOf(id), true);
     }
 

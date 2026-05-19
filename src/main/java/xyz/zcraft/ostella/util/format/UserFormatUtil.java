@@ -1,6 +1,6 @@
 package xyz.zcraft.ostella.util.format;
 
-import xyz.zcraft.ostella.data.score.ScoreChange;
+import xyz.zcraft.ostella.data.ScoreChange;
 import xyz.zcraft.osu.model.*;
 
 

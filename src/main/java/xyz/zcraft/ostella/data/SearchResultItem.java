@@ -1,4 +1,4 @@
-package xyz.zcraft.ostella.data.beatmap;
+package xyz.zcraft.ostella.data;
 
 import xyz.zcraft.ostella.util.format.BeatmapsetFormatUtil;
 import xyz.zcraft.osu.model.*;

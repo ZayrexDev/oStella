@@ -84,6 +84,11 @@
             <artifactId>osuModel</artifactId>
             <version>master-a7b13a170e-1</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.ZayrexDev</groupId>
+            <artifactId>osuParser</artifactId>
+            <version>master-345e79adbd-1</version>
+        </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.tukaani/xz -->
         <dependency>
             <groupId>org.tukaani</groupId>

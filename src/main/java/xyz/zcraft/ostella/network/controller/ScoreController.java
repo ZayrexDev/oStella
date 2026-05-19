@@ -2,19 +2,18 @@ package xyz.zcraft.ostella.network.controller;
 
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
-import xyz.zcraft.ostella.data.beatmap.DiffSpec;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
 import xyz.zcraft.ostella.network.OsuAPI;
 import xyz.zcraft.ostella.network.Router;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.RenderService;
-import xyz.zcraft.ostella.util.BeatmapUtil;
 import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.parser.DiffSpec;
+import xyz.zcraft.osu.parser.OsuParser;
 
-import static xyz.zcraft.ostella.util.BeatmapUtil.getDiffSpecForMap;
 import static xyz.zcraft.ostella.util.RequestUtil.requireNumberString;
 
 public class ScoreController {
@@ -52,10 +51,10 @@ public class ScoreController {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
+                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
-                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                     }
 
                     return renderer.renderScore(score, diffSpec);
@@ -86,13 +85,13 @@ public class ScoreController {
                         }
                 )
                 .thenApplyAsync(score -> {
-                    final DiffSpec diffSpec = getDiffSpecForMap(
+                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(
                             score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
                             ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat)
                     );
 
                     if (score.getPp() == null) {
-                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                     }
 
                     return renderer.renderScore(score, diffSpec);
@@ -108,10 +107,10 @@ public class ScoreController {
                     context.header("X-Beatmap-Id", String.valueOf(score.getBeatmap().getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final DiffSpec diffSpec = getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
+                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()), ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
-                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                     }
 
                     return renderer.renderScore(score, diffSpec);
@@ -123,13 +122,13 @@ public class ScoreController {
         context.future(() -> router.getScoreFromBeatmapsetAsync(context)
                 .thenApplyAsync(score -> {
                     context.header("X-Score-Id", String.valueOf(score.getId()));
-                    final DiffSpec diffSpec = getDiffSpecForMap(
+                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(
                             score.getBeatmap(), router.getRosuPath(score.getBeatmap().getId()),
                             ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat)
                     );
 
                     if (score.getPp() == null) {
-                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                     }
 
                     return renderer.renderScore(score, diffSpec);

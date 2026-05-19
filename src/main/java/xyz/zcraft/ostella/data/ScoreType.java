@@ -1,4 +1,4 @@
-package xyz.zcraft.ostella.data.score;
+package xyz.zcraft.ostella.data;
 
 public enum ScoreType {
     BEST, RECENT

@@ -1,10 +1,9 @@
 package xyz.zcraft.ostella.network.controller;
 
-import desu.life.RosuFFI;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
-import xyz.zcraft.ostella.data.score.Placement;
-import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.ostella.data.Placement;
+import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
 import xyz.zcraft.ostella.network.OsuAPI;
@@ -12,10 +11,12 @@ import xyz.zcraft.ostella.network.Router;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
-import xyz.zcraft.ostella.util.BeatmapUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.parser.DiffSpec;
+import xyz.zcraft.osu.parser.OsuParser;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,16 +49,11 @@ public class PKController {
         }
     }
 
-    private byte[] getPKFinalBytes(LinkedList<Placement> placements, BeatmapExtended beatmap, String rosuBeatmapPath) {
-        try (final RosuFFI.Beatmap rosuBeatmap = new RosuFFI.Beatmap(rosuBeatmapPath);
-             final RosuFFI.Performance perfSS = new RosuFFI.Performance()
-        ) {
-            perfSS.setAccuracy(100.0);
-            perfSS.setMisses(0);
-            perfSS.setCombo(beatmap.getMaxCombo());
-
-            return renderer.renderPK(beatmap, placements, perfSS.calculate(rosuBeatmap).osu.t.pp);
-        } catch (RosuFFI.FFIException e) {
+    private byte[] getPKFinalBytes(LinkedList<Placement> placements, BeatmapExtended beatmap, Path rosuBeatmapPath) {
+        try {
+            final DiffSpec diffSpecForMap = OsuParser.getDiffSpecForMap(beatmap, rosuBeatmapPath, "");
+            return renderer.renderPK(beatmap, placements, diffSpecForMap.getPpSS());
+        } catch (RuntimeException e) {
             throw new ApiException(ErrorCode.ROSU_ERROR, "Failed to calculate difficulty with RosuFFI: " + e.getMessage());
         }
     }
@@ -83,7 +79,7 @@ public class PKController {
                 .thenCompose(placements -> executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(placements.getFirst().score.getBeatmap().getId())))
                         .thenApplyAsync(beatmap -> {
                             if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
-                            final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
+                            final Path rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
 
                             return getPKFinalBytes(placements, beatmap, rosuBeatmapPath);
                         }, renderer.getRenderExecutor()))
@@ -102,7 +98,7 @@ public class PKController {
                             }
 
                             if (score.getPp() == null) {
-                                score.setPp(BeatmapUtil.estimatePp(score, cacheService.getRosuBeatmapPath(id, false)));
+                                score.setPp(OsuParser.estimatePp(score, cacheService.getRosuBeatmapPath(id, false)));
                             }
 
                             return executor
@@ -146,7 +142,7 @@ public class PKController {
                         executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m))
                                 .thenApplyAsync(beatmap -> {
                                     if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
-                                    final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
+                                    final Path rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
 
                                     return getPKFinalBytes(placements, beatmap, rosuBeatmapPath);
                                 }, renderer.getRenderExecutor()))

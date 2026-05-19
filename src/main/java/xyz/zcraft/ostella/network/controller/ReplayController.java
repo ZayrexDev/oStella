@@ -8,14 +8,14 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.ReplayService;
-import xyz.zcraft.ostella.util.BeatmapUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -162,7 +162,7 @@ public class ReplayController {
                             final double end = optionalDouble(context, "end");
 
                             if (score.getPp() == null) {
-                                score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                                score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                             }
 
                             return renderScoreForAsync(context, score, start, end);
@@ -186,7 +186,7 @@ public class ReplayController {
                     final double end = optionalDouble(context, "end");
 
                     if (score.getPp() == null) {
-                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                     }
 
                     return renderScoreForAsync(context, score, start, end);
@@ -206,7 +206,7 @@ public class ReplayController {
                             final double end = optionalDouble(context, "end");
 
                             if (score.getPp() == null) {
-                                score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                                score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                             }
 
                             return renderScoreForAsync(context, score, start, end);
@@ -229,7 +229,7 @@ public class ReplayController {
                     final double end = optionalDouble(context, "end");
 
                     if (score.getPp() == null) {
-                        score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                     }
 
                     return renderScoreForAsync(context, score, start, end);
@@ -286,8 +286,8 @@ public class ReplayController {
                         .filter(s -> s != null && s.getHasReplay())
                         .peek(score -> {
                             if (score.getPp() == null) {
-                                final String rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(score.getBeatmap().getId()), false);
-                                score.setPp(BeatmapUtil.estimatePp(score, rosuBeatmapPath));
+                                final Path rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(score.getBeatmap().getId()), false);
+                                score.setPp(OsuParser.estimatePp(score, rosuBeatmapPath));
                             }
                         })
                         .collect(Collectors.toCollection(LinkedList::new))
@@ -330,7 +330,7 @@ public class ReplayController {
                                     .filter(s -> s != null && s.getHasReplay())
                                     .peek(score -> {
                                         if (score.getPp() == null) {
-                                            score.setPp(BeatmapUtil.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                                            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
                                         }
                                     })
                                     .collect(Collectors.toCollection(LinkedList::new))

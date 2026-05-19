@@ -1,77 +1,59 @@
-package xyz.zcraft.ostella.data.beatmap;
+package xyz.zcraft.ostella.util.format;
 
-import lombok.Data;
+import xyz.zcraft.osu.parser.DiffSpec;
 import xyz.zcraft.ostella.util.Colors;
-import xyz.zcraft.osu.model.*;
 
-import java.io.Serializable;
-import java.util.List;
-
-@Data
-public final class DiffSpec implements Serializable {
-    private double ppSS;
-    private double ppFC;
-    private double pp95;
-    private double aim;
-    private double speed;
-    private double od;
-    private double cs;
-    private double ar;
-    private double hp;
-    private double star;
-    private double bpm;
-    private String modStr;
-    private boolean modded = false;
-    private double length;
-    private double totalLength;
-    private int maxCombo;
-    private List<Mod> mods;
-
-    public String getDiffColor() {
-        return Colors.getBeatmapDiffColor(star);
+public class DiffSpecFormatUtil {
+    public static String getDiffColor(DiffSpec diffSpec) {
+        return Colors.getBeatmapDiffColor(diffSpec.getStar());
     }
 
-    public String getDiffTextColor() {
-        return Colors.getBeatmapDiffTextColor(star);
+    public static String getDiffTextColor(DiffSpec diffSpec) {
+        return Colors.getBeatmapDiffTextColor(diffSpec.getStar());
     }
 
-    public String getLengthStr() {
+    public static String getLengthStr(DiffSpec diffSpec) {
+        final double length = diffSpec.getLength();
         return String.format("%01d", (int) (length / 60)) + ":" + String.format("%02d", (int) (length % 60));
     }
 
-    public String getTotalLengthStr() {
+    public static String getTotalLengthStr(DiffSpec diffSpec) {
+        final double totalLength = diffSpec.getTotalLength();
         return String.format("%01d", (int) (totalLength / 60)) + ":" + String.format("%02d", (int) (totalLength % 60));
     }
 
-    public String getDiffChangeStr(double diff) {
+    public static String getDiffChangeStr(double diff) {
         if (diff < 0.1 && diff > -0.1) return "~0.00";
         else if (diff > 0) return "▲" + "%.2f".formatted(diff);
         else return "▼" + "%.2f".formatted(-diff);
     }
 
-    public String getIntDiffChangeStr(double diff) {
+    public static String getIntDiffChangeStr(double diff) {
         if (diff < 0.1 && diff > -0.1) return "~0";
         else if (diff > 0) return "▲" + (int) diff;
         else return "▼" + (int) (-diff);
     }
 
-    public String getDiffChangeClassSuffix(double diff) {
+    public static String getDiffChangeClassSuffix(double diff) {
         if (diff < 0.1 && diff > -0.1) return "-same";
         else if (diff > 0) return "-up";
         else return "-down";
     }
 
-    public String getODString() {
+    public static String getODString(DiffSpec diffSpec) {
+        final double od = diffSpec.getOd();
         return "±" + String.format("%.2f", (80 - 6 * od)) + "ms";
     }
 
-    public String getHPString() {
+    public static String getHPString(DiffSpec diffSpec) {
+        final double hp = diffSpec.getHp();
         if (hp <= 4) return "awa";
         else if (hp <= 8) return "owo";
         else return "qwq";
     }
 
-    public String getARString() {
+    public static String getARString(DiffSpec diffSpec) {
+        final double ar = diffSpec.getAr();
         if (ar < 5) {
             return (int) (1200 + 120 * (5 - ar)) + "ms";
         } else if (ar == 5) {
@@ -81,7 +63,8 @@ public final class DiffSpec implements Serializable {
         }
     }
 
-    public String getCSString() {
+    public static String getCSString(DiffSpec diffSpec) {
+        final double cs = diffSpec.getCs();
         return (int) (54.4 - 4.48 * cs) + "px";
     }
 }

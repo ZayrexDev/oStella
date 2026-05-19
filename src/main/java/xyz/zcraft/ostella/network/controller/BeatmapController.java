@@ -3,24 +3,22 @@ package xyz.zcraft.ostella.network.controller;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
-import xyz.zcraft.ostella.data.beatmap.DiffSpec;
-import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
 import xyz.zcraft.ostella.network.OsuAPI;
 import xyz.zcraft.ostella.network.Router;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.RenderService;
-import xyz.zcraft.ostella.util.BeatmapUtil;
 import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.parser.*;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-import static xyz.zcraft.ostella.util.BeatmapUtil.getDiffSpecForMap;
 import static xyz.zcraft.ostella.util.RequestUtil.*;
 
 public class BeatmapController {
@@ -65,7 +63,7 @@ public class BeatmapController {
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmapExtended -> {
-                    DiffSpec spec = getDiffSpecForMap(beatmapExtended, router.getRosuPath(beatmapExtended.getId()), mod);
+                    DiffSpec spec = OsuParser.getDiffSpecForMap(beatmapExtended, router.getRosuPath(beatmapExtended.getId()), mod);
                     return renderer.renderBeatmap(beatmapExtended, spec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -92,7 +90,7 @@ public class BeatmapController {
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmap -> {
-                    DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), mod);
+                    DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), mod);
                     return renderer.renderBeatmap(beatmap, diffSpec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -133,7 +131,7 @@ public class BeatmapController {
                     context.header("X-Beatmapset-Id", String.valueOf(beatmapsetId));
 
                     return executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(beatmapId)))
-                            .thenApplyAsync(beatmap -> renderer.renderBeatmap(beatmap, BeatmapUtil.getDiffSpecForMap(
+                            .thenApplyAsync(beatmap -> renderer.renderBeatmap(beatmap, OsuParser.getDiffSpecForMap(
                                     beatmap, router.getRosuPath(beatmap.getId()),
                                     currentPlaylistItem.getRequiredMods().stream().map(Mod::getAcronym).reduce("", String::concat))
                             ), renderer.getRenderExecutor());
@@ -170,7 +168,7 @@ public class BeatmapController {
                                 return beatmapExtended;
                             })
                             .thenApplyAsync(beatmap -> {
-                                final DiffSpec diffSpec = getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), ScoreFormatUtil.getModsList(scores.getLast()).stream().map(Mod::getAcronym).reduce("", String::concat));
+                                final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), ScoreFormatUtil.getModsList(scores.getLast()).stream().map(Mod::getAcronym).reduce("", String::concat));
                                 return renderer.renderBeatmap(beatmap, diffSpec);
                             }, renderer.getRenderExecutor());
                 })

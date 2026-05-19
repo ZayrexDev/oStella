@@ -1,6 +1,5 @@
 package xyz.zcraft.ostella;
 
-import desu.life.RosuFFI;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,6 +8,7 @@ import xyz.zcraft.ostella.config.AppConfig;
 import xyz.zcraft.ostella.config.ConfigLoader;
 import xyz.zcraft.ostella.network.WebServer;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.IOException;
 
@@ -48,11 +48,11 @@ public class oStella {
             LOG.warn("Debug mode is enabled! This may cause security and performance issues. Please disable debug mode in production environment.");
         }
 
-        LOG.info("Initializing RosuFFI, you may ignore the warnings below.");
+        LOG.info("Initializing OsuParser, you may ignore the warnings below.");
 
         try {
-            new RosuFFI.Beatmap(new byte[0]).close();
-        } catch (RosuFFI.FFIException e) {
+            OsuParser.initialize();
+        } catch (Exception e) {
             LOG.error("Error while initializing RosuFFI", e);
         }
 

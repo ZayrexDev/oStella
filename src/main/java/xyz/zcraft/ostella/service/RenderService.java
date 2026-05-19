@@ -9,10 +9,10 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
-import xyz.zcraft.ostella.data.beatmap.DiffSpec;
-import xyz.zcraft.ostella.data.score.Placement;
-import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.ostella.data.Placement;
+import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.parser.DiffSpec;
 
 import xyz.zcraft.ostella.util.*;
 import xyz.zcraft.ostella.util.format.*;
@@ -90,6 +90,8 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("Users", new UserFormatUtil());
         //noinspection InstantiationOfUtilityClass
         ctx.setVariable("Mods", new ModFormatUtil());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("DiffSpecs", new DiffSpecFormatUtil());
         return ctx;
     }
 
