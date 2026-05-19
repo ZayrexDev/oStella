@@ -162,11 +162,10 @@ public class Router implements Closeable {
                         throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
                     JsonArray arr = new JsonArray();
                     r.forEach(ur -> {
-                        JsonObject json = new JsonObject();
-                        json.addProperty("id", ur.targetId());
-                        json.addProperty("username", ur.target().getUsername());
-                        json.addProperty("mutual", ur.mutual());
-                        arr.add(json);
+                        JsonObject obj = new JsonObject();
+                        obj.add("user", GSON.toJsonTree(ur.target()));
+                        obj.addProperty("mutual", ur.mutual());
+                        arr.add(obj);
                     });
                     return arr;
                 })
