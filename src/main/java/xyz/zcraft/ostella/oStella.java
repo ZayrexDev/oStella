@@ -8,7 +8,6 @@ import xyz.zcraft.ostella.config.AppConfig;
 import xyz.zcraft.ostella.config.ConfigLoader;
 import xyz.zcraft.ostella.network.WebServer;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.IOException;
 
@@ -49,12 +48,6 @@ public class oStella {
         }
 
         LOG.info("Initializing OsuParser, you may ignore the warnings below.");
-
-        try {
-            OsuParser.initialize();
-        } catch (Exception e) {
-            LOG.error("Error while initializing RosuFFI", e);
-        }
 
         LOG.info("Authorizing...");
 
