@@ -34,7 +34,6 @@ public class Router implements Closeable {
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final ReplayService replayService;
-    public final CacheService cacheService;
     public final AppConfig conf;
     final Gson GSON = new Gson();
     final ReplayController replayController;
@@ -47,8 +46,10 @@ public class Router implements Closeable {
         this.conf = conf;
         this.tokenManager = tokenManager;
         this.executor = new AsyncService(conf.ostella().requestPerSecond());
-        this.cacheService = new CacheService(executor);
-        this.renderer = new RenderService(cacheService, conf.ostella().renderWorkers());
+
+        CacheService.initialize(this.executor);
+
+        this.renderer = new RenderService(conf.ostella().renderWorkers());
 
         this.beatmapController = new BeatmapController(this);
         this.scoreController = new ScoreController(this);
@@ -56,7 +57,7 @@ public class Router implements Closeable {
         this.pkController = new PKController(this);
 
         if (conf.replayRender().enabled()) {
-            this.replayService = new ReplayService(conf, cacheService.getDanserCache());
+            this.replayService = new ReplayService(conf, CacheService.getDanserCache());
             this.replayController = new ReplayController(this);
         } else {
             this.replayService = null;
@@ -264,7 +265,7 @@ public class Router implements Closeable {
     }
 
     public Path getRosuPath(Long id) {
-        return cacheService.getRosuBeatmapPath(String.valueOf(id), true);
+        return CacheService.getRosuBeatmapPath(String.valueOf(id), true);
     }
 
     @Override
@@ -371,7 +372,7 @@ public class Router implements Closeable {
                     }
                     return currentPlaylistItem;
                 })
-                .thenApply(c -> {
+                .thenApply((MultiplayerRoom.CurrentPlaylistItem c) -> {
                     final BeatmapExtended beatmap = c.getBeatmap();
                     if (beatmap == null) {
                         throw new ApiException(ErrorCode.NO_ROOM_FOUND, "Current playlist item has no beatmap!");

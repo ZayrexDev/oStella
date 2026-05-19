@@ -30,7 +30,6 @@ public class PKController {
     public final RenderService renderer;
     public final AsyncService executor;
     public final TokenManager tokenManager;
-    public final CacheService cacheService;
     public final Router router;
 
     public PKController(Router router) {
@@ -38,7 +37,6 @@ public class PKController {
         this.renderer = router.renderer;
         this.tokenManager = router.tokenManager;
         this.executor = router.executor;
-        this.cacheService = router.cacheService;
     }
 
     public void getPK(@NotNull Context context) {
@@ -79,7 +77,7 @@ public class PKController {
                 .thenCompose(placements -> executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(placements.getFirst().score.getBeatmap().getId())))
                         .thenApplyAsync(beatmap -> {
                             if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
-                            final Path rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
+                            final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(String.valueOf(beatmap.getId()), false);
 
                             return getPKFinalBytes(placements, beatmap, rosuBeatmapPath);
                         }, renderer.getRenderExecutor()))
@@ -98,7 +96,7 @@ public class PKController {
                             }
 
                             if (score.getPp() == null) {
-                                score.setPp(OsuParser.estimatePp(score, cacheService.getRosuBeatmapPath(id, false)));
+                                score.setPp(OsuParser.estimatePp(score, CacheService.getRosuBeatmapPath(id, false)));
                             }
 
                             return executor
@@ -142,7 +140,7 @@ public class PKController {
                         executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m))
                                 .thenApplyAsync(beatmap -> {
                                     if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
-                                    final Path rosuBeatmapPath = cacheService.getRosuBeatmapPath(m, false);
+                                    final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(m, false);
 
                                     return getPKFinalBytes(placements, beatmap, rosuBeatmapPath);
                                 }, renderer.getRenderExecutor()))

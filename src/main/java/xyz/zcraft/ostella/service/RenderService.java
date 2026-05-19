@@ -26,7 +26,6 @@ import java.util.concurrent.Executors;
 
 public class RenderService implements AutoCloseable {
     private static final Logger LOG = LogManager.getLogger(RenderService.class);
-    private final CacheService cacheService;
     @Getter
     private final ExecutorService renderExecutor;
     private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(Playwright::create);
@@ -37,12 +36,11 @@ public class RenderService implements AutoCloseable {
     });
     private final TemplateEngine templateEngine;
 
-    public RenderService(CacheService cacheService, int maxWorkers) {
+    public RenderService(int maxWorkers) {
         if (maxWorkers <= 0) {
             throw new IllegalArgumentException("maxWorkers must be greater than 0: " + maxWorkers);
         }
 
-        this.cacheService = cacheService;
         this.renderExecutor = Executors.newFixedThreadPool(maxWorkers);
 
         LOG.info("Initializing template resolver");
@@ -65,7 +63,7 @@ public class RenderService implements AutoCloseable {
             page.route("http://ostella-cache/**", route -> {
                 String url = route.request().url();
                 String filename = url.substring(url.lastIndexOf("/") + 1);
-                java.nio.file.Path imagePath = cacheService.getImagePathFromFilename(filename);
+                java.nio.file.Path imagePath = CacheService.getImagePathFromFilename(filename);
                 route.fulfill(new Route.FulfillOptions().setPath(imagePath));
             });
 
@@ -92,12 +90,13 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("Mods", new ModFormatUtil());
         //noinspection InstantiationOfUtilityClass
         ctx.setVariable("DiffSpecs", new DiffSpecFormatUtil());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("cache", new CacheService());
         return ctx;
     }
 
     public byte[] renderScores(UserExtended user, List<Score> scores, ScoreType type) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("user", user);
         ctx.setVariable("scores", scores);
         ctx.setVariable("type", switch (type) {
@@ -114,7 +113,6 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderPK(BeatmapExtended map, List<Placement> placements, double ppMax) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmap", map);
         ctx.setVariable("placements", placements);
         ctx.setVariable("ppMax", ppMax);
@@ -127,7 +125,6 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderLeaderboard(List<User> users) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("users", users);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
@@ -138,9 +135,7 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderBeatmap(BeatmapExtended map, DiffSpec spec) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmap", map);
-        ctx.setVariable("diff", spec);
         ctx.setVariable("diff", spec);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
@@ -151,7 +146,6 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderScore(Score score, DiffSpec spec) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("score", score);
         ctx.setVariable("diff", spec);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
@@ -165,7 +159,6 @@ public class RenderService implements AutoCloseable {
         beatmapset.getBeatmaps().sort(Comparator.comparingDouble(Beatmap::getDifficultyRating));
 
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmapset", beatmapset);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 

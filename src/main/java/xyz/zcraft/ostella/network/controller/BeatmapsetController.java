@@ -23,14 +23,12 @@ public class BeatmapsetController {
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final Router router;
-    public final CacheService cacheService;
 
     public BeatmapsetController(Router router) {
         this.router = router;
         this.renderer = router.renderer;
         this.tokenManager = router.tokenManager;
         this.executor = router.executor;
-        this.cacheService = router.cacheService;
     }
 
     public void getBeatmapset(@NotNull Context context) {
@@ -94,7 +92,7 @@ public class BeatmapsetController {
                     context.contentType("application/zip");
                     context.header("Content-Disposition", "attachment; filename=\"" + beatmapsetId + ".osz\"");
                     try {
-                        cacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
+                        CacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -119,7 +117,7 @@ public class BeatmapsetController {
                     context.contentType("application/zip");
                     context.header("Content-Disposition", "attachment; filename=\"" + beatmapsetId + ".osz\"");
                     try {
-                        cacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
+                        CacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -142,7 +140,7 @@ public class BeatmapsetController {
                     context.contentType("application/zip");
                     context.header("Content-Disposition", "attachment; filename=\"" + beatmapset.getId() + ".osz\"");
                     try {
-                        cacheService.extractBeatmapset(String.valueOf(beatmapset.getId()), context.outputStream());
+                        CacheService.extractBeatmapset(String.valueOf(beatmapset.getId()), context.outputStream());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -163,7 +161,7 @@ public class BeatmapsetController {
             context.contentType("application/zip");
             context.header("Content-Disposition", "attachment; filename=\"" + ms + ".osz\"");
             try {
-                cacheService.extractBeatmapset(String.valueOf(ms), context.outputStream());
+                CacheService.extractBeatmapset(String.valueOf(ms), context.outputStream());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

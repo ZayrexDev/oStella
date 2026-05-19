@@ -31,7 +31,6 @@ public class ReplayController {
     private final TokenManager tokenManager;
     private final ReplayService replayService;
     private final AsyncService executor;
-    private final CacheService cacheService;
     private final AppConfig conf;
     private final Router router;
     private final Gson GSON = new Gson();
@@ -41,7 +40,6 @@ public class ReplayController {
         this.conf = router.conf;
         this.replayService = router.replayService;
         this.tokenManager = router.tokenManager;
-        this.cacheService = router.cacheService;
         this.executor = router.executor;
     }
 
@@ -286,7 +284,7 @@ public class ReplayController {
                         .filter(s -> s != null && s.getHasReplay())
                         .peek(score -> {
                             if (score.getPp() == null) {
-                                final Path rosuBeatmapPath = cacheService.getRosuBeatmapPath(String.valueOf(score.getBeatmap().getId()), false);
+                                final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(String.valueOf(score.getBeatmap().getId()), false);
                                 score.setPp(OsuParser.estimatePp(score, rosuBeatmapPath));
                             }
                         })
@@ -352,14 +350,14 @@ public class ReplayController {
         }
 
         return executor.enqueueAsync(() -> {
-            if (!cacheService.cacheBeatmapset(String.valueOf(score.getBeatmapset().getId()))) {
+            if (!CacheService.cacheBeatmapsetFile(String.valueOf(score.getBeatmapset().getId()))) {
                 throw new ApiException(ErrorCode.BEATMAPSET_FETCH_FAILED, "Failed to cache beatmapset!");
             }
             return null;
         }).thenCompose(_ ->
                 executor.enqueueAsync(() -> {
                     try {
-                        return cacheService.getReplay(tokenManager.getTokenData(), String.valueOf(score.getId()));
+                        return CacheService.getReplay(tokenManager.getTokenData(), String.valueOf(score.getId()));
                     } catch (Exception e) {
                         throw new ApiException(ErrorCode.REPLAY_FETCH_FAILED, "Failed to cache replay for score id: " + score.getId(), e);
                     }
@@ -405,7 +403,7 @@ public class ReplayController {
         final long beatmapsetId = scores.getFirst().getBeatmap().getBeatmapsetId();
 
         CompletableFuture<Boolean> cacheFuture = executor.enqueueAsync(() ->
-                cacheService.cacheBeatmapset(String.valueOf(beatmapsetId)));
+                CacheService.cacheBeatmapsetFile(String.valueOf(beatmapsetId)));
 
         CompletableFuture<BeatmapExtended> beatmapFuture = executor.enqueueAsync(() ->
                 OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(beatmapId)));
@@ -419,7 +417,7 @@ public class ReplayController {
             List<CompletableFuture<Path>> replayFutures = scores.stream()
                     .map(score -> executor.enqueueAsync(() -> {
                         try {
-                            return cacheService.getReplay(tokenManager.getTokenData(), String.valueOf(score.getId()));
+                            return CacheService.getReplay(tokenManager.getTokenData(), String.valueOf(score.getId()));
                         } catch (Exception e) {
                             LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
                             return null;

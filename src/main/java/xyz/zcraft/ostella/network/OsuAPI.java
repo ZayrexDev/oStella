@@ -4,10 +4,10 @@ import com.google.gson.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.data.TokenData;
 import xyz.zcraft.ostella.data.ScoreType;
+import xyz.zcraft.ostella.data.TokenData;
+import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.osu.model.*;
-
 
 import java.io.IOException;
 import java.net.URI;
@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 public class OsuAPI {
     private static final Logger LOG = LogManager.getLogger(OsuAPI.class);
@@ -57,6 +58,17 @@ public class OsuAPI {
 
     public static Score getScore(TokenData tokenData, String scoreId) {
         LOG.debug("Fetching score with id {}", scoreId);
+
+        try {
+            final Optional<Score> scoreJsonCache = CacheService.getScoreJsonCache(scoreId);
+
+            if (scoreJsonCache.isPresent()) {
+                return scoreJsonCache.get();
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to get score from cache for score id {}: {}", scoreId, e.getMessage());
+        }
+
         try {
             final var request = newRequestBuilder(tokenData, "/scores/" + scoreId)
                     .GET()
