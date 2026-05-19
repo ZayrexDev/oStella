@@ -12,8 +12,15 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <exec.mainClass>xyz.zcraft.oStella</exec.mainClass>
+        <exec.mainClass>xyz.zcraft.ostella.oStella</exec.mainClass>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://www.jitpack.io</url>
+        </repository>
+    </repositories>
 
     <build>
         <resources>
@@ -51,7 +58,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>xyz.zcraft.oStella</mainClass>
+                            <mainClass>xyz.zcraft.ostella.oStella</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -72,6 +79,11 @@
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>com.github.ZayrexDev</groupId>
+            <artifactId>osuModel</artifactId>
+            <version>master-a7b13a170e-1</version>
+        </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.tukaani/xz -->
         <dependency>
             <groupId>org.tukaani</groupId>
