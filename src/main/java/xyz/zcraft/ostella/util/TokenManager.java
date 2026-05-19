@@ -4,7 +4,7 @@ import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.model.TokenData;
+import xyz.zcraft.ostella.data.TokenData;
 import xyz.zcraft.ostella.network.OsuAPI;
 
 import java.util.Timer;

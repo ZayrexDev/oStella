@@ -4,15 +4,12 @@ import com.google.gson.Gson;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
-import xyz.zcraft.ostella.model.beatmap.Beatmap;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.beatmap.Beatmapset;
-import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.osu.model.*;
 
 import java.io.IOException;
 import java.util.Comparator;

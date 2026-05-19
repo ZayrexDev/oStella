@@ -1,12 +1,9 @@
 package xyz.zcraft.ostella.util.format;
 
-import xyz.zcraft.ostella.model.beatmap.Beatmap;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.beatmap.Beatmapset;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import xyz.zcraft.osu.model.*;
 
 public class BeatmapFormatUtil {
     public static boolean hasLeaderboard(Beatmap beatmap) {

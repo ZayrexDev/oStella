@@ -8,15 +8,14 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.score.Score;
-import xyz.zcraft.ostella.model.score.ScoreType;
+import xyz.zcraft.ostella.data.score.ScoreType;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.ReplayService;
 import xyz.zcraft.ostella.util.BeatmapUtil;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.osu.model.*;
 
 import java.io.IOException;
 import java.nio.file.Files;

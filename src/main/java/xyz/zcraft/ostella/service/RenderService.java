@@ -9,15 +9,11 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
-import xyz.zcraft.ostella.model.beatmap.Beatmap;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.beatmap.Beatmapset;
-import xyz.zcraft.ostella.model.beatmap.DiffSpec;
-import xyz.zcraft.ostella.model.score.Placement;
-import xyz.zcraft.ostella.model.score.Score;
-import xyz.zcraft.ostella.model.score.ScoreType;
-import xyz.zcraft.ostella.model.user.User;
-import xyz.zcraft.ostella.model.user.UserExtended;
+import xyz.zcraft.ostella.data.beatmap.DiffSpec;
+import xyz.zcraft.ostella.data.score.Placement;
+import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.osu.model.*;
+
 import xyz.zcraft.ostella.util.*;
 import xyz.zcraft.ostella.util.format.*;
 

@@ -1,9 +1,8 @@
 package xyz.zcraft.ostella.util.format;
 
-import xyz.zcraft.ostella.model.Mod;
-import xyz.zcraft.ostella.model.score.Score;
 import xyz.zcraft.ostella.util.Colors;
 import xyz.zcraft.ostella.util.MiscUtil;
+import xyz.zcraft.osu.model.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +19,11 @@ public class ScoreFormatUtil {
         if (score == null || score.getMods() == null) {
             return new ArrayList<>();
         }
-        return score.getMods().stream().map(s -> new Mod(s, null)).toList();
+        return score.getMods().stream().map(s -> {
+            final Mod mod = new Mod();
+            mod.setAcronym(s);
+            return mod;
+        }).toList();
     }
 
     public static String getWeightPP(Score score) {

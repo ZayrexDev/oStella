@@ -1,4 +1,4 @@
-package xyz.zcraft.ostella.model.beatmap;
+package xyz.zcraft.ostella.data.beatmap;
 
 import lombok.Data;
 

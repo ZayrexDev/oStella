@@ -8,15 +8,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.model.Mod;
-import xyz.zcraft.ostella.model.MultiplayerRoom;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.beatmap.SearchResultItem;
-import xyz.zcraft.ostella.model.score.Score;
-import xyz.zcraft.ostella.model.score.ScoreType;
-import xyz.zcraft.ostella.model.user.Statistics;
-import xyz.zcraft.ostella.model.user.StatisticsRuleset;
-import xyz.zcraft.ostella.model.user.User;
+import xyz.zcraft.ostella.data.beatmap.SearchResultItem;
+import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.osu.model.*;
 import xyz.zcraft.ostella.network.controller.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
@@ -116,8 +110,8 @@ public class Router implements Closeable {
                             users.sort(Comparator.comparingDouble((User user) ->
                                     Optional.ofNullable(user)
                                             .map(User::getStatisticsRulesets)
-                                            .map(StatisticsRuleset::getOsu)
-                                            .map(Statistics::getPp)
+                                            .map(User.StatisticsRuleset::getOsu)
+                                            .map(User.Statistics::getPp)
                                             .orElse(0.0)
                             ).reversed());
                             return renderer.renderLeaderboard(users);

@@ -4,13 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import desu.life.RosuFFI;
-import xyz.zcraft.ostella.model.Mod;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.beatmap.DiffSpec;
-import xyz.zcraft.ostella.model.score.Score;
+import xyz.zcraft.ostella.data.beatmap.DiffSpec;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
 import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
+import xyz.zcraft.osu.model.*;
 
 import java.util.LinkedList;
 

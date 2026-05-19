@@ -4,15 +4,10 @@ import com.google.gson.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.model.MultiplayerRoom;
-import xyz.zcraft.ostella.model.TokenData;
-import xyz.zcraft.ostella.model.beatmap.Beatmapset;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.score.Score;
-import xyz.zcraft.ostella.model.score.ScoreType;
-import xyz.zcraft.ostella.model.user.User;
-import xyz.zcraft.ostella.model.user.UserExtended;
-import xyz.zcraft.ostella.model.user.UserRelation;
+import xyz.zcraft.ostella.data.TokenData;
+import xyz.zcraft.ostella.data.score.ScoreType;
+import xyz.zcraft.osu.model.*;
+
 
 import java.io.IOException;
 import java.net.URI;

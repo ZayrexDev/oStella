@@ -1,10 +1,8 @@
 package xyz.zcraft.ostella.util.format;
 
-import xyz.zcraft.ostella.model.score.ScoreChange;
-import xyz.zcraft.ostella.model.user.Statistics;
-import xyz.zcraft.ostella.model.user.StatisticsRuleset;
-import xyz.zcraft.ostella.model.user.User;
-import xyz.zcraft.ostella.model.user.UserExtended;
+import xyz.zcraft.ostella.data.score.ScoreChange;
+import xyz.zcraft.osu.model.*;
+
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -65,8 +63,8 @@ public class UserFormatUtil {
     public static String getRankStr(User user) {
         return Optional.ofNullable(user)
                 .map(User::getStatisticsRulesets)
-                .map(StatisticsRuleset::getOsu)
-                .map(Statistics::getGlobalRank)
+                .map(User.StatisticsRuleset::getOsu)
+                .map(User.Statistics::getGlobalRank)
                 .map(l -> String.format("#%,d", l))
                 .orElse("");
     }
@@ -74,8 +72,8 @@ public class UserFormatUtil {
     public static boolean havePp(User user) {
         return Optional.ofNullable(user)
                 .map(User::getStatisticsRulesets)
-                .map(StatisticsRuleset::getOsu)
-                .map(Statistics::getPp)
+                .map(User.StatisticsRuleset::getOsu)
+                .map(User.Statistics::getPp)
                 .isPresent();
     }
 }

@@ -1,8 +1,8 @@
-package xyz.zcraft.ostella.model.beatmap;
+package xyz.zcraft.ostella.data.beatmap;
 
 import lombok.Data;
-import xyz.zcraft.ostella.model.Mod;
 import xyz.zcraft.ostella.util.Colors;
+import xyz.zcraft.osu.model.*;
 
 import java.io.Serializable;
 import java.util.List;

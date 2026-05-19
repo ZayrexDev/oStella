@@ -1,11 +1,8 @@
 package xyz.zcraft.ostella.util.format;
 
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.beatmap.Beatmapset;
-import xyz.zcraft.ostella.model.beatmap.UserTag;
-
 import java.util.Objects;
 import java.util.Optional;
+import xyz.zcraft.osu.model.*;
 
 public class BeatmapsetFormatUtil {
 	public static String getTagName(Beatmapset beatmapset, int id) {
@@ -16,7 +13,7 @@ public class BeatmapsetFormatUtil {
 		return beatmapset.getRelatedTags().stream()
 				.filter(tag -> Objects.equals(tag.getId(), id))
 				.findFirst()
-				.map(UserTag::getName)
+				.map(Beatmapset.UserTag::getName)
 				.orElse(null);
 	}
 

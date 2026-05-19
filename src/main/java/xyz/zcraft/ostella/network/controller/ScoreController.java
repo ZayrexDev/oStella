@@ -2,10 +2,7 @@ package xyz.zcraft.ostella.network.controller;
 
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
-import xyz.zcraft.ostella.model.Mod;
-import xyz.zcraft.ostella.model.beatmap.BeatmapExtended;
-import xyz.zcraft.ostella.model.beatmap.DiffSpec;
-import xyz.zcraft.ostella.model.score.Score;
+import xyz.zcraft.ostella.data.beatmap.DiffSpec;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
 import xyz.zcraft.ostella.network.OsuAPI;
@@ -15,6 +12,7 @@ import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.BeatmapUtil;
 import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.osu.model.*;
 
 import static xyz.zcraft.ostella.util.BeatmapUtil.getDiffSpecForMap;
 import static xyz.zcraft.ostella.util.RequestUtil.requireNumberString;
