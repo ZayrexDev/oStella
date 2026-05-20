@@ -557,5 +557,32 @@ public class OsuAPI {
             throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
         }
     }
+
+    public static User getSelf(String auth) {
+        LOG.debug("Fetching self");
+        try {
+            final var request = newRequestBuilder(auth, "/me")
+                    .GET()
+                    .build();
+
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for friend list"
+                );
+            }
+
+            final var json = JsonParser.parseString(response.body()).getAsJsonObject();
+            return GSON.fromJson(json, User.class);
+        } catch (IOException | InterruptedException e) {
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
+        }
+    }
 }
 

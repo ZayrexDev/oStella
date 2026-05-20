@@ -164,6 +164,26 @@ public class Router implements Closeable {
         );
     }
 
+    protected void getSelf(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            context.status(401)
+                    .result(Response.error("Missing Authorization header", ErrorCode.UNAUTHORIZED).toString());
+            return;
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getSelf(auth))
+                .thenApply(u -> {
+                    if (u == null)
+                        throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
+                    return u;
+                })
+                .thenAccept(u -> context.status(200).result(new Response(true, "Success", GSON.toJsonTree(u)).toString()))
+        );
+    }
+
     protected void getRecentScores(@NotNull Context context) {
         final String u = requireNumberString(context, "u");
         final String n = requireNumberString(context, "n");
