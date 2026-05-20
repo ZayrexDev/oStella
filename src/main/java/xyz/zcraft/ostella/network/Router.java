@@ -123,11 +123,6 @@ public class Router implements Closeable {
         );
     }
 
-    protected void bypassRequest(@NotNull Context context) {
-        executor.enqueueAsync(() -> OsuAPI.byPassRequest(tokenManager.getTokenData(), context.queryString()))
-                .thenAccept(r -> context.status(200).result(new Response(true, "Bypass successful", r).toString()));
-    }
-
     protected void getServerStatus(@NotNull Context context) {
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.isOsuApiHealthy(tokenManager.getTokenData()))

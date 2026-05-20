@@ -58,12 +58,7 @@ public class WebServer implements Closeable {
                         .get("/replay/video/{jobId}/replay.mp4", router.replayController::getReplayRenderResultFile)
                         .delete("/replay/video/{jobId}", router.replayController::deleteReplayRenderResult);
             } else {
-                LOG.info("No danser path found, replay rendering will be disabled.");
-            }
-
-            if (conf.ostella().debugMode()) {
-                LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
-                cfg.routes.get("/debug/bypass", router::bypassRequest);
+                LOG.info("Replay rendering will is disabled.");
             }
 
             cfg.routes
