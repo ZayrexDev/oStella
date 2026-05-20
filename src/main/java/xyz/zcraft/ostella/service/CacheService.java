@@ -44,8 +44,8 @@ public class CacheService {
 
     private static final Path JSON_CACHE = CACHE_PATH.resolve("json");
     private static final Path SCORE_JSON_CACHE = JSON_CACHE.resolve("score");
-    private static final Path BEATMAP_JSON_CACHE = JSON_CACHE.resolve("beatmap");
-    private static final Path BEATMAPSET_JSON_CACHE = JSON_CACHE.resolve("beatmapset");
+//    private static final Path BEATMAP_JSON_CACHE = JSON_CACHE.resolve("beatmap");
+//    private static final Path BEATMAPSET_JSON_CACHE = JSON_CACHE.resolve("beatmapset");
 
     private static final Path DANSER_SONG_CACHE = CACHE_PATH.resolve("danser", "songs");
 
@@ -62,8 +62,8 @@ public class CacheService {
         Files.createDirectories(REPLAY_CACHE);
         Files.createDirectories(DANSER_SONG_CACHE);
         Files.createDirectories(SCORE_JSON_CACHE);
-        Files.createDirectories(BEATMAP_JSON_CACHE);
-        Files.createDirectories(BEATMAPSET_JSON_CACHE);
+//        Files.createDirectories(BEATMAP_JSON_CACHE);
+//        Files.createDirectories(BEATMAPSET_JSON_CACHE);
     }
 
     private static String bytesToHex(byte[] bytes) {

@@ -63,6 +63,7 @@ public class OsuAPI {
             final Optional<Score> scoreJsonCache = CacheService.getScoreJsonCache(scoreId);
 
             if (scoreJsonCache.isPresent()) {
+                LOG.debug("Score {} found in cache", scoreId);
                 return scoreJsonCache.get();
             }
         } catch (Exception e) {
@@ -80,7 +81,16 @@ public class OsuAPI {
                 return null;
             }
 
-            return GSON.fromJson(body, Score.class);
+            final Score score = GSON.fromJson(body, Score.class);
+
+            try {
+                CacheService.cacheScoreJson(score);
+                LOG.debug("Score {} cached", scoreId);
+            } catch (IOException e) {
+                LOG.warn("Failed to cache score for score id {}", scoreId, e);
+            }
+
+            return score;
         } catch (Exception e) {
             throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to get score id " + scoreId, e);
         }
