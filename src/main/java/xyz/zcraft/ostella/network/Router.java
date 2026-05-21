@@ -180,6 +180,7 @@ public class Router implements Closeable {
                         throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
                     return u;
                 })
+                .thenCompose(u -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), String.valueOf(u.getId()))))
                 .thenAccept(u -> context.status(200).result(new Response(true, "Success", GSON.toJsonTree(u)).toString()))
         );
     }
