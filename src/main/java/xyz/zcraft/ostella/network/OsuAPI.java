@@ -325,7 +325,7 @@ public class OsuAPI {
     }
 
     public static Beatmapset getBeatmapsetFromBeatmap(TokenData tokenData, String beatmapId) {
-        LOG.debug("Fetching beatmapset with id {}", beatmapId);
+        LOG.debug("Fetching beatmapset for beatmap id {}", beatmapId);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmapsets/lookup?beatmap_id=" + beatmapId)
                     .GET()

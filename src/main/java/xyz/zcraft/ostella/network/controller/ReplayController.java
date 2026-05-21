@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.ostella.util.RequestUtil.*;
@@ -157,16 +158,20 @@ public class ReplayController {
                                 throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this user in the specified beatmapset!");
                             }
 
-                            final double start = optionalDouble(context, "start");
-                            final double end = optionalDouble(context, "end");
-
-                            if (score.getPp() == null) {
-                                score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
-                            }
-
-                            return renderScoreForAsync(context, score, start, end);
+                            return finalizeReplay(context, score);
                         })
         );
+    }
+
+    private CompletionStage<Void> finalizeReplay(@NotNull Context context, Score score) {
+        final double start = optionalDouble(context, "start");
+        final double end = optionalDouble(context, "end");
+
+        if (score.getPp() == null) {
+            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+        }
+
+        return renderScoreForAsync(context, score, start, end);
     }
 
     private void queueReplayRenderOfBeatmapAsync(@NotNull Context context) {
@@ -181,14 +186,7 @@ public class ReplayController {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this user on this map!");
                     }
 
-                    final double start = optionalDouble(context, "start");
-                    final double end = optionalDouble(context, "end");
-
-                    if (score.getPp() == null) {
-                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
-                    }
-
-                    return renderScoreForAsync(context, score, start, end);
+                    return finalizeReplay(context, score);
                 })
         );
     }
@@ -201,14 +199,7 @@ public class ReplayController {
                                 throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for reference!");
                             }
 
-                            final double start = optionalDouble(context, "start");
-                            final double end = optionalDouble(context, "end");
-
-                            if (score.getPp() == null) {
-                                score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
-                            }
-
-                            return renderScoreForAsync(context, score, start, end);
+                            return finalizeReplay(context, score);
                         })
         );
     }
@@ -222,14 +213,7 @@ public class ReplayController {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this ID!");
                     }
 
-                    final double start = optionalDouble(context, "start");
-                    final double end = optionalDouble(context, "end");
-
-                    if (score.getPp() == null) {
-                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
-                    }
-
-                    return renderScoreForAsync(context, score, start, end);
+                    return finalizeReplay(context, score);
                 })
         );
     }

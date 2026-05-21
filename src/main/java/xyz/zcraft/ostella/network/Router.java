@@ -210,25 +210,6 @@ public class Router implements Closeable {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    protected void getMultiplayerRooms(@NotNull Context context) {
-        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
-                .thenApply(rooms -> {
-                    if (rooms == null || rooms.isEmpty()) {
-                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "No rooms found");
-                    }
-
-                    rooms.sort(Comparator.comparingInt(MultiplayerRoom::getParticipantCount));
-
-                    List<MultiplayerRoom> topRooms = rooms.size() > 20 ? rooms.reversed().subList(0, 20) : rooms;
-                    JsonArray arr = new JsonArray();
-                    for (MultiplayerRoom room : topRooms) {
-                        arr.add(room.getName() + " << " + room.getParticipantCount());
-                    }
-                    return arr;
-                })
-                .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString())));
-    }
-
     protected void getDaily(@NotNull Context context) {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
                 .thenApply(rooms -> {
@@ -389,10 +370,6 @@ public class Router implements Closeable {
                 })
                 .thenApply((MultiplayerRoom.CurrentPlaylistItem c) -> {
                     final BeatmapExtended beatmap = c.getBeatmap();
-                    if (beatmap == null) {
-                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "Current playlist item has no beatmap!");
-                    }
-
                     JsonObject res = new JsonObject();
                     res.addProperty("beatmap_id", beatmap.getId());
                     res.addProperty("beatmapset_id", beatmap.getBeatmapsetId());
