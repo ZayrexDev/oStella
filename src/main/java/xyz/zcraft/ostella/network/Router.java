@@ -401,4 +401,21 @@ public class Router implements Closeable {
                 .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString()))
         );
     }
+
+    public CompletableFuture<Score> getScore(String id) {
+        return executor.enqueueAsync(() -> {
+            try {
+                final Optional<Score> scoreJsonCache = CacheService.getScoreJsonCache(id);
+
+                if (scoreJsonCache.isPresent()) {
+                    LOG.debug("Score {} found in cache", id);
+                    return scoreJsonCache.get();
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to get score from cache for score id {}: {}", id, e.getMessage());
+            }
+
+            return OsuAPI.getScore(tokenManager.getTokenData(), id);
+        });
+    }
 }

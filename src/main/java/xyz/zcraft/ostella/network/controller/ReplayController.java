@@ -14,7 +14,8 @@ import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.ReplayService;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.Score;
 import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.IOException;
@@ -216,9 +217,7 @@ public class ReplayController {
         final String s = requireString(context, "s");
 
         context.future(() ->
-                executor.enqueueAsync(() ->
-                        OsuAPI.getScore(tokenManager.getTokenData(), s)
-                ).thenCompose(score -> {
+                router.getScore(s).thenCompose(score -> {
                     if (score == null) {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this ID!");
                     }
@@ -250,9 +249,7 @@ public class ReplayController {
 
         context.future(() -> {
             List<CompletableFuture<Score>> scoreFutures = scoreIds.stream()
-                    .map(id -> executor.enqueueAsync(() ->
-                            OsuAPI.getScore(tokenManager.getTokenData(), id)) //
-                    ).toList();
+                    .map(router::getScore).toList();
 
             return finalizeScoreRender(context, scoreFutures);
         });
@@ -455,4 +452,6 @@ public class ReplayController {
                     });
         });
     }
+
+
 }

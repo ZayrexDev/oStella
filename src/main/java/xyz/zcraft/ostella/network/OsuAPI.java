@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 public class OsuAPI {
     private static final Logger LOG = LogManager.getLogger(OsuAPI.class);
@@ -58,17 +57,6 @@ public class OsuAPI {
 
     public static Score getScore(TokenData tokenData, String scoreId) {
         LOG.debug("Fetching score with id {}", scoreId);
-
-        try {
-            final Optional<Score> scoreJsonCache = CacheService.getScoreJsonCache(scoreId);
-
-            if (scoreJsonCache.isPresent()) {
-                LOG.debug("Score {} found in cache", scoreId);
-                return scoreJsonCache.get();
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to get score from cache for score id {}: {}", scoreId, e.getMessage());
-        }
 
         try {
             final var request = newRequestBuilder(tokenData, "/scores/" + scoreId)
@@ -303,34 +291,6 @@ public class OsuAPI {
             return rooms;
         } catch (IOException | InterruptedException e) {
             throw new ApiException(ErrorCode.ROOM_FETCH_FAILED, "Failed to fetch rooms", e);
-        }
-    }
-
-    public static JsonObject byPassRequest(TokenData tokenData, String query) {
-        LOG.debug("Making bypass request with query {}", query);
-        try {
-            final var request = newRequestBuilder(tokenData, query)
-                    .GET()
-                    .build();
-
-            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 404) {
-                return null;
-            }
-
-            if (response.statusCode() >= 400) {
-                throw new ApiException(
-                        ErrorCode.FETCH_FAILED,
-                        "osu! API returned status " + response.statusCode()
-                );
-            }
-
-            final String body = response.body();
-
-            return JsonParser.parseString(body).getAsJsonObject();
-        } catch (IOException | InterruptedException e) {
-            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Failed to make bypass request with query " + query, e);
         }
     }
 
