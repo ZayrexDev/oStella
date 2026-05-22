@@ -3,6 +3,7 @@ ostella:
   requestPerSecond: 10 # Maximum number of requests per second to send to the osu! API
   renderWorkers: 4 # Number of worker threads for rendering images
   debugMode: false # Enable debug endpoints, not recommended for production use
+  safeFlags: false # Hides specific sensitive flags
 
 # === Config for Javalin webserver ===
 webserver:

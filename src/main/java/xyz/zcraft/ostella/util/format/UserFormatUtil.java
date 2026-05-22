@@ -1,5 +1,6 @@
 package xyz.zcraft.ostella.util.format;
 
+import lombok.Setter;
 import xyz.zcraft.ostella.data.ScoreChange;
 import xyz.zcraft.osu.model.*;
 
@@ -75,6 +76,19 @@ public class UserFormatUtil {
                 .map(User.StatisticsRuleset::getOsu)
                 .map(User.Statistics::getPp)
                 .isPresent();
+    }
+
+    @Setter
+    private static boolean safeFlags = false;
+
+    public static String getFlagUrl(User user) {
+        String countryCode = user.getCountryCode();
+
+        if (safeFlags && "TW".equalsIgnoreCase(countryCode)) {
+            countryCode = "CN";
+        }
+
+        return "https://assets.ppy.sh/old-flags/" + countryCode + ".png";
     }
 }
 

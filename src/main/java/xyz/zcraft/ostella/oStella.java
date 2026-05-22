@@ -8,6 +8,7 @@ import xyz.zcraft.ostella.config.AppConfig;
 import xyz.zcraft.ostella.config.ConfigLoader;
 import xyz.zcraft.ostella.network.WebServer;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.ostella.util.format.UserFormatUtil;
 
 import java.io.IOException;
 
@@ -45,6 +46,10 @@ public class oStella {
         if (conf.ostella().debugMode()) {
             Configurator.setRootLevel(org.apache.logging.log4j.Level.DEBUG);
             LOG.warn("Debug mode is enabled! This may cause security and performance issues. Please disable debug mode in production environment.");
+        }
+
+        if (conf.ostella().safeFlags()) {
+            UserFormatUtil.setSafeFlags(true);
         }
 
         LOG.info("Initializing OsuParser, you may ignore the warnings below.");
