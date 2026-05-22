@@ -108,9 +108,10 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         }
 
-        .online {
+        .avatar-online {
             border-color: #2ecc71;
             border-style: solid;
+            border-width: 4px;
         }
 
         .supporter-heart {
@@ -437,7 +438,7 @@
     <div class="profile-main">
         <img alt="avatar" class="avatar" src="https://a.ppy.sh/2"
              th:src="${cache.getImageSrc(user.getAvatarUrl())}"
-             th:classappend="${user.isOnline() ? ' online' : ''}">
+             th:classappend="${user.isOnline() ? ' avatar-online' : ''}">
         <div class="profile-details">
             <div class="profile-name-row">
                 <img alt="flag"
