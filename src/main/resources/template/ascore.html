@@ -320,7 +320,7 @@
             margin-left: 8px;
         }
 
-        .if-fc {
+        .if-fc, .if-unranked {
             color: #ffcc22;
             font-weight: bold;
             background: rgba(255, 204, 34, 0.1);
@@ -530,6 +530,7 @@
             <div class="data-sub">
                 <span class="if-fc" th:if="${diff != null}"
                       th:text="'MAX ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">MAX 412.5pp</span>
+                <span class="if-unranked" th:if="${!Scores.hasPp(score)}">UNRANKED</span>
             </div>
         </div>
 

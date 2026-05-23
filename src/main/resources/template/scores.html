@@ -538,6 +538,9 @@
             <div class="rank-badge" th:style="'background:' + ${Scores.getRankColor(score)}" th:text="${score.rank}">
                 SS
             </div>
+            <div class="unranked-badge" th:style="'background:' + ${Scores.getRankColor(score)}" th:text="${score.rank}">
+                UNRANKED
+            </div>
             <div class="mod-badges" th:if="${score.mods != null and !score.mods.isEmpty()}">
                 <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}"
                      th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"

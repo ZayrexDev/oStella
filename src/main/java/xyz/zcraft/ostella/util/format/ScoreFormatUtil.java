@@ -27,12 +27,16 @@ public class ScoreFormatUtil {
     }
 
     public static String getWeightPP(Score score) {
-        if (score == null || score.getWeight() == null
-                || score.getWeight().getPercentage() == null
-                || score.getWeight().getPp() == null) {
-            return "";
+        if (hasPp(score)) {
+            return "Unranked";
         }
         return String.format("%d%% ->%.1fpp", score.getWeight().getPercentage().intValue(), score.getWeight().getPp());
+    }
+
+    public static boolean hasPp(Score score) {
+        return score != null && score.getWeight() != null
+                && score.getWeight().getPercentage() != null
+                && score.getWeight().getPp() != null;
     }
 
     public static String getRankColor(Score score) {
