@@ -361,10 +361,11 @@ public class ReplayController {
                                     "position", queueSize,
                                     "id", jobId,
                                     "beatmap", Map.of(
+                                            "id", score.getBeatmapset().getId(),
                                             "title", score.getBeatmapset().getTitle(),
                                             "artist", score.getBeatmapset().getArtist(),
                                             "version", score.getBeatmap().getVersion(),
-                                            "star", String.format("%.2f★", score.getBeatmap().getDifficultyRating())
+                                            "star", score.getBeatmap().getDifficultyRating()
                                     ),
                                     "scores", router.getScoresArr(List.of(score))
                             ))
@@ -426,10 +427,11 @@ public class ReplayController {
                                         "position", queueSize,
                                         "id", jobId,
                                         "beatmap", Map.of(
+                                                "id", beatmap.getBeatmapset().getId(),
                                                 "title", beatmap.getBeatmapset().getTitle(),
                                                 "artist", beatmap.getBeatmapset().getArtist(),
                                                 "version", beatmap.getVersion(),
-                                                "star", String.format("%.2f★", beatmap.getDifficultyRating())
+                                                "star", beatmap.getDifficultyRating()
                                         ),
                                         "scores", router.getScoresArr(scores)
                                 ))).toString());

@@ -33,7 +33,7 @@ public class ScoreFormatUtil {
         if (!hasWeight(score)) {
             return "";
         }
-        return String.format("%d%% ->%.1fpp", score.getWeight().getPercentage().intValue(), score.getWeight().getPp());
+        return String.format("%d%% ↪%.1fpp", score.getWeight().getPercentage().intValue(), score.getWeight().getPp());
     }
 
     public static boolean hasPp(Score score) {
