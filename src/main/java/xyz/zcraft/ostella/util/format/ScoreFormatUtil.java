@@ -37,7 +37,8 @@ public class ScoreFormatUtil {
     }
 
     public static boolean hasPp(Score score) {
-        return score != null && score.getPp() != null;
+        return score != null && score.getPp() != null
+                && "RANKED".equalsIgnoreCase(score.getBeatmap().getStatus());
     }
 
     public static boolean hasWeight(Score score) {
