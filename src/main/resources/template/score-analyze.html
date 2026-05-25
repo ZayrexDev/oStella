@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>oStella - Score Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            width: fit-content;
+            height: fit-content;
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: 'Dejavu Sans', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        .score-card {
+            width: 850px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .hero-banner {
+            width: 100%;
+            height: 160px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(26, 26, 46, 0.1) 0%, rgba(26, 26, 46, 0.6) 60%, rgba(26, 26, 46, 1) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 24px;
+        }
+
+        .mod-badges {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .mod-badge {
+            font-weight: 900;
+            font-size: 1.2em;
+            padding: 6px 16px;
+            border-radius: 100px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .score-info {
+            display: flex;
+
+            padding: 16px;
+            margin-bottom: 16px;
+
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .grade-letter {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 16px;
+            padding-right: 32px;
+            font-size: 6em;
+            font-weight: 900;
+            line-height: 0.8;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .score-data {
+            display: flex;
+            width: stretch;
+
+            padding-left: 24px;
+            padding-right: 24px;
+
+            justify-content: space-between;
+
+            border-left: 2px solid #a0a0b8;
+            border-right: 2px solid #a0a0b8;
+        }
+
+        .meta-row {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+
+            display: flex;
+
+            padding: 16px 24px 8px 24px;
+            align-items: end;
+        }
+
+        .map-info {
+            margin-right: auto;
+        }
+
+        .song-title {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            font-size: 1.8em;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 24px;
+        }
+
+        .song-artist {
+            grid-column: 1 / 3;
+            grid-row: 2 / 3;
+            font-size: 1.1em;
+            color: #e2e8f0;
+            font-weight: 300;
+            padding-right: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .diff-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: nowrap;
+            padding: 8px 24px 8px 24px;
+        }
+
+        .diff-badge {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 1.1em;
+            gap: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .diff-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .id-data {
+            margin-left: auto;
+            letter-spacing: 1px;
+            color: #a0a0b8;
+            font-size: 1.1em;
+            text-align: end;
+        }
+
+        .player-info {
+            display: contents;
+        }
+
+        .player-identity {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-self: end;
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .player-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .map-stats-strip {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .map-stat-group {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .map-stat-label {
+            color: #a0a0b8;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .map-stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .data-block {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .data-label {
+            color: #a0a0b8;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .data-primary {
+            font-size: 2.5em;
+            font-weight: 900;
+        }
+
+        .data-sub {
+            font-size: 1.1em;
+            color: #e2e8f0;
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .charts-container {
+            padding: 0 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chart-box {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            width: 100%;
+        }
+
+        .chart-title {
+            font-size: 1.1em;
+            color: #a0a0b8;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bottom-footer {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+            color: #a0a0b8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="score-card">
+    <div class="hero-banner"
+         style="background-image: url('https://assets.ppy.sh/beatmaps/2414617/covers/slimcover.jpg?1755447546');"
+         th:style="'background-image: url(' + ${cache.getImageSrc(score.getBeatmapset().getCovers().getSlimcover())} + ');'">
+        <div class="hero-overlay">
+            <div class="mod-badges" th:if="${diff.isModded()}">
+                <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}"
+                     th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
+                     th:text="${amod.getAcronym()}">HD
+                </div>
+            </div>
+            <div class="meta-row">
+                <div class="map-info">
+                    <div class="song-title" th:text="${score.getBeatmapset().getTitle()}">Example Song Title</div>
+                    <div class="song-artist">
+                        <span th:text="${score.getBeatmapset().getArtist()}">Example Artist</span>
+                        <span style="color: #a0a0b8; margin: 0 8px;">//</span>
+                        <span style="color: #fff; font-weight: bold;"
+                              th:text="${Beatmaps.getOwnersString(score.getBeatmap())}">Mapper</span>
+                    </div>
+                </div>
+
+                <div class="player-info">
+                    <div class="player-identity">
+                        <span class="player-name" th:text="${score.getUser().getUsername()}">PlayerName</span>
+                        <img alt="Avatar" class="player-avatar"
+                             src="https://a.ppy.sh/2" th:src="${cache.getImageSrc(score.getUser().getAvatarUrl())}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="diff-row">
+        <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
+            <span th:style="'color: ' + ${DiffSpecs.getDiffTextColor(diff)}"
+                  th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">6.84★</span>
+        </div>
+        <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColor(diff)}"
+             th:text="${score.getBeatmap().getVersion()}">Example Difficulty
+        </div>
+        <div class="id-data" th:text="${'M' + score.getBeatmapId() + ' - ' + 'S' + score.getId()}">M1234567 - S1234567890</div>
+    </div>
+
+    <div class="score-info">
+        <div class="grade-letter" th:style="'color: ' + ${Scores.getRankColor(score)}" th:text="${score.getRank()}">
+            A
+        </div>
+
+        <div class="score-data">
+            <div class="data-block">
+                <div class="data-label">Performance</div>
+                <div class="data-primary"
+                     th:text="${score.getPp() != null ? #numbers.formatDecimal(score.getPp(), 1, 1) + 'pp' : '--pp'}">
+                    340.2pp
+                </div>
+                <div class="data-sub" th:text="'MAX ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">
+                    MAX 1234.56pp
+                </div>
+            </div>
+
+            <div class="data-block" style="align-items: center; text-align: center;">
+                <div class="data-label">Combo</div>
+                <div class="data-primary" th:text="${score.getMaxCombo()} + 'x'">850x</div>
+                <div class="data-sub" th:text="'MAX' + ${diff.getMaxCombo()} + 'x'">MAX 999x</div>
+            </div>
+
+            <div class="data-block" style="align-items: flex-end; text-align: right;">
+                <div class="data-label">Accuracy</div>
+                <div class="data-primary"
+                     th:text="${#numbers.formatDecimal(score.getAccuracy() * 100, 1, 2)} + '%'">85.42%
+                </div>
+                <div class="data-sub"
+                     th:text="${score.getStatistics().get('count_300')}
+                                + ' / ' + ${score.getStatistics().get('count_100')}
+                                + ' / ' + ${score.getStatistics().get('count_50')}
+                                + ' / ' + ${score.getStatistics().get('count_miss')}">456 / 78 / 9 / 10
+                </div>
+            </div>
+        </div>
+
+        <div class="map-stats-strip">
+            <div class="map-stat-group">
+                <span class="map-stat-label">CS</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getCs(), 1, 2)}">4.00</span>
+            </div>
+            <div class="map-stat-group">
+                <span class="map-stat-label">AR</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getAr(), 1, 2)}">9.30</span>
+            </div>
+            <div class="map-stat-group">
+                <span class="map-stat-label">OD</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getOd(), 1, 2)}">8.00</span>
+            </div>
+            <div class="map-stat-group">
+                <span class="map-stat-label">HP</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 2)}">7.00</span>
+            </div>
+            <div class="map-stat-group" style="margin-left: auto;">
+                <span class="map-stat-label">BPM</span>
+                <span class="map-stat-value" th:text="${#numbers.formatInteger(diff.getBpm(), 1)}">200</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-box">
+            <div class="chart-title">Timing Distribution (Error Margin)</div>
+            <div id="timingChart"></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-title">Accuracy Heatmap (Over Time)</div>
+        </div>
+    </div>
+
+</div>
+
+<div class="bottom-footer">
+    <span th:text="${'Analysis mapped at ' + time}">Analysis mapped at 2026-04-20T14:20:13Z</span>
+    <span>Generated with oStella by Zayrex</span>
+</div>
+
+</body>
+</html>
