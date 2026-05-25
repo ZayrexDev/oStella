@@ -13,7 +13,7 @@ import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.*;
-import xyz.zcraft.osu.parser.DiffSpec;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 import xyz.zcraft.osu.parser.OsuParser;
 
 import java.nio.file.Path;

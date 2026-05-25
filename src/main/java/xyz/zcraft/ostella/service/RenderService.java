@@ -12,7 +12,7 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import xyz.zcraft.ostella.data.Placement;
 import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.osu.model.*;
-import xyz.zcraft.osu.parser.DiffSpec;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 
 import xyz.zcraft.ostella.util.*;
 import xyz.zcraft.ostella.util.format.*;

@@ -13,7 +13,7 @@ import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.Score;
-import xyz.zcraft.osu.parser.DiffSpec;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 import xyz.zcraft.osu.parser.OsuParser;
 
 import static xyz.zcraft.ostella.util.RequestUtil.requireNumberString;

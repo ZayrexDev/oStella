@@ -1,6 +1,6 @@
 package xyz.zcraft.ostella.util.format;
 
-import xyz.zcraft.osu.parser.DiffSpec;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 import xyz.zcraft.ostella.util.Colors;
 
 public class DiffSpecFormatUtil {

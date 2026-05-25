@@ -14,6 +14,7 @@ import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.*;
 import xyz.zcraft.osu.parser.*;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 
 import java.util.Comparator;
 import java.util.List;
