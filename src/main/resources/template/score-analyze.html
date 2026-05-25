@@ -69,10 +69,8 @@
 
         .score-info {
             display: flex;
-
             padding: 16px;
             margin-bottom: 16px;
-
             background: rgba(0, 0, 0, 0.3);
         }
 
@@ -91,12 +89,9 @@
         .score-data {
             display: flex;
             width: stretch;
-
             padding-left: 24px;
             padding-right: 24px;
-
             justify-content: space-between;
-
             border-left: 2px solid #a0a0b8;
             border-right: 2px solid #a0a0b8;
         }
@@ -106,9 +101,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-
             display: flex;
-
             padding: 16px 24px 8px 24px;
             align-items: end;
         }
@@ -254,8 +247,9 @@
         .charts-container {
             padding: 0 24px 24px 24px;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 16px;
+            height: 280px;
         }
 
         .chart-box {
@@ -263,16 +257,27 @@
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             padding: 16px;
-            width: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .chart-title {
+            text-align: center;
             font-size: 1.1em;
             color: #a0a0b8;
             font-weight: bold;
             margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+
+        .chart-content {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: visible;
         }
 
         .bottom-footer {
@@ -327,7 +332,9 @@
         <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColor(diff)}"
              th:text="${score.getBeatmap().getVersion()}">Example Difficulty
         </div>
-        <div class="id-data" th:text="${'M' + score.getBeatmapId() + ' - ' + 'S' + score.getId()}">M1234567 - S1234567890</div>
+        <div class="id-data" th:text="${'M' + score.getBeatmapId() + ' - ' + 'S' + score.getId()}">M1234567 -
+            S1234567890
+        </div>
     </div>
 
     <div class="score-info">
@@ -392,21 +399,253 @@
     </div>
 
     <div class="charts-container">
-        <div class="chart-box">
-            <div class="chart-title">Timing Distribution (Error Margin)</div>
-            <div id="timingChart"></div>
+        <div class="chart-box" style="flex: 2;">
+            <div class="chart-title">Timing Distribution</div>
+            <div class="chart-content">
+                <div id="timingDistributionChart" style="width: 100%; height: 100%;"></div>
+            </div>
         </div>
-        <div class="chart-box">
-            <div class="chart-title">Accuracy Heatmap (Over Time)</div>
+
+        <div class="chart-box" style="flex: 1;">
+            <div class="chart-title">Aiming Bias</div>
+            <div class="chart-content">
+                <div style="position: relative; width: 200px; height: 200px;">
+
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                                width: 80%; height: 80%;
+                                border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
+                                pointer-events: none; z-index: 1;">
+                    </div>
+
+                    <div id="aimGridHeatmap" style="width: 100%; height: 100%;"></div>
+                </div>
+            </div>
         </div>
     </div>
-
 </div>
 
 <div class="bottom-footer">
     <span th:text="${'Analysis mapped at ' + time}">Analysis mapped at 2026-04-20T14:20:13Z</span>
     <span>Generated with oStella by Zayrex</span>
 </div>
+
+<script th:inline="javascript">
+    const hitErrors = /*[[${timingDistribution}]]*/ [1, 2, 3, 4, 5];
+    const window300 = /*[[${window300}]]*/ 28.5;
+    const window100 = /*[[${window100}]]*/ 71.5;
+    const window50 = /*[[${window50}]]*/ 114.5;
+
+    function getColorForError(errVal) {
+        if (errVal === 0) return '#ffffff';
+
+        const absError = Math.abs(errVal);
+        if (absError <= window300) return '#66ccff';
+        if (absError <= window100) return '#52cc54';
+        if (absError <= window50) return '#e5c540';
+        return '#ff5555';
+    }
+
+    // --- TIMING DISTRIBUTION ---
+    const timingChartDom = document.getElementById('timingDistributionChart');
+    if (timingChartDom && hitErrors.length > 0) {
+        const timingChart = echarts.init(timingChartDom, 'dark');
+
+        const errorCounts = {};
+        hitErrors.forEach(err => {
+            const bucket = Math.round(err / 2) * 2;
+            errorCounts[bucket] = (errorCounts[bucket] || 0) + 1;
+        });
+
+        const minVal = Math.floor((-window50 - 5) / 2) * 2;
+        const maxVal = Math.ceil((window50 + 5) / 2) * 2;
+
+        const xAxisData = [];
+        const barData = [];
+
+        for (let i = minVal; i <= maxVal; i += 2) {
+            xAxisData.push(i);
+            barData.push({
+                value: errorCounts[i] || 0,
+                itemStyle: {color: getColorForError(i)}
+            });
+        }
+
+        // noinspection JSUnusedGlobalSymbols
+        timingChart.setOption({
+            backgroundColor: 'transparent',
+            animation: false,
+            grid: {top: 10, bottom: 25, left: 10, right: 10, containLabel: false},
+
+            xAxis: {
+                type: 'category',
+                data: xAxisData,
+                splitLine: {show: false},
+                axisLabel: {
+                    color: '#a0a0b8',
+                    fontSize: 10,
+                    interval: function (index, value) {
+                        return value % 20 === 0 || value === 0;
+                    },
+                    formatter: '{value}'
+                },
+                axisLine: {
+                    show: true,
+                    lineStyle: {color: '#a0a0b8', width: 2}
+                },
+                axisTick: {show: false}
+            },
+
+            yAxis: {
+                type: 'value',
+                splitLine: {show: false},
+                axisLabel: {show: false},
+                axisLine: {show: false}
+            },
+
+            series: [{
+                type: 'bar',
+                barCategoryGap: '10%',
+                data: barData
+            }]
+        });
+    }
+</script>
+
+<script th:inline="javascript">
+    // --- AIMING BIAS ---
+
+    const hitPos = /*[[${hitPositions}]]*/ [
+        [0, 0],
+        [0, 1],
+        [3, 2]
+    ];
+
+    const missData = /*[[${missPositions}]]*/ [];
+
+    const radius = /*[[${csRadius}]]*/ 38.70;
+
+    const N = 21;
+
+    const gridIndices = Array.from({length: N}, (_, i) => i.toString());
+
+    const axisMin = -radius * 1.25;
+    const axisMax = radius * 1.25;
+
+    function polarToCartesian(thetaRad, r) {
+        return [r * Math.cos(thetaRad), r * Math.sin(thetaRad)];
+    }
+
+    function coordToIndexFloor(coord) {
+        const clamped = Math.max(axisMin, Math.min(axisMax, coord));
+        const t = (clamped - axisMin) / (axisMax - axisMin); // [0..1]
+        return Math.min(N - 1, Math.max(0, Math.floor(t * N)));
+    }
+
+    const accum = Array.from({length: N}, () => new Array(N).fill(0));
+
+    for (const item of hitPos) {
+        const theta = item[0];
+        const rVal = item[1];
+        const [x, y] = polarToCartesian(theta, rVal);
+        const xi = coordToIndexFloor(x);
+        const yi = coordToIndexFloor(y);
+        accum[xi][yi] += 1;
+    }
+
+    const mappedGridData = [];
+    let maxDensity = 0;
+
+    for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+            const v = accum[i][j];
+            if (v > 0) {
+                mappedGridData.push([i, j, v]);
+                if (v > maxDensity) maxDensity = v;
+            }
+        }
+    }
+
+    const mappedMissData = missData.map(pt => {
+        const [x, y] = polarToCartesian(pt[0], pt[1]);
+        return [coordToIndexFloor(x), coordToIndexFloor(y)];
+    });
+
+    const aimGridChart = echarts.init(document.getElementById('aimGridHeatmap'), 'dark');
+
+    aimGridChart.setOption({
+        backgroundColor: 'transparent',
+        animation: false,
+        grid: {left: '10%', right: '10%', top: '10%', bottom: '10%'},
+
+        xAxis: [
+            {
+                type: 'category',
+                data: gridIndices,
+                show: false
+            },
+            {
+                type: 'value',
+                min: -radius * 1.25,
+                max: radius * 1.25,
+                show: false
+            }
+        ],
+        yAxis: [
+            {
+                type: 'category',
+                data: gridIndices,
+                show: false
+            },
+            {
+                type: 'value',
+                min: -radius * 1.25,
+                max: radius * 1.25,
+                show: false
+            }
+        ],
+
+        visualMap: {
+            min: 1,
+            max: maxDensity,
+            calculable: false,
+            show: false,
+            seriesIndex: 0,
+            inRange: {
+                color: ['#253630', '#6affd5']
+            }
+        },
+
+        series: [
+            {
+                name: 'Hits',
+                type: 'heatmap',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                data: mappedGridData,
+                itemStyle: {
+                    borderColor: 'rgba(0,0,0,0.1)',
+                    borderWidth: 2,
+                    borderRadius: 9
+                }
+            },
+            {
+                name: 'Misses',
+                type: 'scatter',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                data: mappedMissData,
+                symbol: 'path://M10 10L90 90M90 10L10 90',
+                symbolSize: 12,
+                itemStyle: {
+                    color: 'transparent',
+                    borderColor: '#ff5555',
+                    borderWidth: 2
+                },
+                silent: true
+            }
+        ]
+    });
+</script>
 
 </body>
 </html>
