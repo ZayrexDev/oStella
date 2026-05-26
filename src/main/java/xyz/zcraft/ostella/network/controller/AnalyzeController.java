@@ -94,10 +94,9 @@ public class AnalyzeController {
                                 .map(b -> b.distance() * (Math.abs(b.theta()) >= Math.PI ? -1 : 1))
                                 .toList();
 
-                        final double aimBias = aimBiases.stream().reduce(0.0, Double::sum) / aimBiases.size() / diffSpec.getCircleRadius();
+                        final double aimBias = aimBiases.isEmpty() ? 0.0 : (aimBiases.stream().reduce(0.0, Double::sum) / aimBiases.size() / diffSpec.getCircleRadius());
 
-                        final double avgTimingError = hitErrors.stream().reduce(0L, Long::sum) / (double) hitErrors.size();
-
+                        final double avgTimingError = hitErrors.isEmpty() ? 0.0 : (hitErrors.stream().reduce(0L, Long::sum) / (double) hitErrors.size());
                         return new ScoreAnalyzeData(score, diffSpec, hitErrors, hitPos, missPos, aimBias, avgTimingError, analyze);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
