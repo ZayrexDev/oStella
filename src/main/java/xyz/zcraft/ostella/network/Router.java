@@ -44,6 +44,7 @@ public class Router implements Closeable {
     final ScoreController scoreController;
     final BeatmapsetController beatmapsetController;
     final LeaderboardController leaderboardController;
+    final AnalyzeController analyzeController;
 
     public Router(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
@@ -58,6 +59,7 @@ public class Router implements Closeable {
         this.scoreController = new ScoreController(this);
         this.beatmapsetController = new BeatmapsetController(this);
         this.leaderboardController = new LeaderboardController(this);
+        this.analyzeController = new AnalyzeController(this);
 
         if (conf.replayRender().enabled()) {
             this.replayService = new ReplayService(conf, CacheService.getDanserCache());

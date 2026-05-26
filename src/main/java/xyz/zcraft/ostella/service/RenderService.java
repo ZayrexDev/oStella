@@ -11,6 +11,7 @@ import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import xyz.zcraft.ostella.data.Placement;
 import xyz.zcraft.ostella.data.ScoreType;
+import xyz.zcraft.ostella.network.controller.AnalyzeController;
 import xyz.zcraft.ostella.util.Colors;
 import xyz.zcraft.ostella.util.format.*;
 import xyz.zcraft.osu.model.*;
@@ -150,6 +151,24 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
         String finalHtml = templateEngine.process("ascore", ctx);
+
+        return takeScreenshot(finalHtml);
+    }
+
+    public byte[] renderScoreAnalysis(AnalyzeController.ScoreAnalyzeData analyzeData) {
+        Context ctx = createContext();
+        ctx.setVariable("score", analyzeData.score());
+        ctx.setVariable("diff", analyzeData.diffSpec());
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        ctx.setVariable("hitErrors", analyzeData.hitErrors());
+        ctx.setVariable("hitPositions", analyzeData.hitPositions());
+        ctx.setVariable("missPositions", analyzeData.missPositions());
+        ctx.setVariable("aimBias", analyzeData.aimBias());
+        ctx.setVariable("avgTimingError", analyzeData.avgTimingError());
+        ctx.setVariable("analyze", analyzeData.replayAnalyze());
+
+        String finalHtml = templateEngine.process("score-analyze", ctx);
 
         return takeScreenshot(finalHtml);
     }

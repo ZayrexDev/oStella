@@ -87,7 +87,7 @@
         <dependency>
             <groupId>com.github.ZayrexDev</groupId>
             <artifactId>osuParser</artifactId>
-            <version>d2c8bcc4fa</version>
+            <version>31e825ad62</version>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.tukaani/xz -->
         <dependency>
