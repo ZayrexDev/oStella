@@ -300,6 +300,8 @@ public class ReplayController {
 
             final String jobId = replayService.queueRender(replayPath, start, end);
 
+            score.getBeatmap().setBeatmapset(score.getBeatmapset());
+
             context.status(202).result(
                     new Response(
                             true,
@@ -308,13 +310,7 @@ public class ReplayController {
                                     "status", "queued",
                                     "position", queueSize,
                                     "id", jobId,
-                                    "beatmap", Map.of(
-                                            "id", score.getBeatmapset().getId(),
-                                            "title", score.getBeatmapset().getTitle(),
-                                            "artist", score.getBeatmapset().getArtist(),
-                                            "version", score.getBeatmap().getVersion(),
-                                            "star", score.getBeatmap().getDifficultyRating()
-                                    ),
+                                    "beatmap", score.getBeatmap(),
                                     "scores", router.getScoresArr(List.of(score))
                             ))
                     ).toString()
@@ -374,18 +370,10 @@ public class ReplayController {
                                         "status", "queued",
                                         "position", queueSize,
                                         "id", jobId,
-                                        "beatmap", Map.of(
-                                                "id", beatmap.getBeatmapset().getId(),
-                                                "title", beatmap.getBeatmapset().getTitle(),
-                                                "artist", beatmap.getBeatmapset().getArtist(),
-                                                "version", beatmap.getVersion(),
-                                                "star", beatmap.getDifficultyRating()
-                                        ),
+                                        "beatmap", beatmap,
                                         "scores", router.getScoresArr(scores)
                                 ))).toString());
                     });
         });
     }
-
-
 }
