@@ -307,9 +307,16 @@
 
         .aim-bias-arrow {
             width: 4px;
-            height: 32px;
+            height: 24px;
             background: white;
-            margin-bottom: 4px;
+            margin-bottom: 0;
+        }
+
+        .aim-bias-arrow-zero {
+            width: 2px;
+            height: 32px;
+            background: #2fb8f8;
+            margin-bottom: 20px;
         }
 
         .aim-bias-bar-wrap {
@@ -474,17 +481,20 @@
                         <div class="data-label">Aiming Bias</div>
                         <div class="aim-bias">
                             <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
-                                <span>Overshoot</span>
+                                <span>Undershoot</span>
                                 <div class="aim-bias-bar-wrap">
                                     <div class="aim-bias-bar"></div>
-                                    <div class="aim-bias-mark" style="left: 11.85%;"
+                                    <div class="aim-bias-mark" style="left: 25.85%;"
                                          th:style="'left: ' + ${#numbers.formatDecimal(((aimBias + 1) / 2.0) * 100, 1, 1)} + '%;'">
                                         <div class="aim-bias-arrow"></div>
                                         <span th:text="${#numbers.formatDecimal((aimBias < 0 ? -aimBias : aimBias) * 100, 1, 2)} + '% '
-                                                     + ${(aimBias < 0 ? 'Undershoot' : 'Overshoot')}">23.45% Overshoot</span>
+                                                     + ${(aimBias < 0 ? 'Undershoot' : 'Overshoot')}">23.45% Undershoot</span>
+                                    </div>
+                                    <div class="aim-bias-mark" style="left: 50%;">
+                                        <div class="aim-bias-arrow-zero"></div>
                                     </div>
                                 </div>
-                                <span>Undershoot</span>
+                                <span>Overshoot</span>
                             </div>
 
                         </div>
