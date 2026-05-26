@@ -32,27 +32,27 @@ public class WebServer implements Closeable {
             cfg.routes.before(ctx -> LOG.debug("{} {} {}", ctx.method(), ctx.path(), ctx.queryString()));
 
             cfg.routes
-                    .get("/beatmaps/{beatmapId}", router.beatmapController::renderBeatmapById)
                     .get("/beatmaps/lookup", router.beatmapController::lookupBeatmap)
+                    .get("/beatmaps/{beatmapId}", router.beatmapController::renderBeatmapById)
                     .post("/beatmaps/{beatmapId}/leaderboards", router.leaderboardController::getMapLeaderboard)
 
-                    .get("/beatmapsets/{beatmapsetId}", router.beatmapsetController::renderBeatmapsetById)
                     .get("/beatmapsets/lookup", router.beatmapsetController::lookupBeatmapset)
                     .get("/beatmapsets/search", router::searchBeatmapSet)
+                    .get("/beatmapsets/{beatmapsetId}", router.beatmapsetController::renderBeatmapsetById)
                     .get("/beatmapsets/{beatmapsetId}/download", router.beatmapsetController::downloadBeatmapset)
 
-                    .get("/scores/{scoreId}", router.scoreController::renderScoreById)
                     .get("/scores/lookup", router.scoreController::lookupScore)
+                    .get("/scores/{scoreId}", router.scoreController::renderScoreById)
                     .get("/scores/{scoreId}/analysis", router.analyzeController::renderScoreAnalysisById)
 
                     .get("/multiplayer/rooms/current", router::getCurrentRoom)
                     .get("/multiplayer/rooms/current/item", router::getCurrentRoomItem)
 
-                    .get("/users/{userId}/scores/bestof", router::getBestOfN)
-                    .get("/users/{userId}/scores/recent", router::getRecentScores)
                     .get("/users/me", router::getSelf)
                     .get("/users/me/friends", router::getFriends)
                     .post("/users/leaderboards", router.leaderboardController::getLeaderboard)
+                    .get("/users/{userId}/scores/bestof", router::getBestOfN)
+                    .get("/users/{userId}/scores/recent", router::getRecentScores)
 
                     .get("/daily", router::getDaily)
                     .get("/health", router::getServerStatus)
@@ -63,8 +63,8 @@ public class WebServer implements Closeable {
                         .get("/replays/status", router.replayController::getReplayRenderOverview)
 
                         .post("/replays/renders/score/{scoreId}", router.replayController::queueReplayRenderById)
-                        .post("/replays/renders/showcase/{beatmapId}", router.replayController::renderShowcaseOfUsersAsync)
                         .post("/replays/renders/showcase/scores", router.replayController::renderShowcaseOfIdsAsync)
+                        .post("/replays/renders/showcase/{beatmapId}", router.replayController::renderShowcaseOfUsersAsync)
 
                         .get("/replays/{jobId}/status", router.replayController::getReplayRenderStatus)
                         .get("/replays/{jobId}/video", router.replayController::getReplayRenderResultStream)

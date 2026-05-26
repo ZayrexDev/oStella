@@ -153,7 +153,7 @@ public class Router implements Closeable {
     }
 
     protected void getRecentScores(@NotNull Context context) {
-        final long u = requireLong(context, "u");
+        final long u = requirePathLong(context, "userId");
         final int n = requireInt(context, "n");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(

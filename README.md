@@ -89,25 +89,25 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 | Method | Path                                 | Purpose                        | Params / POST Body                                 | Response |
 |--------|--------------------------------------|--------------------------------|----------------------------------------------------|----------|
-| GET    | `/beatmaps/{beatmapId}`              | Beatmap card image             | path `beatmapId` (+ optional query param `mod`)    | PNG      |
 | GET    | `/beatmaps/lookup`                   | Resolve beatmap IDs            | `m` **or** `ms` + `i`  **or** `of` + `u` + `i`     | JSON     |
+| GET    | `/beatmaps/{beatmapId}`              | Beatmap card image             | path `beatmapId` (+ optional query param `mod`)    | PNG      |
 | POST   | `/beatmaps/{beatmapId}/leaderboards` | Compare players on one beatmap | path `beatmapId` + POST Body `{"uids":[user ids]}` | PNG      |
 
 ### Beatmapsets
 
 | Method | Path                                   | Purpose                | Params / POST Body                      | Response |
 |--------|----------------------------------------|------------------------|-----------------------------------------|----------|
-| GET    | `/beatmapsets/{beatmapsetId}`          | Beatmapset card image  | path `beatmapsetId`                     | PNG      |
 | GET    | `/beatmapsets/lookup`                  | Resolve beatmapset IDs | `ms` **or** `m` **or** `of` + `u` + `i` | JSON     |
 | GET    | `/beatmapsets/search`                  | Search beatmapsets     | `q` (search keyword)                    | JSON     |
+| GET    | `/beatmapsets/{beatmapsetId}`          | Beatmapset card image  | path `beatmapsetId`                     | PNG      |
 | GET    | `/beatmapsets/{beatmapsetId}/download` | Download beatmapset    | path `beatmapsetId`                     | OSZ      |
 
 ### Scores
 
 | Method | Path                         | Purpose                   | Params / POST Body                                                   | Response |
 |--------|------------------------------|---------------------------|----------------------------------------------------------------------|----------|
-| GET    | `/scores/{scoreId}`          | Score card image          | path `scoreId`                                                       | PNG      |
 | GET    | `/scores/lookup`             | Resolve score IDs         | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i` | JSON     |
+| GET    | `/scores/{scoreId}`          | Score card image          | path `scoreId`                                                       | PNG      |
 | GET    | `/scores/{scoreId}/analysis` | Score analysis card image | path `scoreId`                                                       | PNG      |
 
 ### Multiplayer Rooms
@@ -121,11 +121,11 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 | Method | Path                            | Purpose                   | Params / POST Body               | Response |
 |--------|---------------------------------|---------------------------|----------------------------------|----------|
-| GET    | `/users/{userId}/scores/bestof` | Best-of-N scores image    | path `userId`, query `n` (count) | PNG      |
-| GET    | `/users/{userId}/scores/recent` | Recent scores image       | path `userId`, query `n` (count) | PNG      |
 | GET    | `/users/me`                     | User data                 | Requires Authorization Header    | JSON     |
 | GET    | `/users/me/friends`             | Friends list for user     | Requires Authorization Header    | JSON     |
 | POST   | `/users/leaderboards`           | User PP leaderboard image | `{"uids":[user ids]}`            | PNG      |
+| GET    | `/users/{userId}/scores/bestof` | Best-of-N scores image    | path `userId`, query `n` (count) | PNG      |
+| GET    | `/users/{userId}/scores/recent` | Recent scores image       | path `userId`, query `n` (count) | PNG      |
 
 ### Replays (enabled only when `danserPath` is configured)
 
@@ -133,8 +133,8 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 |--------|-----------------------------------------|----------------------------------------|---------------------------------------------------|-------------|
 | GET    | `/replays/status`                       | Replay renderer overview               | none                                              | JSON        |
 | POST   | `/replays/renders/score/{scoreId}`      | Queue single replay render             | path `scoreId`                                    | `202` JSON  |
-| POST   | `/replays/renders/showcase/{beatmapId}` | Queue multi-score showcase render      | path `beatmapId` + POST Body `{"ids":[user ids]}` | `202` JSON  |
 | POST   | `/replays/renders/showcase/scores`      | Queue multi-score showcase render      | POST Body `{"ids":[score ids]}`                   | `202` JSON  |
+| POST   | `/replays/renders/showcase/{beatmapId}` | Queue multi-score showcase render      | path `beatmapId` + POST Body `{"ids":[user ids]}` | `202` JSON  |
 | GET    | `/replays/{jobId}/status`               | Get render job state                   | path `{jobId}`                                    | JSON        |
 | GET    | `/replays/{jobId}/video`                | Download rendered video                | path `{jobId}`                                    | `video/mp4` |
 | DELETE | `/replays/{jobId}/video`                | Remove rendered video and job metadata | path `{jobId}`                                    | text        |
