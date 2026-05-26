@@ -8,13 +8,11 @@ and also provides a standalone API for other clients to consume.
 
 ## What You Get
 
-- PNG score panels for best (`/bestof`) and recent (`/recent`) osu! scores
-- PNG beatmap card endpoint (`/beatmap`)
-- PNG beatmapset card endpoint (`/beatmapset`)
-- PNG player comparison leaderboard endpoint (`/maplb`)
-- PNG user PP leaderboard endpoint (`/leaderboard`)
+- PNG score panels for best and recent scores, beatmap, beatmapset, and so on! 
+- PNG score analysis for a specific score
+- PNG player comparison leaderboard endpoint (`/maplb`, `/leaderboard`)
 - Replay video generation for solo and multiplayer replay showcases (`/replay`)
-- Multiplayer room summary endpoint (`/mp`)
+- Current multiplayer room info endpoint (`/mp`)
 - Current daily challenge endpoint (`/daily`)
 - Health endpoint (`/status`)
 - Automatic OAuth token renewal for osu! API
@@ -33,6 +31,9 @@ Here are some demo:
 ### Score Card
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/c3ac7fde-adea-427b-be0a-9871a45ca8ad" />
 
+### Score Analysis
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/024fe6b2-c10a-4c9e-aefc-9c784826a9b7" />
+
 ### Beatmapset Card
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/2bb887d6-5fff-429b-b39e-963235ec463e" />
 
@@ -47,11 +48,11 @@ Here are some demo:
 - Maven 3.9+
 - osu! OAuth app credentials (`client_id`, `client_secret`)
 
-## Quick Start (5 Minutes)
+## Quick Start
 
 1. Copy default config file in the project root.
 2. Install Playwright dependencies if not already present.
-3. Run.
+3. Launch the app.
 4. Call an endpoint.
 
 ### 1) Create `config.yml`
@@ -65,7 +66,7 @@ You can also copy the example config from [ostella-example-config.yml](/src/main
 mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install-deps"
 ```
 
-### 3) Run
+### 3) Launch
 
 ```shell
 mvn -U clean compile exec:java
@@ -86,27 +87,28 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 ### Core Endpoints
 
-| Method | Path           | Purpose                              | Query / Path Params            | Response |
+| Method | Path           | Purpose                              | Params / POST Body             | Response |
 |--------|----------------|--------------------------------------|--------------------------------|----------|
 | GET    | `/status`      | Service health and osu! API health   | none                           | JSON     |
 | GET    | `/daily`       | Current daily challenge room summary | none                           | JSON     |
 | GET    | `/mp`          | Current multiplayer room             | none                           | JSON     |
 | GET    | `/searchms`    | Search beatmapsets                   | `q` (search keyword)           | JSON     |
-| GET    | `/leaderboard` | User PP leaderboard image            | `u` (comma-separated user IDs) | PNG      |
+| POST   | `/leaderboard` | User PP leaderboard image            | `{"uids":[user ids]}`          | PNG      |
 | GET    | `/bestof`      | Best-of-N scores image               | `u` (user ID), `n` (count)     | PNG      |
 | GET    | `/recent`      | Recent scores image                  | `u` (user ID), `n` (count)     | PNG      |
 
-### Beatmap / Beatmapset / Score / PK
+### Beatmap / Beatmapset / Score / Leaderboard
 
-| Method | Path                         | Purpose                        | Query / Path Params                                                  | Response |
+| Method | Path                         | Purpose                        | Params / POST Body                                                   | Response |
 |--------|------------------------------|--------------------------------|----------------------------------------------------------------------|----------|
 | GET    | `/lookup/beatmap`            | Resolve beatmap IDs            | `m` **or** `ms` + `i`  **or** `of` + `u` + `i`                       | JSON     |
 | GET    | `/lookup/beatmapset`         | Resolve beatmapset IDs         | `ms` **or** `m` **or** `of` + `u` + `i`                              | JSON     |
 | GET    | `/lookup/score`              | Resolve score IDs              | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i` | JSON     |
-| GET    | `/beatmap/{beatmapId}`       | Beatmap card image             | path `beatmapId` (+ optional `mod`)                                  | PNG      |
+| GET    | `/beatmap/{beatmapId}`       | Beatmap card image             | path `beatmapId` (+ optional query param `mod`)                      | PNG      |
 | GET    | `/beatmapset/{beatmapsetId}` | Beatmapset card image          | path `beatmapsetId`                                                  | PNG      |
 | GET    | `/score/{scoreId}`           | Score card image               | path `scoreId`                                                       | PNG      |
-| GET    | `/maplb`                     | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`  | PNG      |
+| GET    | `/score/{scoreId}/analyze`   | Score analysis card image      | path `scoreId`                                                       | PNG      |
+| POST   | `/maplb/{beatmapId}`         | Compare players on one beatmap | path `beatmapId` + POST Body `{"uids":[user ids]}`                   | PNG      |
 
 Notes:
 - `of` references source list type (`rs` or `bo`).
@@ -115,20 +117,14 @@ Notes:
 
 ### Replay Endpoints (enabled only when `danserPath` is configured)
 
-| Method | Path                     | Purpose                                | Query / Path Params                                                             | Response    |
-|--------|--------------------------|----------------------------------------|---------------------------------------------------------------------------------|-------------|
-| GET    | `/replay/status`         | Replay renderer overview               | none                                                                            | JSON        |
-| GET    | `/replay/render/{scoreId}` | Queue single replay render            | path `scoreId`                                                                   | `202` JSON  |
-| GET    | `/replay/showcase`       | Queue multi-score showcase render      | `s` (comma-separated score IDs) **or** `u` + `m` **or** `of` + `i` + `us` + `u` | `202` JSON  |
-| GET    | `/replay/status/{jobId}` | Get render job state                   | `{jobId}`                                                                       | JSON        |
-| GET    | `/replay/video/{jobId}`  | Download rendered video                | `{jobId}`                                                                       | `video/mp4` |
-| DELETE | `/replay/video/{jobId}`  | Remove rendered video and job metadata | `{jobId}`                                                                       | text        |
-
-### Debug Endpoint (debug mode only)
-
-| Method | Path            | Purpose                                   | Query / Path Params | Response |
-|--------|-----------------|-------------------------------------------|---------------------|----------|
-| GET    | `/debug/bypass` | Debug passthrough call to osu! API helper | raw query string    | JSON     |
+| Method | Path                            | Purpose                                | Params / POST Body                                 | Response    |
+|--------|---------------------------------|----------------------------------------|----------------------------------------------------|-------------|
+| GET    | `/replay/status`                | Replay renderer overview               | none                                               | JSON        |
+| GET    | `/replay/render/{scoreId}`      | Queue single replay render             | path `scoreId`                                     | `202` JSON  |
+| POST   | `/replay/showcase/{beatmapId}`  | Queue multi-score showcase render      | path `beatmapId` + POST Body `{"uids":[user ids]}` | `202` JSON  |
+| GET    | `/replay/status/{jobId}`        | Get render job state                   | `{jobId}`                                          | JSON        |
+| GET    | `/replay/video/{jobId}`         | Download rendered video                | `{jobId}`                                          | `video/mp4` |
+| DELETE | `/replay/video/{jobId}`         | Remove rendered video and job metadata | `{jobId}`                                          | text        |
 
 ## Cache Behavior
 
