@@ -5,16 +5,14 @@ import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import xyz.zcraft.ostella.data.ScoreType;
-import xyz.zcraft.ostella.network.ApiException;
-import xyz.zcraft.ostella.network.ErrorCode;
-import xyz.zcraft.ostella.network.OsuAPI;
-import xyz.zcraft.ostella.network.Response;
-import xyz.zcraft.ostella.network.Router;
+import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.osu.model.*;
-import xyz.zcraft.osu.parser.*;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.MultiplayerRoom;
+import xyz.zcraft.osu.model.Score;
+import xyz.zcraft.osu.parser.OsuParser;
 import xyz.zcraft.osu.parser.data.DiffSpec;
 
 import java.util.Comparator;
@@ -44,14 +42,6 @@ public class BeatmapController {
         } else {
             lookupBeatmapOfIdAsync(context);
         }
-    }
-
-    public void getBeatmapById(@NotNull Context context) {
-        renderBeatmapByIdAsync(context, requirePathLong(context, "beatmapId"));
-    }
-
-    private void lookupBeatmapOfIdAsync(@NotNull Context context) {
-        lookupBeatmapOfIdAsync(context, requireLong(context, "m"));
     }
 
     private void lookupBeatmapOfSetAsync(@NotNull Context context) {
@@ -149,7 +139,9 @@ public class BeatmapController {
         return data;
     }
 
-    private void lookupBeatmapOfIdAsync(@NotNull Context context, long m) {
+    private void lookupBeatmapOfIdAsync(@NotNull Context context) {
+        final long m = requireLong(context, "m");
+
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
                 .thenApply(beatmapset -> {
@@ -168,8 +160,9 @@ public class BeatmapController {
                 )));
     }
 
-    private void renderBeatmapByIdAsync(@NotNull Context context, long m) {
+    public void renderBeatmapById(@NotNull Context context) {
         final String mod = optionalString(context, "mod");
+        final long m = requirePathLong(context, "beatmapId");
 
         context.future(() -> executor
                 .enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))

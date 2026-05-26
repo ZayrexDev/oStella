@@ -1,6 +1,7 @@
 package xyz.zcraft.ostella.util.format;
+
 import xyz.zcraft.ostella.util.Colors;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.model.Mod;
 
 public class ModFormatUtil {
     public static String getColorHex(Mod mod) {

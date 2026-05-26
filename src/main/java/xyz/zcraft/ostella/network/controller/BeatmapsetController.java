@@ -10,7 +10,9 @@ import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.model.Beatmap;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.Beatmapset;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -39,10 +41,6 @@ public class BeatmapsetController {
         } else {
             lookupBeatmapsetOfIdAsync(context);
         }
-    }
-
-    public void getBeatmapsetById(@NotNull Context context) {
-        renderBeatmapsetByIdAsync(context, requirePathLong(context, "beatmapsetId"));
     }
 
     private void downloadBeatmapsetOfRef(@NotNull Context context) {
@@ -151,7 +149,8 @@ public class BeatmapsetController {
         lookupBeatmapsetOfIdAsync(context, requireLong(context, "ms"));
     }
 
-    private void renderBeatmapsetByIdAsync(@NotNull Context context, long ms) {
+    public void renderBeatmapsetById(@NotNull Context context) {
+        final long ms = requirePathLong(context, "beatmapsetId");
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
                 .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));

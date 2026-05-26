@@ -322,7 +322,8 @@
     <div class="pk-banner"
          style="background-image: url('https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233')"
          th:style="'background-image: url(' + ${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())} + ');'">
-        <div class="pk-status" th:style="'background: ' +  ${Colors.getBeatmapStatusColor(beatmap.getStatus())} + '; color: ' + ${Colors.getBeatmapStatusTextColor(beatmap.getStatus())} + ';'"
+        <div class="pk-status"
+             th:style="'background: ' +  ${Colors.getBeatmapStatusColor(beatmap.getStatus())} + '; color: ' + ${Colors.getBeatmapStatusTextColor(beatmap.getStatus())} + ';'"
              th:text="${beatmap.status}">
             RANKED
         </div>
@@ -335,7 +336,8 @@
                 <div class="pk-diff-badge"
                      th:style="'background: ' + ${Colors.getBeatmapDiffColor(beatmap.getDifficultyRating())} + ';'">
                     <svg class="pk-diff-star"
-                         th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(beatmap.getDifficultyRating())} + ';'" viewBox="0 0 20 20">
+                         th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(beatmap.getDifficultyRating())} + ';'"
+                         viewBox="0 0 20 20">
                         <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                     </svg>
                     <div class="pk-diff-rating"
@@ -343,7 +345,8 @@
                          th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.72
                     </div>
                 </div>
-                <div class="pk-map-diff" th:style="'color: ' + ${Colors.getBeatmapDiffColor(beatmap.getDifficultyRating())} + ';'"
+                <div class="pk-map-diff"
+                     th:style="'color: ' + ${Colors.getBeatmapDiffColor(beatmap.getDifficultyRating())} + ';'"
                      th:text="${beatmap.version}">ExampleVersion
                 </div>
                 <div class="pk-mapper">

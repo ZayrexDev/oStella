@@ -509,7 +509,8 @@
 <div class="root">
     <div class="main-wrapper">
         <div class="cover-wrapper" style="position: relative;">
-            <div class="rank-status" th:style="'background: ' +  ${Colors.getBeatmapStatusColor(beatmap.getStatus())} + '; color: ' + ${Colors.getBeatmapStatusTextColor(beatmap.getStatus())} + ';'"
+            <div class="rank-status"
+                 th:style="'background: ' +  ${Colors.getBeatmapStatusColor(beatmap.getStatus())} + '; color: ' + ${Colors.getBeatmapStatusTextColor(beatmap.getStatus())} + ';'"
                  th:text="${beatmap.status}">
                 Ranked
             </div>
@@ -531,13 +532,15 @@
                 <div class="spotlight-badge" th:if="${beatmap.beatmapset.spotlight}">SPOTLIGHT</div>
             </div>
             <div class="mod-badges" th:if="${diff.modded}">
-                <div class="mod-badge" th:each="amod : ${diff.getMods()}" th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
+                <div class="mod-badge" th:each="amod : ${diff.getMods()}"
+                     th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
                      th:text="${amod.getAcronym()}">
                     XY
                 </div>
             </div>
             <img alt="jacket" class="song-cover"
-                 src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233" th:src="${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())}">
+                 src="https://assets.ppy.sh/beatmaps/1856102/covers/cover.jpg?1708387233"
+                 th:src="${cache.getImageSrc(beatmap.getBeatmapset().getCovers().getCover())}">
         </div>
 
         <div class="meta">
@@ -552,7 +555,8 @@
             </div>
             <div class="diff">
                 <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
-                    <svg class="diff-star" th:style="'fill: ' + ${DiffSpecs.getDiffTextColor(diff)} + ';'" viewBox="0 0 20 20">
+                    <svg class="diff-star" th:style="'fill: ' + ${DiffSpecs.getDiffTextColor(diff)} + ';'"
+                         viewBox="0 0 20 20">
                         <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
                     </svg>
                     <div class="diff-rating" th:style="'color: ' + ${DiffSpecs.getDiffTextColor(diff)} + ';'"
@@ -710,7 +714,8 @@
                      th:if="${beatmap.getTopUserTagIds() != null and !beatmap.getTopUserTagIds().isEmpty()}">
                     <div class="tag-badge" th:each="tag, iterStat : ${beatmap.getTopUserTagIds()}"
                          th:if="${iterStat.index < 2}">
-                        <span class="tag-name" th:text="${Beatmapsets.getTagName(beatmap.getBeatmapset(), tag.getTagId())}">additions/combo colors</span>
+                        <span class="tag-name"
+                              th:text="${Beatmapsets.getTagName(beatmap.getBeatmapset(), tag.getTagId())}">additions/combo colors</span>
                         <span class="tag-num" th:text="${tag.getCount()}">123</span>
                     </div>
                 </div>

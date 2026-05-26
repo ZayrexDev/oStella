@@ -11,37 +11,54 @@ import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.osu.model.*;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.User;
 import xyz.zcraft.osu.parser.OsuParser;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 
 import java.nio.file.Path;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static xyz.zcraft.ostella.util.RequestUtil.*;
+import static xyz.zcraft.ostella.util.RequestUtil.requireLong;
 
-public class PKController {
+public class LeaderboardController {
     public final RenderService renderer;
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final Router router;
 
-    public PKController(Router router) {
+    public LeaderboardController(Router router) {
         this.router = router;
         this.renderer = router.renderer;
         this.tokenManager = router.tokenManager;
         this.executor = router.executor;
     }
 
-    public void getPK(@NotNull Context context) {
-        getPKOfIdsAsync(context);
+    public void getMapLeaderboard(@NotNull Context context) {
+        final long m = requireLong(context, "beatmapId");
+        final LeaderboardRequest leaderboardRequest = context.bodyAsClass(LeaderboardRequest.class);
+
+        context.header("X-Beatmap-Id", String.valueOf(m));
+
+        context.future(() -> getPlacementsAsync(leaderboardRequest.uids(), m)
+                .thenApply(p -> {
+                    p.sort((a, b) -> Double.compare(b.score.pp, a.score.pp));
+                    return p;
+                })
+                .thenCompose(placements ->
+                        executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m))
+                                .thenApplyAsync(beatmap -> {
+                                    if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
+                                    final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(m, false);
+
+                                    return finalizeMapLeaderboard(placements, beatmap, rosuBeatmapPath);
+                                }, renderer.getRenderExecutor()))
+                .thenAccept(imgByte -> context.status(200).result(imgByte)));
     }
 
-    private byte[] getPKFinalBytes(LinkedList<Placement> placements, BeatmapExtended beatmap, Path rosuBeatmapPath) {
+    private byte[] finalizeMapLeaderboard(LinkedList<Placement> placements, BeatmapExtended beatmap, Path rosuBeatmapPath) {
         try {
             final DiffSpec diffSpecForMap = OsuParser.getDiffSpecForMap(beatmap, rosuBeatmapPath, "");
             return renderer.renderPK(beatmap, placements, diffSpecForMap.getPpSS());
@@ -90,26 +107,42 @@ public class PKController {
                                 .collect(Collectors.toCollection(LinkedList::new)));
     }
 
-    private void getPKOfIdsAsync(@NotNull Context context) {
-        final long m = requireLong(context, "beatmapId");
+    public void getLeaderboard(@NotNull Context context) {
         final LeaderboardRequest leaderboardRequest = context.bodyAsClass(LeaderboardRequest.class);
+        final List<Long> ids = leaderboardRequest.uids();
 
-        context.header("X-Beatmap-Id", String.valueOf(m));
+        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
 
-        context.future(() -> getPlacementsAsync(leaderboardRequest.uids(), m)
-                .thenApply(p -> {
-                    p.sort((a, b) -> Double.compare(b.score.pp, a.score.pp));
-                    return p;
-                })
-                .thenCompose(placements ->
-                        executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m))
-                                .thenApplyAsync(beatmap -> {
-                                    if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
-                                    final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(m, false);
+        for (int i = 0; i < ids.size(); i += 50) {
+            final List<Long> subList = ids.subList(i, Math.min(i + 50, ids.size()));
 
-                                    return getPKFinalBytes(placements, beatmap, rosuBeatmapPath);
-                                }, renderer.getRenderExecutor()))
-                .thenAccept(imgByte -> context.status(200).result(imgByte)));
+            futures.add(executor.enqueueAsync(() ->
+                    OsuAPI.getUsers(tokenManager.getTokenData(), subList)
+            ));
+        }
+
+        CompletableFuture<?>[] futuresArray = futures.toArray(new CompletableFuture[0]);
+        context.future(() ->
+                CompletableFuture.allOf(futuresArray)
+                        .thenApply(_ ->
+                                futures.stream()
+                                        .map(CompletableFuture::join)
+                                        .filter(Objects::nonNull)
+                                        .flatMap(List::stream)
+                                        .collect(Collectors.toCollection(LinkedList::new)))
+                        .thenApplyAsync(users -> {
+                            users.sort(Comparator.comparingDouble((User user) ->
+                                    Optional.ofNullable(user)
+                                            .map(User::getStatisticsRulesets)
+                                            .map(User.StatisticsRuleset::getOsu)
+                                            .map(User.Statistics::getPp)
+                                            .orElse(0.0)
+                            ).reversed());
+                            return renderer.renderLeaderboard(users);
+
+                        }, renderer.getRenderExecutor())
+                        .thenAccept(imgByte -> context.status(200).result(imgByte))
+        );
     }
 
     public record LeaderboardRequest(List<Long> uids) {

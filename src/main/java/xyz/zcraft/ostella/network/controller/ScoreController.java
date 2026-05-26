@@ -3,11 +3,7 @@ package xyz.zcraft.ostella.network.controller;
 import com.google.gson.JsonObject;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
-import xyz.zcraft.ostella.network.ApiException;
-import xyz.zcraft.ostella.network.ErrorCode;
-import xyz.zcraft.ostella.network.OsuAPI;
-import xyz.zcraft.ostella.network.Response;
-import xyz.zcraft.ostella.network.Router;
+import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
@@ -15,10 +11,11 @@ import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.Score;
-import xyz.zcraft.osu.parser.data.DiffSpec;
 import xyz.zcraft.osu.parser.OsuParser;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 
-import static xyz.zcraft.ostella.util.RequestUtil.*;
+import static xyz.zcraft.ostella.util.RequestUtil.requireLong;
+import static xyz.zcraft.ostella.util.RequestUtil.requirePathLong;
 
 public class ScoreController {
     public final RenderService renderer;
@@ -45,15 +42,8 @@ public class ScoreController {
         }
     }
 
-    public void getScoreById(@NotNull Context context) {
-        renderScoreByIdAsync(context, requirePathLong(context, "scoreId"));
-    }
-
-    private void lookupScoreOfIdAsync(@NotNull Context context) {
-        lookupScoreOfIdAsync(context, requireLong(context, "s"));
-    }
-
-    private void renderScoreByIdAsync(@NotNull Context context, long scoreId) {
+    public void renderScoreById(@NotNull Context context) {
+        final long scoreId = requirePathLong(context, "scoreId");
         context.future(() -> router.getScore(scoreId)
                 .thenApplyAsync(score -> {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
@@ -73,7 +63,8 @@ public class ScoreController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    private void lookupScoreOfIdAsync(@NotNull Context context, long scoreId) {
+    private void lookupScoreOfIdAsync(@NotNull Context context) {
+        final long scoreId = requireLong(context, "s");
         context.future(() -> router.getScore(scoreId)
                 .thenAccept(score -> context.status(200).result(
                         new Response(true, "Success", scoreLookupData(score)).toString()

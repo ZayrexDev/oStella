@@ -8,16 +8,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.data.SearchResultItem;
 import xyz.zcraft.ostella.data.ScoreType;
-import xyz.zcraft.ostella.util.RequestUtil;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.ostella.data.SearchResultItem;
 import xyz.zcraft.ostella.network.controller.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.service.ReplayService;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.Mod;
+import xyz.zcraft.osu.model.MultiplayerRoom;
+import xyz.zcraft.osu.model.Score;
 import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.Closeable;
@@ -41,7 +43,7 @@ public class Router implements Closeable {
     final BeatmapController beatmapController;
     final ScoreController scoreController;
     final BeatmapsetController beatmapsetController;
-    final PKController pkController;
+    final LeaderboardController leaderboardController;
 
     public Router(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
@@ -55,7 +57,7 @@ public class Router implements Closeable {
         this.beatmapController = new BeatmapController(this);
         this.scoreController = new ScoreController(this);
         this.beatmapsetController = new BeatmapsetController(this);
-        this.pkController = new PKController(this);
+        this.leaderboardController = new LeaderboardController(this);
 
         if (conf.replayRender().enabled()) {
             this.replayService = new ReplayService(conf, CacheService.getDanserCache());
@@ -84,44 +86,6 @@ public class Router implements Closeable {
                                 new Response(true, "Query successful", GSON.toJsonTree(result)).toString()
                         )
                 ));
-    }
-
-    protected void getLeaderBoard(@NotNull Context context) {
-        final String us = requireString(context, "u");
-        final List<Long> ids = Arrays.stream(us.split(",")).distinct().map(RequestUtil::parseLong).toList();
-
-        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
-
-        for (int i = 0; i < ids.size(); i += 50) {
-            final List<Long> subList = ids.subList(i, Math.min(i + 50, ids.size()));
-
-            futures.add(executor.enqueueAsync(() ->
-                    OsuAPI.getUsers(tokenManager.getTokenData(), subList)
-            ));
-        }
-
-        CompletableFuture<?>[] futuresArray = futures.toArray(new CompletableFuture[0]);
-        context.future(() ->
-                CompletableFuture.allOf(futuresArray)
-                        .thenApply(_ ->
-                                futures.stream()
-                                        .map(CompletableFuture::join)
-                                        .filter(Objects::nonNull)
-                                        .flatMap(List::stream)
-                                        .collect(Collectors.toCollection(LinkedList::new)))
-                        .thenApplyAsync(users -> {
-                            users.sort(Comparator.comparingDouble((User user) ->
-                                    Optional.ofNullable(user)
-                                            .map(User::getStatisticsRulesets)
-                                            .map(User.StatisticsRuleset::getOsu)
-                                            .map(User.Statistics::getPp)
-                                            .orElse(0.0)
-                            ).reversed());
-                            return renderer.renderLeaderboard(users);
-
-                        }, renderer.getRenderExecutor())
-                        .thenAccept(imgByte -> context.status(200).result(imgByte))
-        );
     }
 
     protected void getServerStatus(@NotNull Context context) {

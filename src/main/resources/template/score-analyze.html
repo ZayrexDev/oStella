@@ -473,7 +473,8 @@
                                 <span>Overshoot</span>
                                 <div class="aim-bias-bar-wrap">
                                     <div class="aim-bias-bar"></div>
-                                    <div class="aim-bias-mark" style="left: 75%;" th:style="'left: ' + ${(aimBias + 1) / 2} + '%;'">
+                                    <div class="aim-bias-mark" style="left: 75%;"
+                                         th:style="'left: ' + ${(aimBias + 1) / 2} + '%;'">
                                         <div class="aim-bias-arrow"></div>
                                         <span th:text="${#numbers.formatDecimal((aimBias < 0 ? -aimBias : aimBias) * 100, 1, 2)} + '% '
                                                      + ${(aimBias < 0 ? 'Undershoot' : 'Overshoot')}">23.45% Overshoot</span>

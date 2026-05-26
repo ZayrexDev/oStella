@@ -437,8 +437,8 @@
 <div class="profile-header">
     <div class="profile-main">
         <img alt="avatar" class="avatar" src="https://a.ppy.sh/2"
-             th:src="${cache.getImageSrc(user.getAvatarUrl())}"
-             th:classappend="${user.isOnline() ? ' avatar-online' : ''}">
+             th:classappend="${user.isOnline() ? ' avatar-online' : ''}"
+             th:src="${cache.getImageSrc(user.getAvatarUrl())}">
         <div class="profile-details">
             <div class="profile-name-row">
                 <img alt="flag"

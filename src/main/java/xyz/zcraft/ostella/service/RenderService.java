@@ -11,11 +11,10 @@ import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import xyz.zcraft.ostella.data.Placement;
 import xyz.zcraft.ostella.data.ScoreType;
+import xyz.zcraft.ostella.util.Colors;
+import xyz.zcraft.ostella.util.format.*;
 import xyz.zcraft.osu.model.*;
 import xyz.zcraft.osu.parser.data.DiffSpec;
-
-import xyz.zcraft.ostella.util.*;
-import xyz.zcraft.ostella.util.format.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

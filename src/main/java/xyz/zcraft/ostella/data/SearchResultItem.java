@@ -1,7 +1,7 @@
 package xyz.zcraft.ostella.data;
 
 import xyz.zcraft.ostella.util.format.BeatmapsetFormatUtil;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.model.Beatmapset;
 
 public record SearchResultItem(
         long beatmapsetId,
