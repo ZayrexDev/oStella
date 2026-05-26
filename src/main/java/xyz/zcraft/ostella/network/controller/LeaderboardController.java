@@ -1,5 +1,6 @@
 package xyz.zcraft.ostella.network.controller;
 
+import com.google.gson.Gson;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.data.Placement;
@@ -24,6 +25,8 @@ import java.util.stream.Collectors;
 import static xyz.zcraft.ostella.util.RequestUtil.requirePathLong;
 
 public class LeaderboardController {
+    private static final Gson GSON = new Gson();
+
     public final RenderService renderer;
     public final AsyncService executor;
     public final TokenManager tokenManager;
@@ -38,7 +41,7 @@ public class LeaderboardController {
 
     public void getMapLeaderboard(@NotNull Context context) {
         final long m = requirePathLong(context, "beatmapId");
-        final LeaderboardRequest leaderboardRequest = context.bodyAsClass(LeaderboardRequest.class);
+        final LeaderboardRequest leaderboardRequest = GSON.fromJson(context.body(), LeaderboardRequest.class);
 
         context.header("X-Beatmap-Id", String.valueOf(m));
 
@@ -108,7 +111,7 @@ public class LeaderboardController {
     }
 
     public void getLeaderboard(@NotNull Context context) {
-        final LeaderboardRequest leaderboardRequest = context.bodyAsClass(LeaderboardRequest.class);
+        final LeaderboardRequest leaderboardRequest = GSON.fromJson(context.body(), LeaderboardRequest.class);
         final List<Long> ids = leaderboardRequest.uids();
 
         List<CompletableFuture<List<User>>> futures = new ArrayList<>();
