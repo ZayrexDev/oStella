@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.config.AppConfig;
 import xyz.zcraft.ostella.data.SearchResultItem;
 import xyz.zcraft.ostella.data.ScoreType;
+import xyz.zcraft.ostella.util.RequestUtil;
 import xyz.zcraft.osu.model.*;
 import xyz.zcraft.ostella.network.controller.*;
 import xyz.zcraft.ostella.service.AsyncService;
@@ -87,12 +88,12 @@ public class Router implements Closeable {
 
     protected void getLeaderBoard(@NotNull Context context) {
         final String us = requireString(context, "u");
-        final List<String> ids = Arrays.stream(us.split(",")).distinct().toList();
+        final List<Long> ids = Arrays.stream(us.split(",")).distinct().map(RequestUtil::parseLong).toList();
 
         List<CompletableFuture<List<User>>> futures = new ArrayList<>();
 
         for (int i = 0; i < ids.size(); i += 50) {
-            final List<String> subList = ids.subList(i, Math.min(i + 50, ids.size()));
+            final List<Long> subList = ids.subList(i, Math.min(i + 50, ids.size()));
 
             futures.add(executor.enqueueAsync(() ->
                     OsuAPI.getUsers(tokenManager.getTokenData(), subList)
@@ -180,17 +181,17 @@ public class Router implements Closeable {
                         throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
                     return u;
                 })
-                .thenCompose(u -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), String.valueOf(u.getId()))))
+                .thenCompose(u -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u.getId())))
                 .thenAccept(u -> context.status(200).result(new Response(true, "Success", GSON.toJsonTree(u)).toString()))
         );
     }
 
     protected void getRecentScores(@NotNull Context context) {
-        final String u = requireNumberString(context, "u");
-        final String n = requireNumberString(context, "n");
+        final long u = requireLong(context, "u");
+        final int n = requireInt(context, "n");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.RECENT, Integer.parseInt(n), false)
+                        tokenManager.getTokenData(), u, ScoreType.RECENT, n, false)
                 )
                 .thenCompose(scores -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
                         .thenApplyAsync(user -> {
@@ -242,11 +243,11 @@ public class Router implements Closeable {
     }
 
     protected void getBestOfN(@NotNull Context context) {
-        final String u = requireNumberString(context, "u");
-        final String n = requireNumberString(context, "n");
+        final long u = requireLong(context, "u");
+        final int n = requireInt(context, "n");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.BEST, Integer.parseInt(n), false
+                        tokenManager.getTokenData(), u, ScoreType.BEST, n, false
                 ))
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty()) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
@@ -262,7 +263,7 @@ public class Router implements Closeable {
     }
 
     public Path getRosuPath(Long id) {
-        return CacheService.getRosuBeatmapPath(String.valueOf(id), true);
+        return CacheService.getRosuBeatmapPath(id, true);
     }
 
     @Override
@@ -286,9 +287,9 @@ public class Router implements Closeable {
     }
 
     public CompletableFuture<Score> getScoreFromBeatmapsetAsync(@NotNull Context context) {
-        final String ms = requireNumberString(context, "ms");
+        final long ms = requireLong(context, "ms");
         final int i = requireInt(context, "i");
-        final String u = requireNumberString(context, "u");
+        final long u = requireLong(context, "u");
 
         return executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
                 .thenCompose(beatmapset -> {
@@ -304,7 +305,7 @@ public class Router implements Closeable {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()));
                     return executor
                             .enqueueAsync(() ->
-                                    OsuAPI.getUserScore(tokenManager.getTokenData(), u, String.valueOf(beatmap.getId()))
+                                    OsuAPI.getUserScore(tokenManager.getTokenData(), u, beatmap.getId())
                             )
                             .thenApply(score -> {
                                 score.setBeatmap(beatmap);
@@ -317,7 +318,7 @@ public class Router implements Closeable {
 
     public CompletableFuture<Score> getScoreFromRefAsync(@NotNull Context context) {
         final String of = requireStringFrom(context, "of", "rs", "bo");
-        final String u = requireString(context, "u");
+        final long u = requireLong(context, "u");
         final int i = requireInt(context, "i");
 
         return executor
@@ -380,7 +381,7 @@ public class Router implements Closeable {
         );
     }
 
-    public CompletableFuture<Score> getScore(String id) {
+    public CompletableFuture<Score> getScore(long id) {
         return executor.enqueueAsync(() -> {
             try {
                 final Optional<Score> scoreJsonCache = CacheService.getScoreJsonCache(id);

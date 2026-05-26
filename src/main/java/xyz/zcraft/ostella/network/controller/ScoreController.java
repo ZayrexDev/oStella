@@ -46,15 +46,15 @@ public class ScoreController {
     }
 
     public void getScoreById(@NotNull Context context) {
-        renderScoreByIdAsync(context, requirePathNumberString(context, "scoreId"));
+        renderScoreByIdAsync(context, requirePathLong(context, "scoreId"));
     }
 
     private void lookupScoreOfIdAsync(@NotNull Context context) {
-        lookupScoreOfIdAsync(context, requireNumberString(context, "s"));
+        lookupScoreOfIdAsync(context, requireLong(context, "s"));
     }
 
-    private void renderScoreByIdAsync(@NotNull Context context, String s) {
-        context.future(() -> router.getScore(s)
+    private void renderScoreByIdAsync(@NotNull Context context, long scoreId) {
+        context.future(() -> router.getScore(scoreId)
                 .thenApplyAsync(score -> {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
                     final BeatmapExtended beatmap = score.getBeatmap();
@@ -73,16 +73,16 @@ public class ScoreController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    private void lookupScoreOfIdAsync(@NotNull Context context, String s) {
-        context.future(() -> router.getScore(s)
+    private void lookupScoreOfIdAsync(@NotNull Context context, long scoreId) {
+        context.future(() -> router.getScore(scoreId)
                 .thenAccept(score -> context.status(200).result(
                         new Response(true, "Success", scoreLookupData(score)).toString()
                 )));
     }
 
     private void lookupScoreOfBeatmapAsync(@NotNull Context context) {
-        final String m = requireNumberString(context, "m");
-        final String u = requireNumberString(context, "u");
+        final long m = requireLong(context, "m");
+        final long u = requireLong(context, "u");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScore(tokenManager.getTokenData(), u, m))
                 .thenCompose(score -> {
@@ -92,7 +92,7 @@ public class ScoreController {
 
                             context.header("X-Score-Id", String.valueOf(score.getId()));
                             return executor
-                                    .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(score.getBeatmap().getBeatmapsetId())))
+                                    .enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), score.getBeatmap().getBeatmapsetId()))
                                     .thenApply(beatmapset -> {
                                         score.getBeatmap().setBeatmapset(beatmapset);
                                         score.setBeatmapset(beatmapset);
@@ -108,7 +108,6 @@ public class ScoreController {
     private void lookupScoreOfRefAsync(@NotNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenApply(Score::getId)
-                .thenApply(String::valueOf)
                 .thenCompose(router::getScore)
                 .thenAccept(score -> context.status(200).result(
                         new Response(true, "Success", scoreLookupData(score)).toString()

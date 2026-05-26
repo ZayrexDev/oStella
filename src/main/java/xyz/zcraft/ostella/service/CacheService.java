@@ -102,8 +102,8 @@ public class CacheService {
         return "png";
     }
 
-    public static Path getRosuBeatmapPath(String id, boolean update) {
-        if (!Files.exists(BEATMAP_CACHE.resolve(id)) || update) {
+    public static Path getRosuBeatmapPath(long id, boolean update) {
+        if (!Files.exists(BEATMAP_CACHE.resolve(String.valueOf(id))) || update) {
             try {
                 LOG.debug("Caching beatmap {}", id);
                 cacheBeatmapFile(id);
@@ -115,16 +115,16 @@ public class CacheService {
         }
 
         try {
-            return BEATMAP_CACHE.resolve(id).toAbsolutePath();
+            return BEATMAP_CACHE.resolve(String.valueOf(id)).toAbsolutePath();
         } catch (Exception e) {
             LOG.error("Failed to load beatmap from cache!", e);
             throw new RuntimeException("Failed to load beatmap from cache!", e);
         }
     }
 
-    private static void cacheBeatmapFile(String id) throws Exception {
-        Files.deleteIfExists(BEATMAP_CACHE.resolve(id));
-        Files.write(BEATMAP_CACHE.resolve(id), executor.enqueueAsync(() -> OsuAPI.getBeatmapBytes(id)).join());
+    private static void cacheBeatmapFile(long id) throws Exception {
+        Files.deleteIfExists(BEATMAP_CACHE.resolve(String.valueOf(id)));
+        Files.write(BEATMAP_CACHE.resolve(String.valueOf(id)), executor.enqueueAsync(() -> OsuAPI.getBeatmapBytes(id)).join());
     }
 
     @NotNull
@@ -169,11 +169,11 @@ public class CacheService {
         return IMAGE_CACHE.resolve(filename);
     }
 
-    public static boolean cacheBeatmapsetFile(String id) {
+    public static boolean cacheBeatmapsetFile(long id) {
         try (Stream<Path> list = Files.list(DANSER_SONG_CACHE)) {
             if (list.map(Path::getFileName)
                     .map(Path::toString)
-                    .anyMatch(p -> p.equals(id) || p.startsWith(id + " ") || p.equals(id + ".osz"))
+                    .anyMatch(p -> p.equals(String.valueOf(id)) || p.startsWith(id + " ") || p.equals(id + ".osz"))
             ) {
                 LOG.debug("Beatmapset {} is already cached, skipping", id);
                 return true;
@@ -196,7 +196,7 @@ public class CacheService {
         return true;
     }
 
-    public static void extractBeatmapset(String id, OutputStream out) throws IOException {
+    public static void extractBeatmapset(long id, OutputStream out) throws IOException {
         if (!cacheBeatmapsetFile(id)) {
             return;
         }
@@ -208,7 +208,7 @@ public class CacheService {
             return;
         }
 
-        final Path folderPath = DANSER_SONG_CACHE.resolve(id);
+        final Path folderPath = DANSER_SONG_CACHE.resolve(String.valueOf(id));
 
         if (Files.exists(folderPath) && Files.isDirectory(folderPath)) {
             try (ZipOutputStream zos = new ZipOutputStream(out);
@@ -231,7 +231,7 @@ public class CacheService {
 
     }
 
-    private static boolean downloadNekoha(String id, Path beatmapsetPath) {
+    private static boolean downloadNekoha(long id, Path beatmapsetPath) {
         try (final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()) {
             String initialUrl = "https://mirror.nekoha.moe/api4/download/" + id;
             HttpRequest request = HttpRequest.newBuilder()
@@ -255,7 +255,7 @@ public class CacheService {
         return false;
     }
 
-    private static boolean downloadSayobot(String id, Path beatmapsetPath) {
+    private static boolean downloadSayobot(long id, Path beatmapsetPath) {
         try (final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).followRedirects(HttpClient.Redirect.NEVER).build()) {
             String initialUrl = "https://dl.sayobot.cn/beatmaps/download/novideo/" + id;
             HttpRequest request = HttpRequest.newBuilder()
@@ -297,7 +297,7 @@ public class CacheService {
         return false;
     }
 
-    public static Path getReplay(TokenData tokenData, String id) throws Exception {
+    public static Path getReplay(TokenData tokenData, long id) throws Exception {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
         if (!Files.exists(beatmapsetPath)) {
@@ -314,7 +314,7 @@ public class CacheService {
         return DANSER_SONG_CACHE;
     }
 
-    public static Optional<Score> getScoreJsonCache(String id) throws IOException {
+    public static Optional<Score> getScoreJsonCache(long id) throws IOException {
         if (!Files.exists(SCORE_JSON_CACHE.resolve(id + ".json"))) {
             return Optional.empty();
         }

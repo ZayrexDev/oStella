@@ -13,6 +13,7 @@ import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.ReplayService;
+import xyz.zcraft.ostella.util.RequestUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Score;
@@ -46,7 +47,7 @@ public class ReplayController {
     }
 
     public void queueReplayRenderById(@NotNull Context context) {
-        queueReplayRenderOfIdAsync(context, requirePathNumberString(context, "scoreId"));
+        queueReplayRenderOfIdAsync(context, requirePathLong(context, "scoreId"));
     }
 
     public void queueShowcaseRender(@NotNull Context context) {
@@ -153,7 +154,7 @@ public class ReplayController {
         return renderScoreForAsync(context, score, start, end);
     }
 
-    private void queueReplayRenderOfIdAsync(@NotNull Context context, String scoreId) {
+    private void queueReplayRenderOfIdAsync(@NotNull Context context, long scoreId) {
         context.future(() ->
                 router.getScore(scoreId).thenCompose(score -> {
                     if (score == null) {
@@ -176,7 +177,7 @@ public class ReplayController {
         if (replayService == null) return;
 
         final String ss = requireString(context, "s");
-        final List<String> scoreIds = Arrays.stream(ss.split(",")).distinct().toList();
+        final List<Long> scoreIds = Arrays.stream(ss.split(",")).distinct().map(RequestUtil::parseLong).toList();
 
         context.future(() -> {
             List<CompletableFuture<Score>> scoreFutures = scoreIds.stream()
@@ -190,10 +191,10 @@ public class ReplayController {
         if (replayService == null) return;
 
         final String us = requireString(context, "u");
-        final String m = requireString(context, "m");
+        final long m = requireLong(context, "m");
 
         context.future(() -> {
-            final List<String> userIds = Arrays.stream(us.split(",")).distinct().toList();
+            final List<Long> userIds = Arrays.stream(us.split(",")).distinct().map(RequestUtil::parseLong).toList();
             LOG.info("Getting {} scores for showcase on map {}", userIds.size(), m);
 
             List<CompletableFuture<Score>> scoreFutures = userIds.stream()
@@ -212,7 +213,7 @@ public class ReplayController {
                         .filter(s -> s != null && s.getHasReplay())
                         .peek(score -> {
                             if (score.getPp() == null) {
-                                final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(String.valueOf(score.getBeatmap().getId()), false);
+                                final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(score.getBeatmap().getId(), false);
                                 score.setPp(OsuParser.estimatePp(score, rosuBeatmapPath));
                             }
                         })
@@ -229,7 +230,7 @@ public class ReplayController {
     private void renderShowcaseOfUsersRefAsync(@NotNull Context context) {
         final String us = requireString(context, "u");
         final String of = requireStringFrom(context, "of", "rs", "bo");
-        final String uSource = requireString(context, "us");
+        final long uSource = requireLong(context, "us");
         final int i = requireInt(context, "i");
 
         context.future(() ->
@@ -242,8 +243,8 @@ public class ReplayController {
                     }
 
                     final Score scoreSource = scores.get(i - 1);
-                    final String beatmapId = String.valueOf(scoreSource.getBeatmap().getId());
-                    final List<String> userIds = Arrays.stream(us.split(",")).distinct().toList();
+                    final long beatmapId = scoreSource.getBeatmap().getId();
+                    final List<Long> userIds = Arrays.stream(us.split(",")).distinct().map(RequestUtil::parseLong).toList();
 
                     List<CompletableFuture<Score>> scoreFutures = userIds.stream()
                             .map(userId -> executor.enqueueAsync(() ->
@@ -278,14 +279,14 @@ public class ReplayController {
         }
 
         return executor.enqueueAsync(() -> {
-            if (!CacheService.cacheBeatmapsetFile(String.valueOf(score.getBeatmapset().getId()))) {
+            if (!CacheService.cacheBeatmapsetFile(score.getBeatmapset().getId())) {
                 throw new ApiException(ErrorCode.BEATMAPSET_FETCH_FAILED, "Failed to cache beatmapset!");
             }
             return null;
         }).thenCompose(_ ->
                 executor.enqueueAsync(() -> {
                     try {
-                        return CacheService.getReplay(tokenManager.getTokenData(), String.valueOf(score.getId()));
+                        return CacheService.getReplay(tokenManager.getTokenData(), score.getId());
                     } catch (Exception e) {
                         throw new ApiException(ErrorCode.REPLAY_FETCH_FAILED, "Failed to cache replay for score id: " + score.getId(), e);
                     }
@@ -332,10 +333,10 @@ public class ReplayController {
         final long beatmapsetId = scores.getFirst().getBeatmap().getBeatmapsetId();
 
         CompletableFuture<Boolean> cacheFuture = executor.enqueueAsync(() ->
-                CacheService.cacheBeatmapsetFile(String.valueOf(beatmapsetId)));
+                CacheService.cacheBeatmapsetFile(beatmapsetId));
 
         CompletableFuture<BeatmapExtended> beatmapFuture = executor.enqueueAsync(() ->
-                OsuAPI.getBeatmap(tokenManager.getTokenData(), String.valueOf(beatmapId)));
+                OsuAPI.getBeatmap(tokenManager.getTokenData(), beatmapId));
 
         return CompletableFuture.allOf(cacheFuture, beatmapFuture).thenCompose(_ -> {
             if (!cacheFuture.join())
@@ -346,7 +347,7 @@ public class ReplayController {
             List<CompletableFuture<Path>> replayFutures = scores.stream()
                     .map(score -> executor.enqueueAsync(() -> {
                         try {
-                            return CacheService.getReplay(tokenManager.getTokenData(), String.valueOf(score.getId()));
+                            return CacheService.getReplay(tokenManager.getTokenData(), score.getId());
                         } catch (Exception e) {
                             LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
                             return null;

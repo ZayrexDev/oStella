@@ -82,12 +82,12 @@
         <dependency>
             <groupId>com.github.ZayrexDev</groupId>
             <artifactId>osuModel</artifactId>
-            <version>master-4a7d2b3730-1</version>
+            <version>4a7d2b3730</version>
         </dependency>
         <dependency>
             <groupId>com.github.ZayrexDev</groupId>
             <artifactId>osuParser</artifactId>
-            <version>9570350c7b</version>
+            <version>d2c8bcc4fa</version>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.tukaani/xz -->
         <dependency>
