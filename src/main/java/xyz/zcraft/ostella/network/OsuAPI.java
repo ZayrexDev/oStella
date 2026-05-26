@@ -534,14 +534,14 @@ public class OsuAPI {
             if (response.statusCode() >= 400) {
                 throw new ApiException(
                         ErrorCode.USER_FETCH_FAILED,
-                        "osu! API returned status " + response.statusCode() + " for friend list"
+                        "osu! API returned status " + response.statusCode() + " for self data"
                 );
             }
 
             final var json = JsonParser.parseString(response.body()).getAsJsonObject();
             return GSON.fromJson(json, User.class);
         } catch (IOException | InterruptedException e) {
-            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get self data", e);
         }
     }
 }
