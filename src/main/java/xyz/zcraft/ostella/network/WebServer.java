@@ -71,7 +71,7 @@ public class WebServer implements Closeable {
                         .get("/replays/{jobId}/video/replay.mp4", router.replayController::getReplayRenderResultFile)
                         .delete("/replays/{jobId}/video", router.replayController::deleteReplayRenderResult);
             } else {
-                LOG.info("Replay rendering will is disabled.");
+                LOG.info("Replay rendering is disabled.");
             }
 
             cfg.routes

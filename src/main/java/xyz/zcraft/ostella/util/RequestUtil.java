@@ -40,14 +40,10 @@ public class RequestUtil {
     }
 
     public static long requireLong(Context context, String param) throws ApiException {
-        return parseLong(context.queryParam(param));
-    }
-
-    public static long parseLong(String s) throws ApiException {
         try {
-            return Long.parseLong(Objects.requireNonNull(s));
+            return Long.parseLong(Objects.requireNonNull(context.queryParam(param)));
         } catch (Exception e) {
-            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + s);
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
         }
     }
 

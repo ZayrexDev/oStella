@@ -339,6 +339,9 @@ public class Router implements Closeable {
                 })
                 .thenApply((MultiplayerRoom.CurrentPlaylistItem c) -> {
                     final BeatmapExtended beatmap = c.getBeatmap();
+                    if (beatmap == null) {
+                        throw new ApiException(ErrorCode.NO_BEATMAP_FOUND, "Beatmap is null!");
+                    }
                     JsonObject res = new JsonObject();
                     res.addProperty("beatmap_id", beatmap.getId());
                     res.addProperty("beatmapset_id", beatmap.getBeatmapsetId());
