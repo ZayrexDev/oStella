@@ -1,10 +1,12 @@
 package xyz.zcraft.ostella.network.controller;
 
+import com.google.gson.JsonObject;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
 import xyz.zcraft.ostella.network.OsuAPI;
+import xyz.zcraft.ostella.network.Response;
 import xyz.zcraft.ostella.network.Router;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.RenderService;
@@ -16,7 +18,7 @@ import xyz.zcraft.osu.model.Score;
 import xyz.zcraft.osu.parser.data.DiffSpec;
 import xyz.zcraft.osu.parser.OsuParser;
 
-import static xyz.zcraft.ostella.util.RequestUtil.requireNumberString;
+import static xyz.zcraft.ostella.util.RequestUtil.*;
 
 public class ScoreController {
     public final RenderService renderer;
@@ -31,20 +33,27 @@ public class ScoreController {
         this.tokenManager = router.tokenManager;
     }
 
-    public void getScore(@NotNull Context context) {
+    public void lookupScore(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            getScoreOfRefAsync(context);
+            lookupScoreOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
-            getScoreOfBeatmapAsync(context);
+            lookupScoreOfBeatmapAsync(context);
         } else if (context.queryParam("ms") != null) {
-            getScoreOfBeatmapsetAsync(context);
+            lookupScoreOfBeatmapsetAsync(context);
         } else {
-            getScoreOfIdAsync(context);
+            lookupScoreOfIdAsync(context);
         }
     }
 
-    private void getScoreOfIdAsync(@NotNull Context context) {
-        final String s = requireNumberString(context, "s");
+    public void getScoreById(@NotNull Context context) {
+        renderScoreByIdAsync(context, requirePathNumberString(context, "scoreId"));
+    }
+
+    private void lookupScoreOfIdAsync(@NotNull Context context) {
+        lookupScoreOfIdAsync(context, requireNumberString(context, "s"));
+    }
+
+    private void renderScoreByIdAsync(@NotNull Context context, String s) {
         context.future(() -> router.getScore(s)
                 .thenApplyAsync(score -> {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
@@ -64,11 +73,16 @@ public class ScoreController {
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    private void getScoreOfBeatmapAsync(@NotNull Context context) {
+    private void lookupScoreOfIdAsync(@NotNull Context context, String s) {
+        context.future(() -> router.getScore(s)
+                .thenAccept(score -> context.status(200).result(
+                        new Response(true, "Success", scoreLookupData(score)).toString()
+                )));
+    }
+
+    private void lookupScoreOfBeatmapAsync(@NotNull Context context) {
         final String m = requireNumberString(context, "m");
         final String u = requireNumberString(context, "u");
-
-        context.header("X-Beatmap-Id", m);
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScore(tokenManager.getTokenData(), u, m))
                 .thenCompose(score -> {
@@ -86,44 +100,44 @@ public class ScoreController {
                                     });
                         }
                 )
-                .thenApplyAsync(this::finalizeScore, renderer.getRenderExecutor())
-                .thenAccept(bytes -> context.status(200).result(bytes)));
+                .thenAccept(score -> context.status(200).result(
+                        new Response(true, "Success", scoreLookupData(score)).toString()
+                )));
     }
 
-    private void getScoreOfRefAsync(@NotNull Context context) {
+    private void lookupScoreOfRefAsync(@NotNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenApply(Score::getId)
                 .thenApply(String::valueOf)
                 .thenCompose(router::getScore)
-                .thenApplyAsync(score -> {
-                    context.header("X-Beatmap-Id", String.valueOf(score.getBeatmap().getId()))
-                            .header("X-Score-Id", String.valueOf(score.getId()));
-
-                    return finalizeScore(score);
-                }, renderer.getRenderExecutor())
-                .thenAccept(bytes -> context.status(200).result(bytes)));
+                .thenAccept(score -> context.status(200).result(
+                        new Response(true, "Success", scoreLookupData(score)).toString()
+                )));
     }
 
-    private byte[] finalizeScore(Score score) {
-        final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(
-                score.getBeatmap(),
-                router.getRosuPath(score.getBeatmap().getId()),
-                score.getMods().stream().reduce("", String::concat)
-        );
+    private JsonObject scoreLookupData(Score score) {
+        if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
 
-        if (score.getPp() == null) {
-            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+        final JsonObject data = new JsonObject();
+        data.addProperty("score_id", score.getId());
+
+        if (score.getBeatmap() != null) {
+            data.addProperty("beatmap_id", score.getBeatmap().getId());
+            data.addProperty("beatmapset_id", score.getBeatmap().getBeatmapsetId());
         }
 
-        return renderer.renderScore(score, diffSpec);
+        if (score.getBeatmapset() != null) {
+            data.addProperty("beatmapset_id", score.getBeatmapset().getId());
+        }
+
+        return data;
     }
 
-    private void getScoreOfBeatmapsetAsync(@NotNull Context context) {
+
+    private void lookupScoreOfBeatmapsetAsync(@NotNull Context context) {
         context.future(() -> router.getScoreFromBeatmapsetAsync(context)
-                .thenApplyAsync(score -> {
-                    context.header("X-Score-Id", String.valueOf(score.getId()));
-                    return finalizeScore(score);
-                }, renderer.getRenderExecutor())
-                .thenAccept(bytes -> context.status(200).result(bytes)));
+                .thenAccept(score -> context.status(200).result(
+                        new Response(true, "Success", scoreLookupData(score)).toString()
+                )));
     }
 }

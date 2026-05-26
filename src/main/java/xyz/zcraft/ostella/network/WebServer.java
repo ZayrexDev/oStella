@@ -37,22 +37,24 @@ public class WebServer implements Closeable {
                     .get("/mp", router::getCurrentRoom)
                     .get("/mp/current", router::getCurrentRoomItem)
                     .get("/recent", router::getRecentScores)
-                    .get("/beatmap", router.beatmapController::getBeatmap)
-                    .get("/beatmapset", router.beatmapsetController::getBeatmapset)
+                    .get("/lookup/beatmap", router.beatmapController::lookupBeatmap)
+                    .get("/lookup/beatmapset", router.beatmapsetController::lookupBeatmapset)
+                    .get("/lookup/score", router.scoreController::lookupScore)
+                    .get("/beatmap/{beatmapId}", router.beatmapController::getBeatmapById)
+                    .get("/beatmapset/{beatmapsetId}", router.beatmapsetController::getBeatmapsetById)
+                    .get("/score/{scoreId}", router.scoreController::getScoreById)
                     .get("/searchms", router::searchBeatmapSet)
-                    .get("/score", router.scoreController::getScore)
                     .get("/maplb", router.pkController::getPK)
                     .get("/leaderboard", router::getLeaderBoard)
                     .get("/status", router::getServerStatus)
                     .get("/friends", router::getFriends)
                     .get("/self", router::getSelf)
-                    .get("/dl", router.beatmapsetController::downloadBeatmapset)
-                    .get("/lookup/beatmapset", router.beatmapsetController::lookupBeatmapset);
+                    .get("/dl", router.beatmapsetController::downloadBeatmapset);
 
             if (conf.replayRender().enabled()) {
                 cfg.routes
                         .get("/replay/status", router.replayController::getReplayRenderOverview)
-                        .get("/replay/render", router.replayController::queueReplayRender)
+                        .get("/replay/render/{scoreId}", router.replayController::queueReplayRenderById)
                         .get("/replay/showcase", router.replayController::queueShowcaseRender)
                         .get("/replay/status/{jobId}", router.replayController::getReplayRenderStatus)
                         .get("/replay/video/{jobId}", router.replayController::getReplayRenderResultStream)

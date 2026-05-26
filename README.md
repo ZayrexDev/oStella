@@ -98,23 +98,27 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 ### Beatmap / Beatmapset / Score / PK
 
-| Method | Path          | Purpose                        | Query / Path Params                                                                 | Response |
-|--------|---------------|--------------------------------|-------------------------------------------------------------------------------------|----------|
-| GET    | `/beatmap`    | Beatmap card image             | `m` (+ optional `mod`) **or** `ms` + `i` (+ optional `mod`) **or** `of` + `u` + `i` | PNG      |
-| GET    | `/beatmapset` | Beatmapset card image          | `ms` **or** `m` **or** `of` + `u` + `i`                                             | PNG      |
-| GET    | `/score`      | Score card image               | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`                | PNG      |
-| GET    | `/maplb`      | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`                 | PNG      |
+| Method | Path                         | Purpose                        | Query / Path Params                                                  | Response |
+|--------|------------------------------|--------------------------------|----------------------------------------------------------------------|----------|
+| GET    | `/lookup/beatmap`            | Resolve beatmap IDs            | `m` **or** `ms` + `i`  **or** `of` + `u` + `i`                       | JSON     |
+| GET    | `/lookup/beatmapset`         | Resolve beatmapset IDs         | `ms` **or** `m` **or** `of` + `u` + `i`                              | JSON     |
+| GET    | `/lookup/score`              | Resolve score IDs              | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i` | JSON     |
+| GET    | `/beatmap/{beatmapId}`       | Beatmap card image             | path `beatmapId` (+ optional `mod`)                                  | PNG      |
+| GET    | `/beatmapset/{beatmapsetId}` | Beatmapset card image          | path `beatmapsetId`                                                  | PNG      |
+| GET    | `/score/{scoreId}`           | Score card image               | path `scoreId`                                                       | PNG      |
+| GET    | `/maplb`                     | Compare players on one beatmap | `m` + `u` (comma-separated user IDs) **or** `of` + `i` + `us` + `u`  | PNG      |
 
 Notes:
 - `of` references source list type (`rs` or `bo`).
 - `i` is a 1-based index within the referenced list or sorted beatmapset difficulties.
+  - Lookup endpoints return JSON objects containing the resolved IDs needed for the corresponding path-based image route.
 
 ### Replay Endpoints (enabled only when `danserPath` is configured)
 
 | Method | Path                     | Purpose                                | Query / Path Params                                                             | Response    |
 |--------|--------------------------|----------------------------------------|---------------------------------------------------------------------------------|-------------|
 | GET    | `/replay/status`         | Replay renderer overview               | none                                                                            | JSON        |
-| GET    | `/replay/render`         | Queue single replay render             | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i`            | `202` JSON  |
+| GET    | `/replay/render/{scoreId}` | Queue single replay render            | path `scoreId`                                                                   | `202` JSON  |
 | GET    | `/replay/showcase`       | Queue multi-score showcase render      | `s` (comma-separated score IDs) **or** `u` + `m` **or** `of` + `i` + `us` + `u` | `202` JSON  |
 | GET    | `/replay/status/{jobId}` | Get render job state                   | `{jobId}`                                                                       | JSON        |
 | GET    | `/replay/video/{jobId}`  | Download rendered video                | `{jobId}`                                                                       | `video/mp4` |

@@ -45,16 +45,8 @@ public class ReplayController {
         this.executor = router.executor;
     }
 
-    public void queueReplayRender(@NotNull Context context) {
-        if (context.queryParam("of") != null) {
-            queueReplayRenderOfRefAsync(context);
-        } else if (context.queryParam("m") != null) {
-            queueReplayRenderOfBeatmapAsync(context);
-        } else if (context.queryParam("ms") != null) {
-            queueReplayRenderOfBeatmapsetAsync(context);
-        } else {
-            queueReplayRenderOfIdAsync(context);
-        }
+    public void queueReplayRenderById(@NotNull Context context) {
+        queueReplayRenderOfIdAsync(context, requirePathNumberString(context, "scoreId"));
     }
 
     public void queueShowcaseRender(@NotNull Context context) {
@@ -150,19 +142,6 @@ public class ReplayController {
         context.status(200).result("Job cleaned up successfully");
     }
 
-    private void queueReplayRenderOfBeatmapsetAsync(@NotNull Context context) {
-        context.future(() ->
-                router.getScoreFromBeatmapsetAsync(context)
-                        .thenCompose(score -> {
-                            if (score == null) {
-                                throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this user in the specified beatmapset!");
-                            }
-
-                            return finalizeReplay(context, score);
-                        })
-        );
-    }
-
     private CompletionStage<Void> finalizeReplay(@NotNull Context context, Score score) {
         final double start = optionalDouble(context, "start");
         final double end = optionalDouble(context, "end");
@@ -174,41 +153,9 @@ public class ReplayController {
         return renderScoreForAsync(context, score, start, end);
     }
 
-    private void queueReplayRenderOfBeatmapAsync(@NotNull Context context) {
-        final String m = requireNumberString(context, "m");
-        final String u = requireNumberString(context, "u");
-
+    private void queueReplayRenderOfIdAsync(@NotNull Context context, String scoreId) {
         context.future(() ->
-                executor.enqueueAsync(() ->
-                        OsuAPI.getUserScore(tokenManager.getTokenData(), u, m)
-                ).thenCompose(score -> {
-                    if (score == null) {
-                        throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this user on this map!");
-                    }
-
-                    return finalizeReplay(context, score);
-                })
-        );
-    }
-
-    private void queueReplayRenderOfRefAsync(@NotNull Context context) {
-        context.future(() ->
-                router.getScoreFromRefAsync(context)
-                        .thenCompose(score -> {
-                            if (score == null) {
-                                throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for reference!");
-                            }
-
-                            return finalizeReplay(context, score);
-                        })
-        );
-    }
-
-    private void queueReplayRenderOfIdAsync(@NotNull Context context) {
-        final String s = requireString(context, "s");
-
-        context.future(() ->
-                router.getScore(s).thenCompose(score -> {
+                router.getScore(scoreId).thenCompose(score -> {
                     if (score == null) {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No score found for this ID!");
                     }

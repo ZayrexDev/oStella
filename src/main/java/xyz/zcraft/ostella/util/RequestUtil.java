@@ -49,6 +49,16 @@ public class RequestUtil {
         }
     }
 
+    public static String requirePathNumberString(Context context, String param) throws ApiException {
+        try {
+            final String s = context.pathParam(param);
+            Long.parseLong(Objects.requireNonNull(s));
+            return s;
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid path parameter: " + param);
+        }
+    }
+
     public static String requireStringFrom(Context context, String param, String... values) throws ApiException {
         final String s = context.queryParam(param);
 
