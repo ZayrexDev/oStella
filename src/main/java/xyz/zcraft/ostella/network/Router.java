@@ -247,6 +247,7 @@ public class Router implements Closeable {
             scoreObj.addProperty("rank", score.getRank());
             scoreObj.addProperty("accuracy", String.format("%.2f%%", score.getAccuracy() * 100));
             scoreObj.addProperty("pp", String.format("%.2fpp", score.getPp()));
+            scoreObj.addProperty("id", String.valueOf(score.getId()));
             scoresArr.add(scoreObj);
         }
         return scoresArr;
