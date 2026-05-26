@@ -21,7 +21,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static xyz.zcraft.ostella.util.RequestUtil.requireLong;
+import static xyz.zcraft.ostella.util.RequestUtil.requirePathLong;
 
 public class LeaderboardController {
     public final RenderService renderer;
@@ -37,7 +37,7 @@ public class LeaderboardController {
     }
 
     public void getMapLeaderboard(@NotNull Context context) {
-        final long m = requireLong(context, "beatmapId");
+        final long m = requirePathLong(context, "beatmapId");
         final LeaderboardRequest leaderboardRequest = context.bodyAsClass(LeaderboardRequest.class);
 
         context.header("X-Beatmap-Id", String.valueOf(m));
