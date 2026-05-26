@@ -52,8 +52,6 @@ public class oStella {
             UserFormatUtil.setSafeFlags(true);
         }
 
-        LOG.info("Initializing OsuParser, you may ignore the warnings below.");
-
         LOG.info("Authorizing...");
 
         tokenManager = new TokenManager(conf);
