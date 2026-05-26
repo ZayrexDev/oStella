@@ -21,6 +21,7 @@ import xyz.zcraft.osu.parser.data.*;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 import static xyz.zcraft.ostella.util.RequestUtil.requirePathLong;
 
@@ -69,6 +70,7 @@ public class AnalyzeController {
                                 .filter(HitEvent::wasHit)
                                 .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
                                 .map(HitEvent::aimBias)
+                                .filter(Objects::nonNull)
                                 .map(HitEvent.AimBias::standardize)
                                 .map(b -> new double[]{b.theta(), b.distance()})
                                 .toList();
@@ -77,6 +79,7 @@ public class AnalyzeController {
                                 .filter(hitEvent -> !hitEvent.wasHit())
                                 .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
                                 .map(HitEvent::aimBias)
+                                .filter(Objects::nonNull)
                                 .filter(b -> b.distance() < diffSpec.getCircleRadius() * 1.2)
                                 .map(HitEvent.AimBias::standardize)
                                 .map(b -> new double[]{b.theta(), b.distance()})
@@ -86,6 +89,7 @@ public class AnalyzeController {
                                 .filter(HitEvent::wasHit)
                                 .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
                                 .map(HitEvent::aimBias)
+                                .filter(Objects::nonNull)
                                 .map(HitEvent.AimBias::standardize)
                                 .map(b -> b.distance() * (Math.abs(b.theta()) >= Math.PI ? -1 : 1))
                                 .toList();
