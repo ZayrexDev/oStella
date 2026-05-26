@@ -39,13 +39,24 @@ public class RequestUtil {
         return context.queryParam(param);
     }
 
-    public static String requireNumberString(Context context, String param) throws ApiException {
+    public static long requireLong(Context context, String param) throws ApiException {
+        return parseLong(context.queryParam(param));
+    }
+
+    public static long parseLong(String s) throws ApiException {
         try {
-            final String s = context.queryParam(param);
-            Long.parseLong(Objects.requireNonNull(s));
-            return s;
+            return Long.parseLong(Objects.requireNonNull(s));
         } catch (Exception e) {
-            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + s);
+        }
+    }
+
+    public static long requirePathLong(Context context, String param) throws ApiException {
+        try {
+            final String s = context.pathParam(param);
+            return Long.parseLong(Objects.requireNonNull(s));
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid path parameter: " + param);
         }
     }
 

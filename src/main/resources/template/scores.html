@@ -108,6 +108,12 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         }
 
+        .avatar-online {
+            border-color: #2ecc71;
+            border-style: solid;
+            border-width: 4px;
+        }
+
         .supporter-heart {
             width: 28px;
             height: 28px;
@@ -430,12 +436,15 @@
 
 <div class="profile-header">
     <div class="profile-main">
-        <img alt="avatar" class="avatar" src="https://a.ppy.sh/2" th:src="${cache.getImageSrc(user.getAvatarUrl())}">
+        <img alt="avatar" class="avatar" src="https://a.ppy.sh/2"
+             th:classappend="${user.isOnline() ? ' avatar-online' : ''}"
+             th:src="${cache.getImageSrc(user.getAvatarUrl())}">
         <div class="profile-details">
             <div class="profile-name-row">
                 <img alt="flag"
                      class="flag"
-                     src="https://osu.ppy.sh/images/flags/AU.png" th:src="${cache.getImageSrc('https://assets.ppy.sh/old-flags/' + user.getCountryCode() + '.png')}">
+                     src="https://osu.ppy.sh/images/flags/AU.png"
+                     th:src="${cache.getImageSrc(Users.getFlagUrl(user))}">
                 <span class="username" th:text="${user.username}">ExampleUser</span>
                 <svg class="supporter-heart" th:if="${user.isSupporter}" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -526,9 +535,12 @@
 <div class="grid-container">
     <div class="card" th:each="score, iterstat : ${scores}">
         <div class="song-cover">
-            <div class="rank-badge" th:style="'background:' + ${Scores.getRankColor(score)}" th:text="${score.rank}">SS</div>
+            <div class="rank-badge" th:style="'background:' + ${Scores.getRankColor(score)}" th:text="${score.rank}">
+                SS
+            </div>
             <div class="mod-badges" th:if="${score.mods != null and !score.mods.isEmpty()}">
-                <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}" th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
+                <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}"
+                     th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
                      th:text="${amod.getAcronym()}">
                     AA
                 </div>
@@ -572,7 +584,8 @@
         <div class="score-stats">
             <span class="acc-number"
                   th:text="${#numbers.formatDecimal(score.accuracy * 100, 1, 2)} + '% ' + ${score.maxCombo} + 'x'">100.00% 456x</span>
-            <div class="score-id" th:text="'#' + ${iterstat.index + 1} + ' ' + ${Scores.getWeightPP(score)}">#1 ↪123.45pp
+            <div class="score-id" th:text="'#' + ${iterstat.index + 1} + ' ' + ${Scores.getWeightPP(score)}">#1
+                ↪123.45pp
             </div>
         </div>
         <div class="score-record">

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>oStella - Score Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            width: fit-content;
+            height: fit-content;
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: 'Dejavu Sans', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        .score-card {
+            width: 850px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .hero-banner {
+            width: 100%;
+            height: 160px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(26, 26, 46, 0.1) 0%, rgba(26, 26, 46, 0.6) 60%, rgba(26, 26, 46, 1) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 24px;
+        }
+
+        .mod-badges {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .mod-badge {
+            font-weight: 900;
+            font-size: 1.2em;
+            padding: 6px 16px;
+            border-radius: 100px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .score-info {
+            display: flex;
+            padding: 16px;
+            margin-bottom: 16px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .grade-letter {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 16px;
+            padding-right: 32px;
+            font-size: 6em;
+            font-weight: 900;
+            line-height: 0.8;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .score-data {
+            display: flex;
+            width: stretch;
+            padding-left: 24px;
+            padding-right: 24px;
+            justify-content: space-between;
+            border-left: 2px solid #a0a0b8;
+            border-right: 2px solid #a0a0b8;
+        }
+
+        .meta-row {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            padding: 16px 24px 8px 24px;
+            align-items: end;
+        }
+
+        .map-info {
+            margin-right: auto;
+        }
+
+        .song-title {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            font-size: 1.8em;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 24px;
+        }
+
+        .song-artist {
+            grid-column: 1 / 3;
+            grid-row: 2 / 3;
+            font-size: 1.1em;
+            color: #e2e8f0;
+            font-weight: 300;
+            padding-right: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .diff-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: nowrap;
+            padding: 8px 24px 8px 24px;
+        }
+
+        .diff-badge {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 1.1em;
+            gap: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .diff-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .id-data {
+            margin-left: auto;
+            letter-spacing: 1px;
+            color: #a0a0b8;
+            font-size: 1.1em;
+            text-align: end;
+        }
+
+        .player-info {
+            display: contents;
+        }
+
+        .player-identity {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-self: end;
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .player-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .map-stats-strip {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .map-stat-group {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .map-stat-label {
+            color: #a0a0b8;
+            font-size: 1em;
+        }
+
+        .map-stat-value {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .data-block {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .data-label {
+            color: #a0a0b8;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .data-primary {
+            font-size: 2.2em;
+            font-weight: 900;
+        }
+
+        .data-sub {
+            font-size: 1.1em;
+            color: #e2e8f0;
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .charts-container {
+            padding: 0 24px 24px 24px;
+            display: flex;
+            flex-direction: row;
+            gap: 16px;
+            height: 280px;
+        }
+
+        .chart-box {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-title {
+            text-align: center;
+            font-size: 1.1em;
+            color: #a0a0b8;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-content {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: visible;
+        }
+
+        .bottom-footer {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+            color: #a0a0b8;
+        }
+
+        .aim-bias-bar {
+            width: 100%;
+            height: 10px;
+            margin-top: 10px;
+            border-radius: 999px;
+            background: linear-gradient(to right, rgb(156 255 34), rgb(47 184 248), rgb(255 0 0));
+        }
+
+        .aim-bias-mark {
+            position: absolute;
+            top: 50%;
+            width: max-content;
+            transform: translate(-50%, -40%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .aim-bias-arrow {
+            width: 4px;
+            height: 24px;
+            background: white;
+            margin-bottom: 0;
+        }
+
+        .aim-bias-arrow-zero {
+            width: 2px;
+            height: 32px;
+            background: #2fb8f8;
+            margin-bottom: 20px;
+        }
+
+        .aim-bias-bar-wrap {
+            position: relative;
+            width: 400px;
+            height: 40px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="score-card">
+    <div class="hero-banner"
+         style="background-image: url('https://assets.ppy.sh/beatmaps/2414617/covers/slimcover.jpg?1755447546');"
+         th:style="'background-image: url(' + ${cache.getImageSrc(score.getBeatmapset().getCovers().getSlimcover())} + ');'">
+        <div class="hero-overlay">
+            <div class="mod-badges" th:if="${diff.isModded()}">
+                <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}"
+                     th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
+                     th:text="${amod.getAcronym()}">HD
+                </div>
+            </div>
+            <div class="meta-row">
+                <div class="map-info">
+                    <div class="song-title" th:text="${score.getBeatmapset().getTitle()}">Example Song Title</div>
+                    <div class="song-artist">
+                        <span th:text="${score.getBeatmapset().getArtist()}">Example Artist</span>
+                        <span style="color: #a0a0b8; margin: 0 8px;">//</span>
+                        <span style="color: #fff; font-weight: bold;"
+                              th:text="${Beatmaps.getOwnersString(score.getBeatmap())}">Mapper</span>
+                    </div>
+                </div>
+
+                <div class="player-info">
+                    <div class="player-identity">
+                        <span class="player-name" th:text="${score.getUser().getUsername()}">PlayerName</span>
+                        <img alt="Avatar" class="player-avatar"
+                             src="https://a.ppy.sh/2" th:src="${cache.getImageSrc(score.getUser().getAvatarUrl())}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="diff-row">
+        <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
+            <span th:style="'color: ' + ${DiffSpecs.getDiffTextColor(diff)}"
+                  th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">6.84★</span>
+        </div>
+        <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColor(diff)}"
+             th:text="${score.getBeatmap().getVersion()}">Example Difficulty
+        </div>
+        <div class="id-data" th:text="${'M' + score.getBeatmap().getId() + ' - ' + 'S' + score.getId()}">M1234567 -
+            S1234567890
+        </div>
+    </div>
+
+    <div class="score-info">
+        <div class="grade-letter" th:style="'color: ' + ${Scores.getRankColor(score)}" th:text="${score.getRank()}">
+            A
+        </div>
+
+        <div class="score-data">
+            <div class="data-block">
+                <div class="data-label">Performance</div>
+                <div class="data-primary"
+                     th:text="${score.getPp() != null ? #numbers.formatDecimal(score.getPp(), 1, 1) + 'pp' : '--pp'}">
+                    340.2pp
+                </div>
+                <div class="data-sub" th:text="'MAX ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">
+                    MAX 1234.56pp
+                </div>
+            </div>
+
+            <div class="data-block" style="align-items: center; text-align: center;">
+                <div class="data-label">Combo</div>
+                <div class="data-primary" th:text="${score.getMaxCombo()} + 'x'">850x</div>
+                <div class="data-sub" th:text="'MAX ' + ${diff.getMaxCombo()} + 'x'">MAX 999x</div>
+            </div>
+
+            <div class="data-block" style="align-items: flex-end; text-align: right;">
+                <div class="data-label">Accuracy</div>
+                <div class="data-primary"
+                     th:text="${#numbers.formatDecimal(score.getAccuracy() * 100, 1, 2)} + '%'">85.42%
+                </div>
+                <div class="data-sub"
+                     th:text="${score.getStatistics().get('count_300')}
+                                + ' / ' + ${score.getStatistics().get('count_100')}
+                                + ' / ' + ${score.getStatistics().get('count_50')}
+                                + ' / ' + ${score.getStatistics().get('count_miss')}">456 / 78 / 9 / 10
+                </div>
+            </div>
+        </div>
+
+        <div class="map-stats-strip">
+            <div class="map-stat-group">
+                <span class="map-stat-label">CS</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getCs(), 1, 2)}">4.00</span>
+            </div>
+            <div class="map-stat-group">
+                <span class="map-stat-label">AR</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getAr(), 1, 2)}">9.30</span>
+            </div>
+            <div class="map-stat-group">
+                <span class="map-stat-label">OD</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getOd(), 1, 2)}">8.00</span>
+            </div>
+            <div class="map-stat-group">
+                <span class="map-stat-label">HP</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 2)}">7.00</span>
+            </div>
+            <div class="map-stat-group" style="margin-left: auto;">
+                <span class="map-stat-label">BPM</span>
+                <span class="map-stat-value" th:text="${#numbers.formatInteger(diff.getBpm(), 1)}">200</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-box" style="flex: 2;">
+            <div class="chart-title">Timing Distribution</div>
+            <div class="chart-content">
+                <div id="timingDistributionChart" style="width: 100%; height: 100%;"></div>
+            </div>
+        </div>
+
+        <div class="chart-box aim-bias" style="flex: 1;">
+            <div class="chart-title">Accuracy Heatmap</div>
+            <div class="chart-content">
+                <div style="position: relative; width: 240px; height: 240px; margin-top: -20px; rotate: -45deg;">
+                    <div id="aimGridHeatmap" style="width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-box" style="flex: 1;">
+            <div class="chart-title">Analysis Summary</div>
+            <div class="chart-content" style="align-items: stretch;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%;">
+                    <div class="data-block"
+                         style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
+                        <div class="data-label">Unstable Rate</div>
+                        <div class="data-primary" th:text="${#numbers.formatDecimal(analyze.unstableRate(), 1, 2)}">
+                            123.45
+                        </div>
+                    </div>
+
+                    <div class="data-block"
+                         style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; align-items: flex-end; text-align: right;">
+                        <div class="data-label">Avg. Timing Error</div>
+                        <div class="data-primary"
+                             th:text="${avgTimingError > 0 ? '+' : ''} + ${#numbers.formatDecimal(avgTimingError, 1, 2)} + 'ms'">
+                            +12.34ms
+                        </div>
+                    </div>
+
+                    <div class="data-block"
+                         style="grid-column: 1 / 3; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; align-items: center; text-align: center;">
+                        <div class="data-label">Aiming Bias</div>
+                        <div class="aim-bias">
+                            <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                                <span>Undershoot</span>
+                                <div class="aim-bias-bar-wrap">
+                                    <div class="aim-bias-bar"></div>
+                                    <div class="aim-bias-mark" style="left: 25.85%;"
+                                         th:style="'left: ' + ${#numbers.formatDecimal(((aimBias + 1) / 2.0) * 100, 1, 1)} + '%;'">
+                                        <div class="aim-bias-arrow"></div>
+                                        <span th:text="${#numbers.formatDecimal((aimBias < 0 ? -aimBias : aimBias) * 100, 1, 2)} + '% '
+                                                     + ${(aimBias < 0 ? 'Undershoot' : 'Overshoot')}">23.45% Undershoot</span>
+                                    </div>
+                                    <div class="aim-bias-mark" style="left: 50%;">
+                                        <div class="aim-bias-arrow-zero"></div>
+                                    </div>
+                                </div>
+                                <span>Overshoot</span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-footer">
+    <span th:text="${'Analysis mapped at ' + time}">Analysis mapped at 2026-04-20T14:20:13Z</span>
+    <span>Generated with oStella by Zayrex</span>
+</div>
+
+<!-- TIMING DISTRIBUTION -->
+<script th:inline="javascript">
+    const hitErrors = /*[[${hitErrors}]]*/ [
+        3, 10, -4, 29, 16, 10, -39, -14, -7, 7, 7, 21, 32, 14, -25, -7, -3, 1, 2, 10, 19, 9, -25, -15, 2, 12, 15, 18, 24, 26, 21, 21, 22, 33, 8, -7, -28, -8, 10, 18, 37, 9, -14, 2, 8, 16, 39, 8, 7, -24, 7, -5, -6, 6, 6, 17, 31, 5, 10, 6, 55, -20, -8, 9, -6, -17, -23, -48, -8, -55, -20, -17, -16, -10, -22, -27, -20, -34, 3, 18, -2, -12, 4, 14, 26, -73, -31, -33, -26, -6, 0, -6, 13, 9, 15, 15, 32, 14, 7, 8, 4, -3, -3, 1, 16, 19, 27, 45, 50, 61, 68, 70, 91, 75, 56, 48, 66, 0, -12, -17, -15, -6, -5, 6, 8, 17, 11, 24, -8, 14, 0, 27, -20, 5, -11, 23, -16, -4, 6, 1, -6, -9, -2, 0, -8, 1, 10, -27, -9, 0, -12, -8, -4, -11, -13, -10, -6, -5, 7, 22, 24, -1, -2, -5, -3, -15, -10, -8, 9, 25, 19, 17, -20, 21, 31, -15, -1, -16, 37, -3, 5, 25, 0
+    ];
+    const window300 = /*[[${diff.getPerfectWindow()}]]*/ 28.5;
+    const window100 = /*[[${diff.getOkWindow()}]]*/ 71.5;
+    const window50 = /*[[${diff.getMehWindow()}]]*/ 114.5;
+
+    function getColorForError(errVal) {
+        if (errVal === 0) return '#ffffff';
+
+        const absError = Math.abs(errVal);
+        if (absError <= window300) return '#66ccff';
+        if (absError <= window100) return '#52cc54';
+        if (absError <= window50) return '#e5c540';
+        return '#ff5555';
+    }
+
+    const timingChartDom = document.getElementById('timingDistributionChart');
+    if (timingChartDom && hitErrors.length > 0) {
+        const timingChart = echarts.init(timingChartDom, 'dark');
+
+        const errorCounts = {};
+        hitErrors.forEach(err => {
+            const bucket = Math.round(err / 2) * 2;
+            errorCounts[bucket] = (errorCounts[bucket] || 0) + 1;
+        });
+
+        const minVal = Math.floor((-window50 - 5) / 2) * 2;
+        const maxVal = Math.ceil((window50 + 5) / 2) * 2;
+
+        const xAxisData = [];
+        const barData = [];
+
+        for (let i = minVal; i <= maxVal; i += 2) {
+            xAxisData.push(i);
+            barData.push({
+                value: errorCounts[i] || 0,
+                itemStyle: {color: getColorForError(i)}
+            });
+        }
+
+        // noinspection JSUnusedGlobalSymbols
+        timingChart.setOption({
+            backgroundColor: 'transparent',
+            animation: false,
+            grid: {top: 10, bottom: 25, left: 10, right: 10, containLabel: false},
+
+            xAxis: {
+                type: 'category',
+                data: xAxisData,
+                splitLine: {show: false},
+                axisLabel: {
+                    color: '#a0a0b8',
+                    fontSize: 10,
+                    interval: function (index, value) {
+                        return value % 20 === 0 || value === 0;
+                    },
+                    formatter: '{value}'
+                },
+                axisLine: {
+                    show: true,
+                    lineStyle: {color: '#a0a0b8', width: 2}
+                },
+                axisTick: {show: false}
+            },
+
+            yAxis: {
+                type: 'value',
+                splitLine: {show: false},
+                axisLabel: {show: false},
+                axisLine: {show: false}
+            },
+
+            series: [{
+                type: 'bar',
+                barCategoryGap: '10%',
+                data: barData
+            }]
+        });
+    }
+</script>
+
+<!-- ACCURACY HEATMAP -->
+<script th:inline="javascript">
+    const hitPos = /*[[${hitPositions}]]*/ [
+        [-0.000000, 7.940422], [1.869563, 5.515452], [1.824474, 5.916956], [3.208178, 25.016224], [3.851322, 27.779473], [6.056345, 11.629703], [2.029581, 0.761582], [3.894133, 16.871585], [3.525496, 20.130083], [0.322148, 6.530686], [3.983904, 20.554797], [3.845686, 8.188412], [5.461438, 9.234698], [1.771344, 4.792683], [5.657664, 7.683718], [0.231709, 36.748337], [6.000701, 10.704187], [4.944635, 16.075148], [5.750863, 11.000015], [3.182934, 18.409226], [5.201930, 11.092348], [3.046876, 16.658050], [1.624561, 13.000000], [4.039570, 25.448390], [0.415945, 14.360010], [0.555110, 7.354602], [3.382145, 10.358575], [4.657584, 1.664336], [4.166951, 19.030775], [2.339390, 19.948448], [5.195112, 14.641367], [2.590772, 14.115251], [2.379600, 17.650209], [3.993122, 4.947718], [2.808835, 14.612341], [3.338987, 18.748885], [3.288674, 9.042687], [3.278401, 6.512298], [3.583298, 10.090102], [2.775023, 4.294185], [1.234117, 6.276927], [2.183333, 6.395315], [0.164630, 18.227991], [3.283490, 15.999985], [3.309925, 17.367771], [3.547966, 10.307791], [5.966673, 29.848499], [3.159270, 23.418368], [1.163304, 21.410748], [1.913014, 16.832392], [4.726766, 11.649885], [2.792821, 14.897646], [5.563435, 5.899994], [3.254031, 15.623722], [1.353683, 9.847851], [2.209442, 15.108290], [3.957031, 9.192368], [3.330566, 13.174584], [3.782890, 28.448535], [2.422010, 15.079131], [2.236844, 22.465957], [2.750844, 5.635604], [2.214877, 22.109735], [2.874464, 16.020631], [2.713551, 6.989264], [2.230636, 18.159302], [3.063875, 16.324830], [1.773036, 7.592746], [4.140593, 25.083276], [3.060936, 30.717599], [3.152231, 26.588702], [4.840214, 7.083787], [2.155143, 6.862224], [5.897998, 33.342468], [0.668407, 9.066972], [3.476602, 11.605620], [1.907470, 5.700892], [2.843093, 9.617706], [5.431529, 1.345353], [3.026246, 15.530946], [3.002785, 25.599991], [0.892298, 9.159148], [3.804497, 8.261974], [0.599972, 10.007988], [3.500613, 13.994675], [1.783362, 14.220077], [3.358536, 10.259152], [3.724565, 13.384312], [0.499896, 4.884660], [0.325533, 5.818086], [2.920116, 34.940663], [4.824963, 14.809774], [4.872821, 14.227095], [2.159115, 23.613561], [4.521095, 16.378329], [3.753505, 12.401622], [5.696002, 2.009975], [4.809965, 14.712241], [2.877788, 16.592150], [5.088715, 22.262294], [2.723287, 12.952256], [3.395932, 8.962710], [2.186137, 18.141691], [2.296614, 6.293650], [5.865924, 24.880898], [2.037943, 33.428278], [1.001747, 22.675309], [4.681948, 10.630151], [5.990473, 30.974172], [0.020188, 22.507967], [2.337178, 14.103189], [0.049658, 5.821530], [6.222823, 21.718635], [2.099896, 14.743472], [5.330897, 19.535842], [4.074068, 24.565204], [3.638560, 28.476305], [4.675685, 24.460804], [2.482377, 5.883048], [2.999601, 26.970359], [5.397034, 17.182842], [3.580484, 13.309398], [5.534217, 14.094330], [3.440267, 34.091788], [5.415288, 12.549490], [3.610047, 22.002030], [2.041340, 2.817808], [4.861291, 24.014182], [0.712098, 7.545184], [3.221191, 11.335789], [5.908138, 26.023054], [3.725641, 13.369011], [4.029222, 26.504712], [3.200442, 10.478546], [5.176535, 4.428315], [3.206491, 13.290971], [4.194515, 8.015612], [4.653630, 6.020820], [4.080535, 8.499994], [4.960564, 6.152225], [2.786245, 5.675384], [2.962492, 3.306065], [3.100433, 15.357413], [5.304033, 17.026128], [0.612316, 3.220247], [5.127959, 13.548408], [1.573610, 6.462196], [5.362985, 9.042661], [5.742516, 8.149229], [4.985518, 16.025280], [5.729292, 11.112599], [5.521593, 6.708190], [1.817530, 21.617806], [1.479273, 25.828850], [0.480056, 17.987749], [3.178994, 36.156617], [1.954069, 30.545875], [5.976863, 30.423699], [5.654870, 20.299992], [5.927002, 6.435054], [4.438184, 29.724907], [6.032743, 25.107782], [5.963547, 21.153245], [3.726650, 14.317821], [5.297920, 9.219542], [2.702926, 24.250796], [3.344289, 10.746626], [0.060173, 20.068393], [0.942087, 1.941615], [4.933634, 3.712153], [0.999498, 10.296095], [1.979384, 14.940219], [4.260380, 13.038405], [4.505428, 17.541095], [3.021334, 15.979047], [4.231126, 26.627242], [2.082413, 8.839130], [5.118297, 12.593662], [0.861763, 14.404503], [3.542723, 20.171770], [4.234457, 22.138209], [4.079328, 24.382377]
+    ];
+
+    const missPos = /*[[${missPositions}]]*/ [
+        [5.745133, 41.538405], [2.803120, 41.203994], [0.845454, 45.600521], [3.316726, 68.691177], [3.405610, 39.051369], [3.581791, 40.933352], [3.427709, 38.473104], [4.645075, 41.900024], [1.496989, 38.525305]
+    ];
+
+    const radius = /*[[${diff.getCircleRadius()}]]*/ 38.70;
+
+    const N = 39;
+
+    const gridIndices = Array.from({length: N}, (_, i) => i.toString());
+
+    const axisMin = -radius * 1.25;
+    const axisMax = radius * 1.25;
+
+    function polarToCartesian(thetaRad, r) {
+        return [r * Math.cos(thetaRad), r * Math.sin(thetaRad)];
+    }
+
+    function coordToIndexFloor(coord) {
+        const clamped = Math.max(axisMin, Math.min(axisMax, coord));
+        const t = (clamped - axisMin) / (axisMax - axisMin); // [0..1]
+        return Math.min(N - 1, Math.max(0, Math.floor(t * N)));
+    }
+
+    const accum = Array.from({length: N}, () => new Array(N).fill(0));
+
+    for (const item of hitPos) {
+        const theta = item[0];
+        const rVal = item[1];
+        const [x, y] = polarToCartesian(theta, rVal);
+        const xi = coordToIndexFloor(x);
+        const yi = coordToIndexFloor(y);
+        accum[xi][yi] += 1;
+    }
+
+    const mappedGridData = [];
+    let maxDensity = 0;
+
+    for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+            const v = accum[i][j];
+            if (v > 0) {
+                mappedGridData.push([i, j, v]);
+                if (v > maxDensity) maxDensity = v;
+            }
+        }
+    }
+
+    const mappedMissData = missPos.map(([theta, r]) => polarToCartesian(theta, r));
+
+    const aimGridChart = echarts.init(document.getElementById('aimGridHeatmap'), 'dark');
+
+    aimGridChart.setOption({
+        backgroundColor: 'transparent',
+        animation: false,
+        grid: {left: '10%', right: '10%', top: '10%', bottom: '10%'},
+
+        xAxis: [
+            {
+                type: 'category',
+                data: gridIndices,
+                z: 10,
+                show: true,
+                axisLine: {
+                    show: true,
+                    lineStyle: {color: '#ffffff'},
+                    symbol: ['none', 'arrow']
+                },
+                axisTick: {show: false},
+                splitLine: {show: false},
+                axisLabel: {show: false}
+            },
+            {
+                type: 'value',
+                min: -radius * 1.25,
+                max: radius * 1.25,
+                show: false
+            }
+        ],
+        yAxis: [
+            {
+                type: 'category',
+                data: gridIndices,
+                show: true,
+                z: 9,
+                axisLine: {
+                    show: true,
+                    lineStyle: {color: '#ffffff'},
+                    symbol: ['none', 'none']
+                },
+                axisTick: {show: false},
+                splitLine: {show: false},
+                axisLabel: {show: false}
+            },
+            {
+                type: 'value',
+                min: -radius * 1.25,
+                max: radius * 1.25,
+                show: false
+            }
+        ],
+
+        visualMap: {
+            min: 0,
+            max: maxDensity,
+            calculable: false,
+            show: false,
+            seriesIndex: 0,
+            inRange: {
+                color: ['#253630', '#3f8f7c', '#6affd5']
+            }
+        },
+
+        series: [
+            {
+                name: 'Hits',
+                type: 'heatmap',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                data: mappedGridData,
+                itemStyle: {
+                    borderColor: 'rgba(0,0,0,0.1)',
+                    borderWidth: 1.5,
+                    borderRadius: 99
+                }
+            },
+            {
+                name: 'Misses',
+                type: 'scatter',
+                xAxisIndex: 1,
+                yAxisIndex: 1,
+                data: mappedMissData,
+                symbol: 'path://M10 10L90 90M90 10L10 90',
+                symbolSize: 6,
+                symbolRotate: 45,
+                z: 10,
+                clip: true,
+                itemStyle: {
+                    color: 'transparent',
+                    borderColor: '#ff5555',
+                    borderWidth: 1.2,
+                },
+                silent: true
+            }
+        ]
+    });
+
+    function drawAccessories() {
+        const x0 = aimGridChart.convertToPixel({xAxisIndex: 1}, 0);
+        const y0 = aimGridChart.convertToPixel({yAxisIndex: 1}, 0);
+        const xr = aimGridChart.convertToPixel({xAxisIndex: 1}, radius);
+        const rPx = Math.abs(xr - x0);
+
+        aimGridChart.setOption({
+            graphic: [
+                {
+                    type: 'circle',
+                    id: 'aim-ring',
+                    silent: true,
+                    z: 2,
+                    shape: {
+                        cx: x0,
+                        cy: y0,
+                        r: rPx
+                    },
+                    style: {
+                        fill: 'none',
+                        stroke: 'rgba(255, 255, 255, 1)',
+                        lineWidth: 1
+                    }
+                },
+                {
+                    type: 'text',
+                    id: 'undershoot-label',
+                    left: '1%',
+                    top: '50%',
+                    z: 2,
+                    rotation: Math.PI * -0.25,
+                    style: {
+                        text: 'Undershoot',
+                        fill: '#ffffff',
+                        font: '12px "Dejavu Sans", Tahoma, sans-serif',
+                        textAlign: 'left',
+                        textVerticalAlign: 'middle',
+                        opacity: 0.85
+                    }
+                },
+                {
+                    type: 'text',
+                    id: 'overshoot-label',
+                    right: '1%',
+                    top: '35%',
+                    z: 2,
+                    rotation: Math.PI * -0.25,
+                    style: {
+                        text: 'Overshoot',
+                        fill: '#ffffff',
+                        font: '12px "Dejavu Sans", Tahoma, sans-serif',
+                        textAlign: 'right',
+                        textVerticalAlign: 'middle',
+                        opacity: 0.85
+                    }
+                }
+            ]
+        });
+    }
+
+    drawAccessories();
+    window.addEventListener('resize', () => {
+        aimGridChart.resize();
+        drawAccessories();
+    });
+</script>
+
+</body>
+</html>

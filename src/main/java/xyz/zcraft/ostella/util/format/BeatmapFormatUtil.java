@@ -1,15 +1,16 @@
 package xyz.zcraft.ostella.util.format;
 
-import java.util.Objects;
+import xyz.zcraft.osu.model.Beatmap;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.Beatmapset;
+
 import java.util.Optional;
 import java.util.stream.Collectors;
-import xyz.zcraft.osu.model.*;
 
 public class BeatmapFormatUtil {
     public static boolean hasLeaderboard(Beatmap beatmap) {
         return Optional.ofNullable(beatmap.getStatus())
-                .map(String::toUpperCase)
-                .map(s -> Objects.equals(s, "RANKED") || Objects.equals(s, "LOVED"))
+                .map(s -> "RANKED".equalsIgnoreCase(s) || "LOVED".equalsIgnoreCase(s))
                 .orElse(false);
     }
 

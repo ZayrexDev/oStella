@@ -1,6 +1,7 @@
 package xyz.zcraft.ostella.network.controller;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
@@ -9,11 +10,12 @@ import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.model.Beatmap;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.Beatmapset;
 
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static xyz.zcraft.ostella.util.RequestUtil.*;
@@ -23,45 +25,25 @@ public class BeatmapsetController {
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final Router router;
-    public final CacheService cacheService;
 
     public BeatmapsetController(Router router) {
         this.router = router;
         this.renderer = router.renderer;
         this.tokenManager = router.tokenManager;
         this.executor = router.executor;
-        this.cacheService = router.cacheService;
     }
 
-    public void getBeatmapset(@NotNull Context context) {
+    public void lookupBeatmapset(@NotNull Context context) {
         if (context.queryParam("of") != null) {
-            getBeatmapsetOfRefAsync(context);
+            lookupBeatmapsetOfRefAsync(context);
         } else if (context.queryParam("m") != null) {
-            getBeatmapsetOfMapAsync(context);
+            lookupBeatmapsetOfMapAsync(context);
         } else {
-            getBeatmapsetOfIdAsync(context);
+            lookupBeatmapsetOfIdAsync(context);
         }
     }
 
-    private void getBeatmapsetOfRefAsync(@NotNull Context context) {
-        final String of = requireString(context, "of");
-        if ("mp".equals(of)) {
-            getBeatmapsetFromCurrentRoom(context);
-        } else {
-            getBeatmapsetFromSomeScore(context);
-        }
-    }
-
-    private void downloadBeatmapsetOfRef(@NotNull Context context) {
-        final String of = requireString(context, "of");
-        if ("mp".equals(of)) {
-            downloadBeatmapsetFromCurrentRoom(context);
-        } else {
-            downloadBeatmapsetFromSomeScore(context);
-        }
-    }
-
-    private void getBeatmapsetFromCurrentRoom(@NonNull Context context) {
+    private void lookupBeatmapsetFromCurrentRoom(@NonNull Context context) {
         final String auth = context.header("Authorization");
 
         if (auth == null) {
@@ -73,102 +55,76 @@ public class BeatmapsetController {
                 .thenCompose(room -> {
                     if (room == null) throw new ApiException(ErrorCode.NO_ROOM_FOUND);
                     if (room.getCurrentPlaylistItem() == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
-                    return executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), String.valueOf(room.getCurrentPlaylistItem().getBeatmapId())));
+                    return executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), room.getCurrentPlaylistItem().getBeatmapId()));
                 })
-                .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
-                .thenAccept(bytes -> context.status(200).result(bytes)));
+                .thenAccept(beatmapset -> context.status(200).result(
+                        new Response(true, "Success", beatmapsetLookupData(beatmapset)).toString()
+                )));
     }
 
-    private void downloadBeatmapsetFromCurrentRoom(@NonNull Context context) {
-        final String auth = context.header("Authorization");
-
-        if (auth == null) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED);
-        }
-
-        context.future(() -> executor
-                .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
-                .thenAccept(room -> {
-                    if (room == null) throw new ApiException(ErrorCode.NO_ROOM_FOUND);
-                    final Long beatmapsetId = room.getCurrentPlaylistItem().getBeatmap().getBeatmapsetId();
-                    context.contentType("application/zip");
-                    context.header("Content-Disposition", "attachment; filename=\"" + beatmapsetId + ".osz\"");
-                    try {
-                        cacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }));
-    }
-
-    private void getBeatmapsetFromSomeScore(@NonNull Context context) {
+    private void lookupBeatmapsetFromSomeScore(@NonNull Context context) {
         context.future(() -> router.getScoreFromRefAsync(context)
                 .thenCompose(score -> {
                     if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
-                    return executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), String.valueOf(score.getBeatmapset().getId())));
+                    return executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), score.getBeatmapset().getId()));
                 })
-                .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
-                .thenAccept(bytes -> context.status(200).result(bytes)));
+                .thenAccept(beatmapset -> context.status(200).result(
+                        new Response(true, "Success", beatmapsetLookupData(beatmapset)).toString()
+                )));
     }
 
-    private void downloadBeatmapsetFromSomeScore(@NonNull Context context) {
-        context.future(() -> router.getScoreFromRefAsync(context)
-                .thenAccept(score -> {
-                    if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
-                    final Long beatmapsetId = score.getBeatmap().getBeatmapsetId();
-                    context.contentType("application/zip");
-                    context.header("Content-Disposition", "attachment; filename=\"" + beatmapsetId + ".osz\"");
-                    try {
-                        cacheService.extractBeatmapset(String.valueOf(beatmapsetId), context.outputStream());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }));
+    private void lookupBeatmapsetOfMapAsync(@NotNull Context context) {
+        lookupBeatmapsetOfMapAsync(context, requireLong(context, "m"));
     }
 
-    private void getBeatmapsetOfMapAsync(@NotNull Context context) {
-        final String m = requireNumberString(context, "m");
-
+    private void lookupBeatmapsetOfMapAsync(@NotNull Context context, long m) {
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
-                .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
-                .thenAccept(bytes -> context.status(200).result(bytes)));
+                .thenAccept(beatmapset -> context.status(200).result(
+                        new Response(true, "Success", beatmapsetLookupData(beatmapset)).toString()
+                )));
     }
 
-    private void downloadBeatmapsetOfMap(@NotNull Context context) {
-        final String m = requireNumberString(context, "m");
-
-        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
-                .thenAccept(beatmapset -> {
-                    context.contentType("application/zip");
-                    context.header("Content-Disposition", "attachment; filename=\"" + beatmapset.getId() + ".osz\"");
-                    try {
-                        cacheService.extractBeatmapset(String.valueOf(beatmapset.getId()), context.outputStream());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }));
+    private void lookupBeatmapsetOfIdAsync(@NotNull Context context) {
+        lookupBeatmapsetOfIdAsync(context, requireLong(context, "ms"));
     }
 
-    private void getBeatmapsetOfIdAsync(@NotNull Context context) {
-        final String ms = requireNumberString(context, "ms");
-
+    public void renderBeatmapsetById(@NotNull Context context) {
+        final long ms = requirePathLong(context, "beatmapsetId");
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
                 .thenApplyAsync(beatmapset -> finalizeBeatmapset(beatmapset, context), renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 
-    private void downloadBeatmapsetOfId(@NotNull Context context) {
-        final String ms = requireNumberString(context, "ms");
-        context.future(() -> executor.enqueueAsync(() -> {
-            context.contentType("application/zip");
-            context.header("Content-Disposition", "attachment; filename=\"" + ms + ".osz\"");
-            try {
-                cacheService.extractBeatmapset(String.valueOf(ms), context.outputStream());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return null;
-        }));
+    private void lookupBeatmapsetOfIdAsync(@NotNull Context context, long ms) {
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
+                .thenAccept(beatmapset -> context.status(200).result(
+                        new Response(true, "Success", beatmapsetLookupData(beatmapset)).toString()
+                )));
+    }
+
+    private JsonObject beatmapsetLookupData(Beatmapset beatmapset) {
+        if (beatmapset == null) throw new ApiException(ErrorCode.NO_BEATMAPSET_FOUND);
+
+        beatmapset.getBeatmaps().sort(Comparator.comparingDouble(Beatmap::getDifficultyRating));
+        final JsonObject data = new JsonObject();
+        data.addProperty("beatmapset_id", beatmapset.getId());
+
+        final JsonArray beatmapIds = new JsonArray();
+        for (BeatmapExtended beatmap : beatmapset.getBeatmaps()) {
+            beatmapIds.add(beatmap.getId());
+        }
+
+        data.add("beatmap_ids", beatmapIds);
+        return data;
+    }
+
+    private void lookupBeatmapsetOfRefAsync(@NotNull Context context) {
+        final String of = requireString(context, "of");
+        if ("mp".equals(of)) {
+            lookupBeatmapsetFromCurrentRoom(context);
+        } else {
+            lookupBeatmapsetFromSomeScore(context);
+        }
     }
 
     private byte[] finalizeBeatmapset(Beatmapset beatmapset, Context context) {
@@ -188,72 +144,16 @@ public class BeatmapsetController {
     }
 
     public void downloadBeatmapset(@NotNull Context context) {
-        if (context.queryParam("of") != null) {
-            downloadBeatmapsetOfRef(context);
-        } else if (context.queryParam("m") != null) {
-            downloadBeatmapsetOfMap(context);
-        } else {
-            downloadBeatmapsetOfId(context);
-        }
-    }
-
-    public void lookupBeatmapset(@NotNull Context context) {
-        if (context.queryParam("of") != null) {
-            final String of = requireString(context, "of");
-            if ("mp".equals(of)) {
-                final String auth = context.header("Authorization");
-
-                if (auth == null) {
-                    throw new ApiException(ErrorCode.UNAUTHORIZED);
-                }
-
-                context.future(() -> executor
-                        .enqueueAsync(() -> OsuAPI.getCurrentRoom(auth))
-                        .thenAccept(room -> {
-                            if (room == null) throw new ApiException(ErrorCode.NO_ROOM_FOUND);
-                            final Long beatmapsetId = room.getCurrentPlaylistItem().getBeatmap().getBeatmapsetId();
-                            context.status(200).result(
-                                    new Response(
-                                            true,
-                                            "Lookup successful",
-                                            new Gson().toJsonTree(Map.of("id", beatmapsetId))
-                                    ).toString()
-                            );
-                        }));
-            } else {
-                context.future(() -> router.getScoreFromRefAsync(context)
-                        .thenAccept(score -> {
-                            if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
-                            final Long beatmapsetId = score.getBeatmap().getBeatmapsetId();
-                            context.status(200).result(
-                                    new Response(
-                                            true,
-                                            "Lookup successful",
-                                            new Gson().toJsonTree(Map.of("id", beatmapsetId))
-                                    ).toString()
-                            );
-                        }));
+        final long ms = requirePathLong(context, "beatmapsetId");
+        context.future(() -> executor.enqueueAsync(() -> {
+            context.contentType("application/zip");
+            context.header("Content-Disposition", "attachment; filename=\"" + ms + ".osz\"");
+            try {
+                CacheService.extractBeatmapset(ms, context.outputStream());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        } else if (context.queryParam("m") != null) {
-            final String m = requireNumberString(context, "m");
-
-            context.future(() -> executor.enqueueAsync(() -> OsuAPI.getBeatmapsetFromBeatmap(tokenManager.getTokenData(), m))
-                    .thenAccept(beatmapset -> context.status(200).result(
-                            new Response(
-                                    true,
-                                    "Lookup successful",
-                                    new Gson().toJsonTree(Map.of("id", beatmapset.getId()))
-                            ).toString()
-                    )));
-        } else {
-            final int ms = requireInt(context, "ms");
-            context.status(200).result(
-                    new Response(
-                            true,
-                            "Lookup successful",
-                            new Gson().toJsonTree(Map.of("id", ms))
-                    ).toString()
-            );
-        }
+            return null;
+        }));
     }
 }

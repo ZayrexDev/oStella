@@ -1,8 +1,9 @@
 package xyz.zcraft.ostella.util.format;
 
+import lombok.Setter;
 import xyz.zcraft.ostella.data.ScoreChange;
-import xyz.zcraft.osu.model.*;
-
+import xyz.zcraft.osu.model.User;
+import xyz.zcraft.osu.model.UserExtended;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -11,6 +12,9 @@ import java.util.Locale;
 import java.util.Optional;
 
 public class UserFormatUtil {
+    @Setter
+    private static boolean safeFlags = false;
+
     public static String getFormattedJoinDate(UserExtended user) {
         if (user == null || user.getJoinDate() == null || user.getJoinDate().isEmpty()) {
             return "Unknown";
@@ -75,6 +79,16 @@ public class UserFormatUtil {
                 .map(User.StatisticsRuleset::getOsu)
                 .map(User.Statistics::getPp)
                 .isPresent();
+    }
+
+    public static String getFlagUrl(User user) {
+        String countryCode = user.getCountryCode();
+
+        if (safeFlags && "TW".equalsIgnoreCase(countryCode)) {
+            countryCode = "CN";
+        }
+
+        return "https://assets.ppy.sh/old-flags/" + countryCode + ".png";
     }
 }
 

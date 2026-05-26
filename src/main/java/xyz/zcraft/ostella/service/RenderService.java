@@ -11,11 +11,11 @@ import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import xyz.zcraft.ostella.data.Placement;
 import xyz.zcraft.ostella.data.ScoreType;
-import xyz.zcraft.osu.model.*;
-import xyz.zcraft.osu.parser.DiffSpec;
-
-import xyz.zcraft.ostella.util.*;
+import xyz.zcraft.ostella.network.controller.AnalyzeController;
+import xyz.zcraft.ostella.util.Colors;
 import xyz.zcraft.ostella.util.format.*;
+import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.parser.data.DiffSpec;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -26,7 +26,6 @@ import java.util.concurrent.Executors;
 
 public class RenderService implements AutoCloseable {
     private static final Logger LOG = LogManager.getLogger(RenderService.class);
-    private final CacheService cacheService;
     @Getter
     private final ExecutorService renderExecutor;
     private final ThreadLocal<Playwright> playwrightLocal = ThreadLocal.withInitial(Playwright::create);
@@ -37,12 +36,11 @@ public class RenderService implements AutoCloseable {
     });
     private final TemplateEngine templateEngine;
 
-    public RenderService(CacheService cacheService, int maxWorkers) {
+    public RenderService(int maxWorkers) {
         if (maxWorkers <= 0) {
             throw new IllegalArgumentException("maxWorkers must be greater than 0: " + maxWorkers);
         }
 
-        this.cacheService = cacheService;
         this.renderExecutor = Executors.newFixedThreadPool(maxWorkers);
 
         LOG.info("Initializing template resolver");
@@ -65,7 +63,7 @@ public class RenderService implements AutoCloseable {
             page.route("http://ostella-cache/**", route -> {
                 String url = route.request().url();
                 String filename = url.substring(url.lastIndexOf("/") + 1);
-                java.nio.file.Path imagePath = cacheService.getImagePathFromFilename(filename);
+                java.nio.file.Path imagePath = CacheService.getImagePathFromFilename(filename);
                 route.fulfill(new Route.FulfillOptions().setPath(imagePath));
             });
 
@@ -92,12 +90,13 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("Mods", new ModFormatUtil());
         //noinspection InstantiationOfUtilityClass
         ctx.setVariable("DiffSpecs", new DiffSpecFormatUtil());
+        //noinspection InstantiationOfUtilityClass
+        ctx.setVariable("cache", new CacheService());
         return ctx;
     }
 
     public byte[] renderScores(UserExtended user, List<Score> scores, ScoreType type) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("user", user);
         ctx.setVariable("scores", scores);
         ctx.setVariable("type", switch (type) {
@@ -114,7 +113,6 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderPK(BeatmapExtended map, List<Placement> placements, double ppMax) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmap", map);
         ctx.setVariable("placements", placements);
         ctx.setVariable("ppMax", ppMax);
@@ -127,7 +125,6 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderLeaderboard(List<User> users) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("users", users);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
@@ -138,9 +135,7 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderBeatmap(BeatmapExtended map, DiffSpec spec) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmap", map);
-        ctx.setVariable("diff", spec);
         ctx.setVariable("diff", spec);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
@@ -151,7 +146,6 @@ public class RenderService implements AutoCloseable {
 
     public byte[] renderScore(Score score, DiffSpec spec) {
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("score", score);
         ctx.setVariable("diff", spec);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
@@ -161,11 +155,28 @@ public class RenderService implements AutoCloseable {
         return takeScreenshot(finalHtml);
     }
 
+    public byte[] renderScoreAnalysis(AnalyzeController.ScoreAnalyzeData analyzeData) {
+        Context ctx = createContext();
+        ctx.setVariable("score", analyzeData.score());
+        ctx.setVariable("diff", analyzeData.diffSpec());
+        ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        ctx.setVariable("hitErrors", analyzeData.hitErrors());
+        ctx.setVariable("hitPositions", analyzeData.hitPositions());
+        ctx.setVariable("missPositions", analyzeData.missPositions());
+        ctx.setVariable("aimBias", analyzeData.aimBias());
+        ctx.setVariable("avgTimingError", analyzeData.avgTimingError());
+        ctx.setVariable("analyze", analyzeData.replayAnalyze());
+
+        String finalHtml = templateEngine.process("score-analyze", ctx);
+
+        return takeScreenshot(finalHtml);
+    }
+
     public byte[] renderBeatmapset(Beatmapset beatmapset) {
         beatmapset.getBeatmaps().sort(Comparator.comparingDouble(Beatmap::getDifficultyRating));
 
         Context ctx = createContext();
-        ctx.setVariable("cache", cacheService);
         ctx.setVariable("beatmapset", beatmapset);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 

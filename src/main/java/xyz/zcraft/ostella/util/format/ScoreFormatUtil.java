@@ -2,7 +2,8 @@ package xyz.zcraft.ostella.util.format;
 
 import xyz.zcraft.ostella.util.Colors;
 import xyz.zcraft.ostella.util.MiscUtil;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.model.Mod;
+import xyz.zcraft.osu.model.Score;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,12 +28,24 @@ public class ScoreFormatUtil {
     }
 
     public static String getWeightPP(Score score) {
-        if (score == null || score.getWeight() == null
-                || score.getWeight().getPercentage() == null
-                || score.getWeight().getPp() == null) {
+        if (!hasPp(score)) {
+            return "Unranked";
+        }
+        if (!hasWeight(score)) {
             return "";
         }
-        return String.format("%d%% ->%.1fpp", score.getWeight().getPercentage().intValue(), score.getWeight().getPp());
+        return String.format("%d%% ↪%.1fpp", score.getWeight().getPercentage().intValue(), score.getWeight().getPp());
+    }
+
+    public static boolean hasPp(Score score) {
+        return score != null && score.getPp() != null
+                && "RANKED".equalsIgnoreCase(score.getBeatmap().getStatus());
+    }
+
+    public static boolean hasWeight(Score score) {
+        return score != null && score.getWeight() != null
+                && score.getWeight().getPercentage() != null
+                && score.getWeight().getPp() != null;
     }
 
     public static String getRankColor(Score score) {

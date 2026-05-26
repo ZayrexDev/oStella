@@ -34,16 +34,15 @@ public class Colors {
             case "PENDING" -> "#ffd966";
             case "WIP" -> "#ff9966";
             case "GRAVEYARD" -> "#000000";
-            default -> "#ffffff";
+            default -> "#bc8f8f";
         };
     }
 
     public static String getBeatmapStatusTextColor(String status) {
-        return switch (status.toUpperCase()) {
-            case "RANKED", "LOVED", "PENDING", "WIP", "APPROVED", "QUALIFIED" -> "#394246";
-            case "GRAVEYARD" -> "#5c6970";
-            default -> "#ffffff";
-        };
+        if (status.equalsIgnoreCase("GRAVEYARD")) {
+            return "#5c6970";
+        }
+        return "#394246";
     }
 
     public static String getScoreRankColor(String rank) {
@@ -56,6 +55,38 @@ public class Colors {
             case "D" -> "#ff5a5a";
             case "F" -> "#fe004f";
             default -> "#FFFFFF";
+        };
+    }
+
+    public static String getModColor(String acronym) {
+        if (acronym == null) {
+            return "#ffd966";
+        }
+
+        return switch (acronym) {
+            case "EZ", "NF", "HT", "DC" -> "#b2ff66";
+            case "HR", "SD", "PF", "DT", "NC", "HD", "TC", "FL", "BL", "ST", "AC" -> "#ff6666";
+            case "AT", "CN", "RX", "AP", "SO" -> "#66ccff";
+            case "TP", "DA", "CL", "RD", "MR", "AL", "SG" -> "#8c66ff";
+            case "TR", "WG", "SI", "GR", "DF", "WU", "WD", "BR", "AD", "MU", "NS", "MG", "RP", "AS", "FR", "BU", "SY",
+                 "DP", "BM" -> "#ff66ab";
+            default -> "#ffd966";
+        };
+    }
+
+    public static String getModTextColor(String acronym) {
+        if (acronym == null) {
+            return "#d8b856";
+        }
+
+        return switch (acronym) {
+            case "EZ", "NF", "HT", "DC" -> "#3c591e";
+            case "HR", "SD", "PF", "DT", "NC", "HD", "TC", "FL", "BL", "ST", "AC" -> "#591e1e";
+            case "AT", "CN", "RX", "AP", "SO" -> "#1e4559";
+            case "TP", "DA", "CL", "RD", "MR", "AL", "SG" -> "#2d1e59";
+            case "TR", "WG", "SI", "GR", "DF", "WU", "WD", "BR", "AD", "MU", "NS", "MG", "RP", "AS", "FR", "BU", "SY",
+                 "DP", "BM" -> "#591e39";
+            default -> "#d8b856";
         };
     }
 

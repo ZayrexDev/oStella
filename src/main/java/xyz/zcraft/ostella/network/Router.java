@@ -8,15 +8,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.data.SearchResultItem;
 import xyz.zcraft.ostella.data.ScoreType;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.ostella.data.SearchResultItem;
 import xyz.zcraft.ostella.network.controller.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.service.ReplayService;
 import xyz.zcraft.ostella.util.TokenManager;
+import xyz.zcraft.osu.model.BeatmapExtended;
+import xyz.zcraft.osu.model.Mod;
+import xyz.zcraft.osu.model.MultiplayerRoom;
+import xyz.zcraft.osu.model.Score;
 import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.Closeable;
@@ -34,29 +37,32 @@ public class Router implements Closeable {
     public final AsyncService executor;
     public final TokenManager tokenManager;
     public final ReplayService replayService;
-    public final CacheService cacheService;
     public final AppConfig conf;
     final Gson GSON = new Gson();
     final ReplayController replayController;
     final BeatmapController beatmapController;
     final ScoreController scoreController;
     final BeatmapsetController beatmapsetController;
-    final PKController pkController;
+    final LeaderboardController leaderboardController;
+    final AnalyzeController analyzeController;
 
     public Router(AppConfig conf, TokenManager tokenManager) throws IOException {
         this.conf = conf;
         this.tokenManager = tokenManager;
         this.executor = new AsyncService(conf.ostella().requestPerSecond());
-        this.cacheService = new CacheService(executor);
-        this.renderer = new RenderService(cacheService, conf.ostella().renderWorkers());
+
+        CacheService.initialize(this.executor);
+
+        this.renderer = new RenderService(conf.ostella().renderWorkers());
 
         this.beatmapController = new BeatmapController(this);
         this.scoreController = new ScoreController(this);
         this.beatmapsetController = new BeatmapsetController(this);
-        this.pkController = new PKController(this);
+        this.leaderboardController = new LeaderboardController(this);
+        this.analyzeController = new AnalyzeController(this);
 
         if (conf.replayRender().enabled()) {
-            this.replayService = new ReplayService(conf, cacheService.getDanserCache());
+            this.replayService = new ReplayService(conf, CacheService.getDanserCache());
             this.replayController = new ReplayController(this);
         } else {
             this.replayService = null;
@@ -82,49 +88,6 @@ public class Router implements Closeable {
                                 new Response(true, "Query successful", GSON.toJsonTree(result)).toString()
                         )
                 ));
-    }
-
-    protected void getLeaderBoard(@NotNull Context context) {
-        final String us = requireString(context, "u");
-        final List<String> ids = Arrays.stream(us.split(",")).distinct().toList();
-
-        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
-
-        for (int i = 0; i < ids.size(); i += 50) {
-            final List<String> subList = ids.subList(i, Math.min(i + 50, ids.size()));
-
-            futures.add(executor.enqueueAsync(() ->
-                    OsuAPI.getUsers(tokenManager.getTokenData(), subList)
-            ));
-        }
-
-        CompletableFuture<?>[] futuresArray = futures.toArray(new CompletableFuture[0]);
-        context.future(() ->
-                CompletableFuture.allOf(futuresArray)
-                        .thenApply(_ ->
-                                futures.stream()
-                                        .map(CompletableFuture::join)
-                                        .filter(Objects::nonNull)
-                                        .flatMap(List::stream)
-                                        .collect(Collectors.toCollection(LinkedList::new)))
-                        .thenApplyAsync(users -> {
-                            users.sort(Comparator.comparingDouble((User user) ->
-                                    Optional.ofNullable(user)
-                                            .map(User::getStatisticsRulesets)
-                                            .map(User.StatisticsRuleset::getOsu)
-                                            .map(User.Statistics::getPp)
-                                            .orElse(0.0)
-                            ).reversed());
-                            return renderer.renderLeaderboard(users);
-
-                        }, renderer.getRenderExecutor())
-                        .thenAccept(imgByte -> context.status(200).result(imgByte))
-        );
-    }
-
-    protected void bypassRequest(@NotNull Context context) {
-        executor.enqueueAsync(() -> OsuAPI.byPassRequest(tokenManager.getTokenData(), context.queryString()))
-                .thenAccept(r -> context.status(200).result(new Response(true, "Bypass successful", r).toString()));
     }
 
     protected void getServerStatus(@NotNull Context context) {
@@ -168,12 +131,33 @@ public class Router implements Closeable {
         );
     }
 
+    protected void getSelf(@NotNull Context context) {
+        final String auth = context.header("Authorization");
+
+        if (auth == null) {
+            context.status(401)
+                    .result(Response.error("Missing Authorization header", ErrorCode.UNAUTHORIZED).toString());
+            return;
+        }
+
+        context.future(() -> executor
+                .enqueueAsync(() -> OsuAPI.getSelf(auth))
+                .thenApply(u -> {
+                    if (u == null)
+                        throw new ApiException(ErrorCode.NO_USER_FOUND, "No user found for the provided token!");
+                    return u;
+                })
+                .thenCompose(u -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u.getId())))
+                .thenAccept(u -> context.status(200).result(new Response(true, "Success", GSON.toJsonTree(u)).toString()))
+        );
+    }
+
     protected void getRecentScores(@NotNull Context context) {
-        final String u = requireNumberString(context, "u");
-        final String n = requireNumberString(context, "n");
+        final long u = requirePathLong(context, "userId");
+        final int n = requireInt(context, "n");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.RECENT, Integer.parseInt(n), false)
+                        tokenManager.getTokenData(), u, ScoreType.RECENT, n, false)
                 )
                 .thenCompose(scores -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
                         .thenApplyAsync(user -> {
@@ -192,25 +176,6 @@ public class Router implements Closeable {
                             return renderer.renderScores(user, scores, ScoreType.RECENT);
                         }, renderer.getRenderExecutor()))
                 .thenAccept(bytes -> context.status(200).result(bytes)));
-    }
-
-    protected void getMultiplayerRooms(@NotNull Context context) {
-        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getRooms(tokenManager.getTokenData()))
-                .thenApply(rooms -> {
-                    if (rooms == null || rooms.isEmpty()) {
-                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "No rooms found");
-                    }
-
-                    rooms.sort(Comparator.comparingInt(MultiplayerRoom::getParticipantCount));
-
-                    List<MultiplayerRoom> topRooms = rooms.size() > 20 ? rooms.reversed().subList(0, 20) : rooms;
-                    JsonArray arr = new JsonArray();
-                    for (MultiplayerRoom room : topRooms) {
-                        arr.add(room.getName() + " << " + room.getParticipantCount());
-                    }
-                    return arr;
-                })
-                .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString())));
     }
 
     protected void getDaily(@NotNull Context context) {
@@ -244,11 +209,11 @@ public class Router implements Closeable {
     }
 
     protected void getBestOfN(@NotNull Context context) {
-        final String u = requireNumberString(context, "u");
-        final String n = requireNumberString(context, "n");
+        final long u = requirePathLong(context, "userId");
+        final int n = requireInt(context, "n");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.BEST, Integer.parseInt(n), false
+                        tokenManager.getTokenData(), u, ScoreType.BEST, n, false
                 ))
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty()) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
@@ -264,7 +229,7 @@ public class Router implements Closeable {
     }
 
     public Path getRosuPath(Long id) {
-        return cacheService.getRosuBeatmapPath(String.valueOf(id), true);
+        return CacheService.getRosuBeatmapPath(id, true);
     }
 
     @Override
@@ -282,15 +247,16 @@ public class Router implements Closeable {
             scoreObj.addProperty("rank", score.getRank());
             scoreObj.addProperty("accuracy", String.format("%.2f%%", score.getAccuracy() * 100));
             scoreObj.addProperty("pp", String.format("%.2fpp", score.getPp()));
+            scoreObj.addProperty("id", String.valueOf(score.getId()));
             scoresArr.add(scoreObj);
         }
         return scoresArr;
     }
 
     public CompletableFuture<Score> getScoreFromBeatmapsetAsync(@NotNull Context context) {
-        final String ms = requireNumberString(context, "ms");
+        final long ms = requireLong(context, "ms");
         final int i = requireInt(context, "i");
-        final String u = requireNumberString(context, "u");
+        final long u = requireLong(context, "u");
 
         return executor.enqueueAsync(() -> OsuAPI.getBeatmapset(tokenManager.getTokenData(), ms))
                 .thenCompose(beatmapset -> {
@@ -306,7 +272,7 @@ public class Router implements Closeable {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()));
                     return executor
                             .enqueueAsync(() ->
-                                    OsuAPI.getUserScore(tokenManager.getTokenData(), u, String.valueOf(beatmap.getId()))
+                                    OsuAPI.getUserScore(tokenManager.getTokenData(), u, beatmap.getId())
                             )
                             .thenApply(score -> {
                                 score.setBeatmap(beatmap);
@@ -319,7 +285,7 @@ public class Router implements Closeable {
 
     public CompletableFuture<Score> getScoreFromRefAsync(@NotNull Context context) {
         final String of = requireStringFrom(context, "of", "rs", "bo");
-        final String u = requireString(context, "u");
+        final long u = requireLong(context, "u");
         final int i = requireInt(context, "i");
 
         return executor
@@ -371,12 +337,8 @@ public class Router implements Closeable {
                     }
                     return currentPlaylistItem;
                 })
-                .thenApply(c -> {
+                .thenApply((MultiplayerRoom.CurrentPlaylistItem c) -> {
                     final BeatmapExtended beatmap = c.getBeatmap();
-                    if (beatmap == null) {
-                        throw new ApiException(ErrorCode.NO_ROOM_FOUND, "Current playlist item has no beatmap!");
-                    }
-
                     JsonObject res = new JsonObject();
                     res.addProperty("beatmap_id", beatmap.getId());
                     res.addProperty("beatmapset_id", beatmap.getBeatmapsetId());
@@ -384,5 +346,22 @@ public class Router implements Closeable {
                 })
                 .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString()))
         );
+    }
+
+    public CompletableFuture<Score> getScore(long id) {
+        return executor.enqueueAsync(() -> {
+            try {
+                final Optional<Score> scoreJsonCache = CacheService.getScoreJsonCache(id);
+
+                if (scoreJsonCache.isPresent()) {
+                    LOG.debug("Score {} found in cache", id);
+                    return scoreJsonCache.get();
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to get score from cache for score id {}: {}", id, e.getMessage());
+            }
+
+            return OsuAPI.getScore(tokenManager.getTokenData(), id);
+        });
     }
 }

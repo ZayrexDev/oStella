@@ -1,7 +1,8 @@
 package xyz.zcraft.ostella.data;
 
 import lombok.Data;
-import xyz.zcraft.osu.model.*;
+import xyz.zcraft.osu.model.Score;
+import xyz.zcraft.osu.model.UserExtended;
 
 @Data
 public class Placement {

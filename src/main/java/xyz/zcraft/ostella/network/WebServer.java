@@ -32,38 +32,46 @@ public class WebServer implements Closeable {
             cfg.routes.before(ctx -> LOG.debug("{} {} {}", ctx.method(), ctx.path(), ctx.queryString()));
 
             cfg.routes
-                    .get("/bestof", router::getBestOfN)
+                    .get("/beatmaps/lookup", router.beatmapController::lookupBeatmap)
+                    .get("/beatmaps/{beatmapId}", router.beatmapController::renderBeatmapById)
+                    .post("/beatmaps/{beatmapId}/leaderboards", router.leaderboardController::getMapLeaderboard)
+
+                    .get("/beatmapsets/lookup", router.beatmapsetController::lookupBeatmapset)
+                    .get("/beatmapsets/search", router::searchBeatmapSet)
+                    .get("/beatmapsets/{beatmapsetId}", router.beatmapsetController::renderBeatmapsetById)
+                    .get("/beatmapsets/{beatmapsetId}/download", router.beatmapsetController::downloadBeatmapset)
+
+                    .get("/scores/lookup", router.scoreController::lookupScore)
+                    .get("/scores/{scoreId}", router.scoreController::renderScoreById)
+                    .get("/scores/{scoreId}/analysis", router.analyzeController::renderScoreAnalysisById)
+
+                    .get("/multiplayer/rooms/current", router::getCurrentRoom)
+                    .get("/multiplayer/rooms/current/item", router::getCurrentRoomItem)
+
+                    .get("/users/me", router::getSelf)
+                    .get("/users/me/friends", router::getFriends)
+                    .post("/users/leaderboards", router.leaderboardController::getLeaderboard)
+                    .get("/users/{userId}/scores/bestof", router::getBestOfN)
+                    .get("/users/{userId}/scores/recent", router::getRecentScores)
+
                     .get("/daily", router::getDaily)
-                    .get("/mp", router::getCurrentRoom)
-                    .get("/mp/current", router::getCurrentRoomItem)
-                    .get("/recent", router::getRecentScores)
-                    .get("/beatmap", router.beatmapController::getBeatmap)
-                    .get("/beatmapset", router.beatmapsetController::getBeatmapset)
-                    .get("/searchms", router::searchBeatmapSet)
-                    .get("/score", router.scoreController::getScore)
-                    .get("/maplb", router.pkController::getPK)
-                    .get("/leaderboard", router::getLeaderBoard)
-                    .get("/status", router::getServerStatus)
-                    .get("/friends", router::getFriends)
-                    .get("/dl", router.beatmapsetController::downloadBeatmapset)
-                    .get("/lookup/beatmapset", router.beatmapsetController::lookupBeatmapset);
+                    .get("/health", router::getServerStatus)
+            ;
 
             if (conf.replayRender().enabled()) {
                 cfg.routes
-                        .get("/replay/status", router.replayController::getReplayRenderOverview)
-                        .get("/replay/render", router.replayController::queueReplayRender)
-                        .get("/replay/showcase", router.replayController::queueShowcaseRender)
-                        .get("/replay/status/{jobId}", router.replayController::getReplayRenderStatus)
-                        .get("/replay/video/{jobId}", router.replayController::getReplayRenderResultStream)
-                        .get("/replay/video/{jobId}/replay.mp4", router.replayController::getReplayRenderResultFile)
-                        .delete("/replay/video/{jobId}", router.replayController::deleteReplayRenderResult);
-            } else {
-                LOG.info("No danser path found, replay rendering will be disabled.");
-            }
+                        .get("/replays/status", router.replayController::getReplayRenderOverview)
 
-            if (conf.ostella().debugMode()) {
-                LOG.warn("/bypass endpoint is enabled in debug mode! To prevent security risks, please disable debug mode in production environment.");
-                cfg.routes.get("/debug/bypass", router::bypassRequest);
+                        .post("/replays/renders/score/{scoreId}", router.replayController::queueReplayRenderById)
+                        .post("/replays/renders/showcase/scores", router.replayController::renderShowcaseOfIdsAsync)
+                        .post("/replays/renders/showcase/{beatmapId}", router.replayController::renderShowcaseOfUsersAsync)
+
+                        .get("/replays/{jobId}/status", router.replayController::getReplayRenderStatus)
+                        .get("/replays/{jobId}/video", router.replayController::getReplayRenderResultStream)
+                        .get("/replays/{jobId}/video/replay.mp4", router.replayController::getReplayRenderResultFile)
+                        .delete("/replays/{jobId}/video", router.replayController::deleteReplayRenderResult);
+            } else {
+                LOG.info("Replay rendering will is disabled.");
             }
 
             cfg.routes

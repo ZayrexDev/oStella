@@ -4,10 +4,10 @@ import com.google.gson.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.data.TokenData;
 import xyz.zcraft.ostella.data.ScoreType;
+import xyz.zcraft.ostella.data.TokenData;
+import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.osu.model.*;
-
 
 import java.io.IOException;
 import java.net.URI;
@@ -55,8 +55,9 @@ public class OsuAPI {
         }
     }
 
-    public static Score getScore(TokenData tokenData, String scoreId) {
+    public static Score getScore(TokenData tokenData, long scoreId) {
         LOG.debug("Fetching score with id {}", scoreId);
+
         try {
             final var request = newRequestBuilder(tokenData, "/scores/" + scoreId)
                     .GET()
@@ -68,16 +69,25 @@ public class OsuAPI {
                 return null;
             }
 
-            return GSON.fromJson(body, Score.class);
+            final Score score = GSON.fromJson(body, Score.class);
+
+            try {
+                CacheService.cacheScoreJson(score);
+                LOG.debug("Score {} cached", scoreId);
+            } catch (IOException e) {
+                LOG.warn("Failed to cache score for score id {}", scoreId, e);
+            }
+
+            return score;
         } catch (Exception e) {
             throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to get score id " + scoreId, e);
         }
     }
 
-    public static List<Score> getUserScores(TokenData tokenData, String id, ScoreType mode, int limit, boolean includeFails) {
-        LOG.debug("Fetching {} scores for user id {} in mode {}", mode.name().toLowerCase(), id, mode.name().toLowerCase());
+    public static List<Score> getUserScores(TokenData tokenData, long uid, ScoreType mode, int limit, boolean includeFails) {
+        LOG.debug("Fetching {} scores for user id {} in mode {}", mode.name().toLowerCase(), uid, mode.name().toLowerCase());
         try {
-            final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", id, mode.name().toLowerCase(), limit, includeFails ? 1 : 0))
+            final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", uid, mode.name().toLowerCase(), limit, includeFails ? 1 : 0))
                     .GET()
                     .build();
 
@@ -92,14 +102,14 @@ public class OsuAPI {
 
             return scores;
         } catch (Exception e) {
-            throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for user id " + id, e);
+            throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for user id " + uid, e);
         }
     }
 
-    public static Score getUserScore(TokenData tokenData, String u, String bm) {
-        LOG.debug("Fetching score for user id {} on beatmap id {}", u, bm);
+    public static Score getUserScore(TokenData tokenData, long uid, long beatmapId) {
+        LOG.debug("Fetching score for user id {} on beatmap id {}", uid, beatmapId);
         try {
-            final var request = newRequestBuilder(tokenData, String.format("/beatmaps/%s/scores/users/%s", bm, u))
+            final var request = newRequestBuilder(tokenData, String.format("/beatmaps/%s/scores/users/%s", beatmapId, uid))
                     .GET()
                     .build();
 
@@ -111,7 +121,7 @@ public class OsuAPI {
 
             return GSON.fromJson(JsonParser.parseString(body).getAsJsonObject().get("score").getAsJsonObject(), Score.class);
         } catch (Exception e) {
-            throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for " + u + " on beatmap " + bm, e);
+            throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for " + uid + " on beatmap " + beatmapId, e);
         }
     }
 
@@ -158,10 +168,10 @@ public class OsuAPI {
         }
     }
 
-    public static UserExtended getUser(TokenData tokenData, String id) {
-        LOG.debug("Fetching user with id {}", id);
+    public static UserExtended getUser(TokenData tokenData, long uid) {
+        LOG.debug("Fetching user with id {}", uid);
         try {
-            final var request = newRequestBuilder(tokenData, "/users/" + id)
+            final var request = newRequestBuilder(tokenData, "/users/" + uid)
                     .GET()
                     .build();
 
@@ -174,20 +184,20 @@ public class OsuAPI {
             if (response.statusCode() >= 400) {
                 throw new ApiException(
                         ErrorCode.USER_FETCH_FAILED,
-                        "osu! API returned status " + response.statusCode() + " for user " + id
+                        "osu! API returned status " + response.statusCode() + " for user " + uid
                 );
             }
 
             return GSON.fromJson(response.body(), UserExtended.class);
         } catch (IOException | InterruptedException e) {
-            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get user id " + id, e);
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get user id " + uid, e);
         }
     }
 
-    public static List<User> getUsers(TokenData tokenData, List<String> ids) {
-        LOG.debug("Fetching users with ids {}", () -> Arrays.toString(ids.toArray()));
+    public static List<User> getUsers(TokenData tokenData, List<Long> uids) {
+        LOG.debug("Fetching users with ids {}", () -> Arrays.toString(uids.toArray()));
         StringBuilder sb = new StringBuilder("?");
-        for (String id : ids) {
+        for (Long id : uids) {
             sb.append("ids[]=").append(id).append("&");
         }
         try {
@@ -204,7 +214,7 @@ public class OsuAPI {
             if (response.statusCode() >= 400) {
                 throw new ApiException(
                         ErrorCode.USER_FETCH_FAILED,
-                        "osu! API returned status " + response.statusCode() + " for user " + Arrays.toString(ids.toArray())
+                        "osu! API returned status " + response.statusCode() + " for user " + Arrays.toString(uids.toArray())
                 );
             }
 
@@ -215,7 +225,7 @@ public class OsuAPI {
             users.forEach(u -> userList.add(GSON.fromJson(u, User.class)));
             return userList;
         } catch (IOException | InterruptedException e) {
-            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Failed to get users with ids " + ids, e);
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Failed to get users with ids " + uids, e);
         }
     }
 
@@ -284,35 +294,7 @@ public class OsuAPI {
         }
     }
 
-    public static JsonObject byPassRequest(TokenData tokenData, String query) {
-        LOG.debug("Making bypass request with query {}", query);
-        try {
-            final var request = newRequestBuilder(tokenData, query)
-                    .GET()
-                    .build();
-
-            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 404) {
-                return null;
-            }
-
-            if (response.statusCode() >= 400) {
-                throw new ApiException(
-                        ErrorCode.FETCH_FAILED,
-                        "osu! API returned status " + response.statusCode()
-                );
-            }
-
-            final String body = response.body();
-
-            return JsonParser.parseString(body).getAsJsonObject();
-        } catch (IOException | InterruptedException e) {
-            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Failed to make bypass request with query " + query, e);
-        }
-    }
-
-    public static Beatmapset getBeatmapset(TokenData tokenData, String setId) {
+    public static Beatmapset getBeatmapset(TokenData tokenData, long setId) {
         LOG.debug("Fetching beatmapset with id {}", setId);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmapsets/" + setId)
@@ -342,8 +324,8 @@ public class OsuAPI {
         }
     }
 
-    public static Beatmapset getBeatmapsetFromBeatmap(TokenData tokenData, String beatmapId) {
-        LOG.debug("Fetching beatmapset with id {}", beatmapId);
+    public static Beatmapset getBeatmapsetFromBeatmap(TokenData tokenData, long beatmapId) {
+        LOG.debug("Fetching beatmapset for beatmap id {}", beatmapId);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmapsets/lookup?beatmap_id=" + beatmapId)
                     .GET()
@@ -372,7 +354,7 @@ public class OsuAPI {
         }
     }
 
-    public static BeatmapExtended getBeatmap(TokenData tokenData, String beatmapId) {
+    public static BeatmapExtended getBeatmap(TokenData tokenData, long beatmapId) {
         LOG.debug("Fetching beatmap with id {}", beatmapId);
         try {
             final var request = newRequestBuilder(tokenData, "/beatmaps/" + beatmapId)
@@ -402,7 +384,7 @@ public class OsuAPI {
         }
     }
 
-    public static byte[] getBeatmapBytes(String beatmapId) {
+    public static byte[] getBeatmapBytes(long beatmapId) {
         LOG.debug("Fetching beatmap bytes with id {}", beatmapId);
         try {
             final var request = HttpRequest.newBuilder()
@@ -467,7 +449,7 @@ public class OsuAPI {
         }
     }
 
-    public static byte[] getReplayBytes(TokenData tokenData, String id) {
+    public static byte[] getReplayBytes(TokenData tokenData, long id) {
         try {
             final var request = newRequestBuilder(tokenData, "/scores/" + id + "/download")
                     .GET()
@@ -531,6 +513,33 @@ public class OsuAPI {
             final LinkedList<UserRelation> userList = new LinkedList<>();
             users.forEach(u -> userList.add(GSON.fromJson(u, UserRelation.class)));
             return userList;
+        } catch (IOException | InterruptedException e) {
+            throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
+        }
+    }
+
+    public static User getSelf(String auth) {
+        LOG.debug("Fetching self");
+        try {
+            final var request = newRequestBuilder(auth, "/me")
+                    .GET()
+                    .build();
+
+            final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 404) {
+                return null;
+            }
+
+            if (response.statusCode() >= 400) {
+                throw new ApiException(
+                        ErrorCode.USER_FETCH_FAILED,
+                        "osu! API returned status " + response.statusCode() + " for friend list"
+                );
+            }
+
+            final var json = JsonParser.parseString(response.body()).getAsJsonObject();
+            return GSON.fromJson(json, User.class);
         } catch (IOException | InterruptedException e) {
             throw new ApiException(ErrorCode.USER_FETCH_FAILED, "Network failed to get friend list", e);
         }
