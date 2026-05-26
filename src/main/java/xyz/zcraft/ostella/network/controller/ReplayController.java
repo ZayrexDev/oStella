@@ -8,12 +8,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import xyz.zcraft.ostella.config.AppConfig;
-import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.ReplayService;
-import xyz.zcraft.ostella.util.RequestUtil;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Score;
@@ -48,16 +46,6 @@ public class ReplayController {
 
     public void queueReplayRenderById(@NotNull Context context) {
         queueReplayRenderOfIdAsync(context, requirePathLong(context, "scoreId"));
-    }
-
-    public void queueShowcaseRender(@NotNull Context context) {
-        if (context.queryParam("of") != null) {
-            renderShowcaseOfUsersRefAsync(context);
-        } else if (context.queryParam("u") != null) {
-            renderShowcaseOfUsersAsync(context);
-        } else {
-            renderShowcaseOfIdsAsync(context);
-        }
     }
 
     public void getReplayRenderStatus(@NotNull Context context) {
@@ -173,11 +161,11 @@ public class ReplayController {
         )))));
     }
 
-    private void renderShowcaseOfIdsAsync(@NotNull Context context) {
+    public void renderShowcaseOfIdsAsync(@NotNull Context context) {
         if (replayService == null) return;
 
-        final String ss = requireString(context, "s");
-        final List<Long> scoreIds = Arrays.stream(ss.split(",")).distinct().map(RequestUtil::parseLong).toList();
+        final ShowcaseRequest showcaseRequest = GSON.fromJson(context.body(), ShowcaseRequest.class);
+        final List<Long> scoreIds = showcaseRequest.ids();
 
         context.future(() -> {
             List<CompletableFuture<Score>> scoreFutures = scoreIds.stream()
@@ -187,14 +175,15 @@ public class ReplayController {
         });
     }
 
-    private void renderShowcaseOfUsersAsync(@NotNull Context context) {
+    public void renderShowcaseOfUsersAsync(@NotNull Context context) {
         if (replayService == null) return;
 
-        final String us = requireString(context, "u");
-        final long m = requireLong(context, "m");
+        final ShowcaseRequest showcaseRequest = GSON.fromJson(context.body(), ShowcaseRequest.class);
+
+        final long m = requirePathLong(context, "beatmapId");
+        final List<Long> userIds = showcaseRequest.ids();
 
         context.future(() -> {
-            final List<Long> userIds = Arrays.stream(us.split(",")).distinct().map(RequestUtil::parseLong).toList();
             LOG.info("Getting {} scores for showcase on map {}", userIds.size(), m);
 
             List<CompletableFuture<Score>> scoreFutures = userIds.stream()
@@ -225,50 +214,6 @@ public class ReplayController {
 
                     return renderShowcaseForAsync(context, validScores, start, end);
                 });
-    }
-
-    private void renderShowcaseOfUsersRefAsync(@NotNull Context context) {
-        final String us = requireString(context, "u");
-        final String of = requireStringFrom(context, "of", "rs", "bo");
-        final long uSource = requireLong(context, "us");
-        final int i = requireInt(context, "i");
-
-        context.future(() ->
-                executor.enqueueAsync(() ->
-                        OsuAPI.getUserScores(tokenManager.getTokenData(), uSource,
-                                of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false)
-                ).thenCompose(scores -> {
-                    if (scores == null || scores.size() < i) {
-                        throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for user!");
-                    }
-
-                    final Score scoreSource = scores.get(i - 1);
-                    final long beatmapId = scoreSource.getBeatmap().getId();
-                    final List<Long> userIds = Arrays.stream(us.split(",")).distinct().map(RequestUtil::parseLong).toList();
-
-                    List<CompletableFuture<Score>> scoreFutures = userIds.stream()
-                            .map(userId -> executor.enqueueAsync(() ->
-                                    OsuAPI.getUserScore(tokenManager.getTokenData(), userId, beatmapId))
-                            ).toList();
-
-                    return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
-                            .thenApply(_ -> scoreFutures.stream()
-                                    .map(CompletableFuture::join)
-                                    .filter(s -> s != null && s.getHasReplay())
-                                    .peek(score -> {
-                                        if (score.getPp() == null) {
-                                            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
-                                        }
-                                    })
-                                    .collect(Collectors.toCollection(LinkedList::new))
-                            );
-                }).thenCompose(validScores -> {
-                    final double start = optionalDouble(context, "start");
-                    final double end = optionalDouble(context, "end");
-
-                    return renderShowcaseForAsync(context, validScores, start, end);
-                })
-        );
     }
 
     private CompletableFuture<Void> renderScoreForAsync(@NotNull Context context, Score score, Double start, Double end) {
@@ -375,5 +320,8 @@ public class ReplayController {
                                 ))).toString());
                     });
         });
+    }
+
+    public record ShowcaseRequest(List<Long> ids) {
     }
 }

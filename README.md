@@ -85,46 +85,67 @@ Base URL: `http://localhost:<OSTELLA_PORT>`
 Most JSON endpoints return: `{"success": boolean, "message": string, "data": any}`.
 Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
-### Core Endpoints
+### Beatmaps
 
-| Method | Path           | Purpose                              | Params / POST Body             | Response |
-|--------|----------------|--------------------------------------|--------------------------------|----------|
-| GET    | `/status`      | Service health and osu! API health   | none                           | JSON     |
-| GET    | `/daily`       | Current daily challenge room summary | none                           | JSON     |
-| GET    | `/mp`          | Current multiplayer room             | none                           | JSON     |
-| GET    | `/searchms`    | Search beatmapsets                   | `q` (search keyword)           | JSON     |
-| POST   | `/leaderboard` | User PP leaderboard image            | `{"uids":[user ids]}`          | PNG      |
-| GET    | `/bestof`      | Best-of-N scores image               | `u` (user ID), `n` (count)     | PNG      |
-| GET    | `/recent`      | Recent scores image                  | `u` (user ID), `n` (count)     | PNG      |
+| Method | Path                                 | Purpose                        | Params / POST Body                                 | Response |
+|--------|--------------------------------------|--------------------------------|----------------------------------------------------|----------|
+| GET    | `/beatmaps/{beatmapId}`              | Beatmap card image             | path `beatmapId` (+ optional query param `mod`)    | PNG      |
+| GET    | `/beatmaps/lookup`                   | Resolve beatmap IDs            | `m` **or** `ms` + `i`  **or** `of` + `u` + `i`     | JSON     |
+| POST   | `/beatmaps/{beatmapId}/leaderboards` | Compare players on one beatmap | path `beatmapId` + POST Body `{"uids":[user ids]}` | PNG      |
 
-### Beatmap / Beatmapset / Score / Leaderboard
+### Beatmapsets
 
-| Method | Path                         | Purpose                        | Params / POST Body                                                   | Response |
-|--------|------------------------------|--------------------------------|----------------------------------------------------------------------|----------|
-| GET    | `/lookup/beatmap`            | Resolve beatmap IDs            | `m` **or** `ms` + `i`  **or** `of` + `u` + `i`                       | JSON     |
-| GET    | `/lookup/beatmapset`         | Resolve beatmapset IDs         | `ms` **or** `m` **or** `of` + `u` + `i`                              | JSON     |
-| GET    | `/lookup/score`              | Resolve score IDs              | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i` | JSON     |
-| GET    | `/beatmap/{beatmapId}`       | Beatmap card image             | path `beatmapId` (+ optional query param `mod`)                      | PNG      |
-| GET    | `/beatmapset/{beatmapsetId}` | Beatmapset card image          | path `beatmapsetId`                                                  | PNG      |
-| GET    | `/score/{scoreId}`           | Score card image               | path `scoreId`                                                       | PNG      |
-| GET    | `/score/{scoreId}/analyze`   | Score analysis card image      | path `scoreId`                                                       | PNG      |
-| POST   | `/maplb/{beatmapId}`         | Compare players on one beatmap | path `beatmapId` + POST Body `{"uids":[user ids]}`                   | PNG      |
+| Method | Path                                   | Purpose                | Params / POST Body                      | Response |
+|--------|----------------------------------------|------------------------|-----------------------------------------|----------|
+| GET    | `/beatmapsets/{beatmapsetId}`          | Beatmapset card image  | path `beatmapsetId`                     | PNG      |
+| GET    | `/beatmapsets/lookup`                  | Resolve beatmapset IDs | `ms` **or** `m` **or** `of` + `u` + `i` | JSON     |
+| GET    | `/beatmapsets/search`                  | Search beatmapsets     | `q` (search keyword)                    | JSON     |
+| GET    | `/beatmapsets/{beatmapsetId}/download` | Download beatmapset    | path `beatmapsetId`                     | OSZ      |
 
-Notes:
-- `of` references source list type (`rs` or `bo`).
-- `i` is a 1-based index within the referenced list or sorted beatmapset difficulties.
-  - Lookup endpoints return JSON objects containing the resolved IDs needed for the corresponding path-based image route.
+### Scores
 
-### Replay Endpoints (enabled only when `danserPath` is configured)
+| Method | Path                         | Purpose                   | Params / POST Body                                                   | Response |
+|--------|------------------------------|---------------------------|----------------------------------------------------------------------|----------|
+| GET    | `/scores/{scoreId}`          | Score card image          | path `scoreId`                                                       | PNG      |
+| GET    | `/scores/lookup`             | Resolve score IDs         | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i` | JSON     |
+| GET    | `/scores/{scoreId}/analysis` | Score analysis card image | path `scoreId`                                                       | PNG      |
 
-| Method | Path                            | Purpose                                | Params / POST Body                                 | Response    |
-|--------|---------------------------------|----------------------------------------|----------------------------------------------------|-------------|
-| GET    | `/replay/status`                | Replay renderer overview               | none                                               | JSON        |
-| GET    | `/replay/render/{scoreId}`      | Queue single replay render             | path `scoreId`                                     | `202` JSON  |
-| POST   | `/replay/showcase/{beatmapId}`  | Queue multi-score showcase render      | path `beatmapId` + POST Body `{"uids":[user ids]}` | `202` JSON  |
-| GET    | `/replay/status/{jobId}`        | Get render job state                   | `{jobId}`                                          | JSON        |
-| GET    | `/replay/video/{jobId}`         | Download rendered video                | `{jobId}`                                          | `video/mp4` |
-| DELETE | `/replay/video/{jobId}`         | Remove rendered video and job metadata | `{jobId}`                                          | text        |
+### Multiplayer Rooms
+
+| Method | Path                              | Purpose                    | Params / POST Body            | Response |
+|--------|-----------------------------------|----------------------------|-------------------------------|----------|
+| GET    | `/multiplayer/rooms/current`      | Current multiplayer room   | Requires Authorization Header | JSON     |
+| GET    | `/multiplayer/rooms/current/item` | Current room playlist item | Requires Authorization Header | JSON     |
+
+### Users
+
+| Method | Path                            | Purpose                   | Params / POST Body               | Response |
+|--------|---------------------------------|---------------------------|----------------------------------|----------|
+| GET    | `/users/{userId}/scores/bestof` | Best-of-N scores image    | path `userId`, query `n` (count) | PNG      |
+| GET    | `/users/{userId}/scores/recent` | Recent scores image       | path `userId`, query `n` (count) | PNG      |
+| GET    | `/users/me`                     | User data                 | Requires Authorization Header    | JSON     |
+| GET    | `/users/me/friends`             | Friends list for user     | Requires Authorization Header    | JSON     |
+| POST   | `/users/leaderboards`           | User PP leaderboard image | `{"uids":[user ids]}`            | PNG      |
+
+### Replays (enabled only when `danserPath` is configured)
+
+| Method | Path                                    | Purpose                                | Params / POST Body                                | Response    |
+|--------|-----------------------------------------|----------------------------------------|---------------------------------------------------|-------------|
+| GET    | `/replays/status`                       | Replay renderer overview               | none                                              | JSON        |
+| POST   | `/replays/renders/score/{scoreId}`      | Queue single replay render             | path `scoreId`                                    | `202` JSON  |
+| POST   | `/replays/renders/showcase/{beatmapId}` | Queue multi-score showcase render      | path `beatmapId` + POST Body `{"ids":[user ids]}` | `202` JSON  |
+| POST   | `/replays/renders/showcase/scores`      | Queue multi-score showcase render      | POST Body `{"ids":[score ids]}`                   | `202` JSON  |
+| GET    | `/replays/{jobId}/status`               | Get render job state                   | path `{jobId}`                                    | JSON        |
+| GET    | `/replays/{jobId}/video`                | Download rendered video                | path `{jobId}`                                    | `video/mp4` |
+| DELETE | `/replays/{jobId}/video`                | Remove rendered video and job metadata | path `{jobId}`                                    | text        |
+
+### Miscellaneous
+
+| Method | Path      | Purpose                              | Params / POST Body | Response |
+|--------|-----------|--------------------------------------|--------------------|----------|
+| GET    | `/daily`  | Current daily challenge room summary | none               | JSON     |
+| GET    | `/health` | Service health and osu! API health   | none               | JSON     |
+
 
 ## Cache Behavior
 
