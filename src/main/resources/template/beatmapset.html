@@ -195,12 +195,6 @@
             padding: 12px 14px;
         }
 
-        .diff-star {
-            width: 20px;
-            height: 20px;
-            fill: white;
-        }
-
         .star-num {
             font-size: 1.2em;
             font-weight: bold;
@@ -370,12 +364,7 @@
         <div class="diff-row" th:each="bm, iterStat : ${beatmapset.beatmaps}">
             <div class="star-badge"
                  th:style="'background: ' + ${Colors.getBeatmapDiffColor(bm.getDifficultyRating())} + '; color: ' + ${Colors.getBeatmapDiffTextColor(bm.getDifficultyRating())} + ';'">
-                <svg class="diff-star"
-                     th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(bm.getDifficultyRating())} + ';'"
-                     viewBox="0 0 20 20">
-                    <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                </svg>
-                <div class="star-num" th:text="${#numbers.formatDecimal(bm.difficultyRating, 1, 2)}">5.24
+                <div class="star-num" th:text="'★' + ${#numbers.formatDecimal(bm.difficultyRating, 1, 2)}">★5.24
                 </div>
             </div>
 

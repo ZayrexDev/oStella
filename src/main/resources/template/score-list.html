@@ -108,6 +108,7 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         }
 
+        /*noinspection CssUnusedSymbol*/
         .avatar-online {
             border-color: #2ecc71;
             border-style: solid;
@@ -324,12 +325,6 @@
             font-size: 1.8em;
             font-weight: bold;
             color: #fff;
-        }
-
-        .diff-star {
-            width: 12px;
-            height: 12px;
-            fill: white;
         }
 
         .diff-badge {
@@ -557,15 +552,10 @@
         <div class="diff">
             <div class="diff-badge"
                  th:style="'background: ' + ${Colors.getBeatmapDiffColor(score.getBeatmap().getDifficultyRating())} + ';'">
-                <svg class="diff-star"
-                     th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(score.getBeatmap().getDifficultyRating())} + ';'"
-                     viewBox="0 0 20 20">
-                    <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                </svg>
                 <div class="diff-rating"
                      th:style="'color: ' + ${Colors.getBeatmapDiffTextColor(score.getBeatmap().getDifficultyRating())} + ';'"
-                     th:text="${#numbers.formatDecimal(score.beatmap.difficultyRating, 1, 2)}">
-                    5.78
+                     th:text="'★' + ${#numbers.formatDecimal(score.beatmap.difficultyRating, 1, 2)}">
+                    ★5.78
                 </div>
             </div>
             <div class="diff-title" th:text="${score.beatmap.version}">This Is An Example Diff</div>

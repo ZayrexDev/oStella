@@ -118,11 +118,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
 
-        .pk-diff-star {
-            width: 16px;
-            height: 16px;
-        }
-
         .pk-diff-rating {
             font-size: 1.1em;
         }
@@ -335,14 +330,9 @@
             <div class="pk-diff-row">
                 <div class="pk-diff-badge"
                      th:style="'background: ' + ${Colors.getBeatmapDiffColor(beatmap.getDifficultyRating())} + ';'">
-                    <svg class="pk-diff-star"
-                         th:style="'fill: ' + ${Colors.getBeatmapDiffTextColor(beatmap.getDifficultyRating())} + ';'"
-                         viewBox="0 0 20 20">
-                        <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                    </svg>
                     <div class="pk-diff-rating"
                          th:style="'color: ' + ${Colors.getBeatmapDiffTextColor(beatmap.getDifficultyRating())} + ';'"
-                         th:text="${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">5.72
+                         th:text="'★' + ${#numbers.formatDecimal(beatmap.difficultyRating, 1, 2)}">★5.72
                     </div>
                 </div>
                 <div class="pk-map-diff"
@@ -382,8 +372,8 @@
                     </div>
                     <span class="pk-mods" th:if="${placement.score.mods != 'NM'}"
                           th:text="${Scores.getModString(placement.score)}">[HDHRDT]</span>
-                    <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">U25234487965
-                        // S1234234567896
+                    <div class="pk-uid" th:text="${'U' + placement.user.id + ' // S' + placement.score.id}">
+                        U25234487965 // S1234234567896
                     </div>
                 </div>
 

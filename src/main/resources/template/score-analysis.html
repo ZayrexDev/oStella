@@ -365,7 +365,7 @@
     <div class="diff-row">
         <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
             <span th:style="'color: ' + ${DiffSpecs.getDiffTextColor(diff)}"
-                  th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">6.84★</span>
+                  th:text="'★' + ${#numbers.formatDecimal(diff.getStar(), 1, 2)}">★6.84</span>
         </div>
         <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColor(diff)}"
              th:text="${score.getBeatmap().getVersion()}">Example Difficulty

@@ -429,13 +429,8 @@
 
             <div class="diff-row">
                 <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
-                    <svg style="width: 16px; height: 16px;"
-                         th:styleappend="'fill: ' + ${DiffSpecs.getDiffTextColor(diff)} + ';'"
-                         viewBox="0 0 20 20">
-                        <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                    </svg>
                     <span th:style="'color: ' + ${DiffSpecs.getDiffTextColor(diff)}"
-                          th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">6.84</span>
+                          th:text="${'★' + #numbers.formatDecimal(diff.getStar(), 1, 2)}">★6.84</span>
                 </div>
                 <span class="spec-diff"
                       th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getStar() - score.getBeatmap().getDifficultyRating())}"
