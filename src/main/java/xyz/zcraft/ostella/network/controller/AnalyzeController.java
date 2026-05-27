@@ -91,7 +91,7 @@ public class AnalyzeController {
                                 .map(HitEvent::aimBias)
                                 .filter(Objects::nonNull)
                                 .map(HitEvent.AimBias::standardize)
-                                .map(b -> b.distance() * (Math.abs(b.theta()) >= Math.PI ? -1 : 1))
+                                .map(b -> b.distance() * (Math.abs(b.theta() - Math.PI) >= (Math.PI / 2) ? 1 : -1))
                                 .toList();
 
                         final double aimBias = aimBiases.isEmpty() ? 0.0 : (aimBiases.stream().reduce(0.0, Double::sum) / aimBiases.size() / diffSpec.getCircleRadius());
