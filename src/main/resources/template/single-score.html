@@ -470,40 +470,40 @@
         <div class="map-stat-block">
             <div class="map-stat-group">
                 <span class="map-stat-label">CS</span>
-                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getCs(), 1, 2)}">4.00</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getDifficulty().cs(), 1, 2)}">4.00</span>
                 <span class="spec-diff"
-                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getCs() - score.getBeatmap().getCs())}"
-                      th:text="${DiffSpecs.getDiffChangeStr(diff.getCs() - score.getBeatmap().getCs())}">▲1.20</span>
+                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getDifficulty().cs() - score.getBeatmap().getCs())}"
+                      th:text="${DiffSpecs.getDiffChangeStr(diff.getDifficulty().cs() - score.getBeatmap().getCs())}">▲1.20</span>
             </div>
             <span class="map-stat-sub" th:text="${DiffSpecs.getCSString(diff)}">30px</span>
         </div>
         <div class="map-stat-block">
             <div class="map-stat-group">
                 <span class="map-stat-label">AR</span>
-                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getAr(), 1, 2)}">9.30</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getDifficulty().ar(), 1, 2)}">9.30</span>
                 <span class="spec-diff"
-                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getAr() - score.getBeatmap().getAr())}"
-                      th:text="${DiffSpecs.getDiffChangeStr(diff.getAr() - score.getBeatmap().getAr())}">▲1.20</span>
+                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getDifficulty().ar() - score.getBeatmap().getAr())}"
+                      th:text="${DiffSpecs.getDiffChangeStr(diff.getDifficulty().ar() - score.getBeatmap().getAr())}">▲1.20</span>
             </div>
             <span class="map-stat-sub" th:text="${DiffSpecs.getARString(diff)}">233ms</span>
         </div>
         <div class="map-stat-block">
             <div class="map-stat-group">
                 <span class="map-stat-label">OD</span>
-                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getOd(), 1, 2)}">8.00</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getDifficulty().od(), 1, 2)}">8.00</span>
                 <span class="spec-diff"
-                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getOd() - score.getBeatmap().getAccuracy())}"
-                      th:text="${DiffSpecs.getDiffChangeStr(diff.getOd() - score.getBeatmap().getAccuracy())}">▲1.20</span>
+                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getDifficulty().od() - score.getBeatmap().getAccuracy())}"
+                      th:text="${DiffSpecs.getDiffChangeStr(diff.getDifficulty().od() - score.getBeatmap().getAccuracy())}">▲1.20</span>
             </div>
             <span class="map-stat-sub" th:text="${DiffSpecs.getODString(diff)}">50ms</span>
         </div>
         <div class="map-stat-block">
             <div class="map-stat-group">
                 <span class="map-stat-label">HP</span>
-                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getHp(), 1, 2)}">7.00</span>
+                <span class="map-stat-value" th:text="${#numbers.formatDecimal(diff.getDifficulty().hp(), 1, 2)}">7.00</span>
                 <span class="spec-diff"
-                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.hp - score.getBeatmap().drain)}"
-                      th:text="${DiffSpecs.getDiffChangeStr(diff.hp - score.getBeatmap().drain)}">▲1.20</span>
+                      th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getDifficulty().hp() - score.getBeatmap().getDrain())}"
+                      th:text="${DiffSpecs.getDiffChangeStr(diff.getDifficulty().hp() - score.getBeatmap().getDrain())}">▲1.20</span>
             </div>
             <span class="map-stat-sub" th:text="${DiffSpecs.getHPString(diff)}">qwq</span>
         </div>
