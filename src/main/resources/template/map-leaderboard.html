@@ -202,25 +202,25 @@
             height: stretch;
         }
 
-        .pk-stat-box {
-            gap: 8px;
-            text-align: left;
-        }
+        /*.pk-stat-box {*/
+        /*    gap: 8px;*/
+        /*    text-align: left;*/
+        /*}*/
 
-        .pk-acc {
-            font-size: 1.6em;
-            font-weight: 900;
-        }
+        /*.pk-acc {*/
+        /*    font-size: 1.6em;*/
+        /*    font-weight: 900;*/
+        /*}*/
 
-        .pk-combo {
-            margin-top: -4px;
-            font-size: 1em;
-        }
+        /*.pk-combo {*/
+        /*    margin-top: -4px;*/
+        /*    font-size: 1em;*/
+        /*}*/
 
-        .pk-level {
-            font-size: 2.4em;
-            font-weight: 900;
-        }
+        /*.pk-level {*/
+        /*    font-size: 2.4em;*/
+        /*    font-weight: 900;*/
+        /*}*/
 
         .pk-username {
             font-size: 1.5em;
@@ -255,11 +255,17 @@
             font-weight: 900;
         }
 
+        .pk-score-sub {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: -4px;
+        }
+
         .pk-diff {
             font-size: 1em;
             color: #ff4e6a;
             font-weight: bold;
-            margin-top: -4px;
         }
 
         /*noinspection CssUnusedSymbol*/
@@ -269,26 +275,26 @@
             padding: 16px;
         }
 
-        .first-place .pk-level {
-            font-size: 2.6em;
-        }
+        /*.first-place .pk-level {*/
+        /*    font-size: 2.6em;*/
+        /*}*/
 
-        .first-place .pk-stat-box {
-            color: #ffcc22;
-        }
+        /*.first-place .pk-stat-box {*/
+        /*    color: #ffcc22;*/
+        /*}*/
 
-        .first-place .pk-acc {
-            font-size: 1.8em;
-        }
+        /*.first-place .pk-acc {*/
+        /*    font-size: 1.8em;*/
+        /*}*/
 
-        .first-place .pk-combo {
-            font-size: 1em;
-        }
+        /*.first-place .pk-combo {*/
+        /*    font-size: 1em;*/
+        /*}*/
 
-        .first-place .pk-rank {
-            color: #ffcc22;
-            font-size: 2em;
-        }
+        /*.first-place .pk-rank {*/
+        /*    color: #ffcc22;*/
+        /*    font-size: 2em;*/
+        /*}*/
 
         .first-place .pk-avatar {
             width: 60px;
@@ -377,30 +383,38 @@
                     </div>
                 </div>
 
-                <div class="pk-rank-box">
-                    <div class="pk-level" th:style="'color: ' + ${Scores.getRankColor(placement.score)} + ';'"
-                         th:text="${placement.score.rank}">XH
-                    </div>
-                </div>
+<!--                <div class="pk-rank-box">-->
+<!--                    <div class="pk-level" th:style="'color: ' + ${Scores.getRankColor(placement.score)} + ';'"-->
+<!--                         th:text="${placement.score.rank}">XH-->
+<!--                    </div>-->
+<!--                </div>-->
 
-                <div class="pk-stat-box" th:style="${placement.score.accuracy == 1 ? 'color: #ffcc22;' : ''}">
-                    <div class="pk-acc"
-                         th:text="${#numbers.formatDecimal(placement.score.accuracy * 100, 1, 2) + '%'}">98.76%
-                    </div>
-                    <div class="pk-combo"
-                         th:text="${placement.score.maxCombo} + 'x' + ${placement.score.isPerfectCombo ? ' FC' : ''}">
-                        432x
-                    </div>
-                </div>
+<!--                <div class="pk-stat-box" th:style="${placement.score.accuracy == 1 ? 'color: #ffcc22;' : ''}">-->
+<!--                    <div class="pk-acc"-->
+<!--                         th:text="${#numbers.formatDecimal(placement.score.accuracy * 100, 1, 2) + '%'}">98.76%-->
+<!--                    </div>-->
+<!--                    <div class="pk-combo"-->
+<!--                         th:text="${placement.score.maxCombo} + 'x' + ${placement.score.isPerfectCombo ? ' FC' : ''}">-->
+<!--                        432x-->
+<!--                    </div>-->
+<!--                </div>-->
 
                 <div class="pk-score-box">
-                    <div class="pk-pp" th:text="${#numbers.formatDecimal(placement.score.pp, 1, 1)} + ' PP'">340 PP
+                    <div class="pk-pp" th:text="${#numbers.formatInteger(placement.getScore().getTotalScore(), 1, 'COMMA')}">
+                        1,000,000
                     </div>
-                    <div class="pk-diff"
-                         th:style="${iterStat.index == 0 ? 'color: #ffcc22;' : ''}"
-                         th:text="${iterStat.index == 0 ? 'MAX ' + #numbers.formatDecimal(ppMax, 1, 1) + 'PP' : '-' + #numbers.formatDecimal(placements[0].score.pp - placement.score.pp, 1, 1) + ' PP'}">
-                        -42.5 PP
+                    <div class="pk-score-sub">
+                        <span th:text="${placement.getScore().getRank()}">XH</span>
+                        <span th:text="${#numbers.formatDecimal(placement.getScore().getAccuracy() * 100, 1, 2) + '%'}">98.76%</span>
+                        <span th:text="${placement.getScore().getPp()}">123 PP</span>
+                        <div class="pk-diff"
+                             th:if="${iterStat.index != 0}"
+                             style="color: #ffcc22;"
+                             th:text="${'-' + #numbers.formatInteger(placements[0].getScore().getTotalScore() - placement.getScore().getTotalScore(), 1, 'COMMA')}">
+                            -12,345
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
