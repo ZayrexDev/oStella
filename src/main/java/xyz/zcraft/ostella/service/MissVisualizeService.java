@@ -269,16 +269,18 @@ public class MissVisualizeService {
 
             // Text
             g2d.setColor(Color.BLACK);
-            g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
 
             final Duration duration = Duration.of(hitObject.getTime(), ChronoUnit.MILLIS);
             String missInfo = "#" + missIndex + " Miss: " + hitObject.getObjectType() + " @" +
                     String.format("%02d:%02d.%03d", duration.toMinutesPart(), duration.toSecondsPart(), duration.toMillisPart());
 
+            g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
             g2d.drawString(missInfo, 5, CANVAS_HEIGHT - 5);
 
-            String beatmapInfo = beatmap.getArtist() + " - " + beatmap.getTitle() + " [" + beatmap.getVersion() + "]";
-            g2d.drawString(beatmapInfo, 5, 20);
+            g2d.setFont(new Font("Dejavu Sans", Font.BOLD, 20));
+            g2d.drawString(beatmap.getBeatmapId() + " - " + beatmap.getTitle(), 5, 20);
+            g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
+            g2d.drawString(beatmap.getArtist() + " [" + beatmap.getVersion() + "]", 5, 40);
 
             g2d.dispose();
 
