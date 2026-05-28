@@ -12,16 +12,32 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedList;
 import java.util.List;
 
 public class MissVisualizeService {
-    public static final Color PRESSED_COLOR = new Color(255, 204, 34);
-    public static final Color UNPRESSED_COLOR = new Color(68, 68, 68);
-    public static final Color PATH_COLOR = new Color(235, 71, 145);
+    private static final Color PRESSED_COLOR = new Color(255, 204, 34);
+    private static final Color UNPRESSED_COLOR = new Color(68, 68, 68);
+
     private static final int CANVAS_WIDTH = 512;
     private static final int CANVAS_HEIGHT = 384;
     private static final double ZOOM_FACTOR = 1.5;
-    private static final int WINDOW_MILLIS = 200;
+    private static final int WINDOW_MILLIS = 250;
+
+    private static final List<Color> PATH_COLORS;
+
+    static {
+        final Color PATH_COLOR_PERFECT = new Color(102, 204, 255);
+        final Color PATH_COLOR_OK = new Color(136, 179, 0);
+        final Color PATH_COLOR_MEH = new Color(255, 204, 34);
+        final Color PATH_COLOR_MISS = new Color(239, 83, 80);
+
+        PATH_COLORS = List.of(
+                UNPRESSED_COLOR, PATH_COLOR_MISS, PATH_COLOR_MEH, PATH_COLOR_OK,
+                PATH_COLOR_PERFECT,
+                PATH_COLOR_OK, PATH_COLOR_MEH, PATH_COLOR_MISS, UNPRESSED_COLOR
+        );
+    }
 
     public static byte[] visualizeMiss(ReplayAnalyze replayAnalyze, int missIndex) {
         final List<HitEvent> missEvents = replayAnalyze.events().stream()
@@ -34,37 +50,34 @@ public class MissVisualizeService {
 
         final HitEvent targetMiss = missEvents.get(missIndex);
 
-        final List<OsuReplay.KeyFrame> keyFrames = extractNearbyKeyFrames(replayAnalyze.replay().keyFrames(), targetMiss.hitObject());
+        final List<TimedFrame> keyFrames = new LinkedList<>();
 
-        boolean hasEZ = (replayAnalyze.replay().mods() & 2) > 0;
-        boolean hasHR = (replayAnalyze.replay().mods() & 16) > 0;
-
-        double cs = replayAnalyze.beatmap().getCs();
-
-        if (hasHR) {
-            cs = Math.min(10.0, cs * 1.3);
-        } else if (hasEZ) {
-            cs = cs * 0.5;
-        }
-
-        final double circleRadius = 54.4 - 4.48 * cs;
-
-        return ImageHelper.drawMiss(missIndex + 1, circleRadius, targetMiss.hitObject(), keyFrames, replayAnalyze.beatmap());
-    }
-
-    private static List<OsuReplay.KeyFrame> extractNearbyKeyFrames(List<OsuReplay.KeyFrame> keyFrames, HitObject hitObject) {
-        final int n = keyFrames.size();
+        final int n = replayAnalyze.replay().keyFrames().size();
         long[] cumulative = new long[n];
         long t = 0L;
         for (int i = 0; i < n; i++) {
-            final long offset = keyFrames.get(i).offset();
+            final long offset = replayAnalyze.replay().keyFrames().get(i).offset();
             t += offset;
             cumulative[i] = t;
         }
 
+        for (int i = 0; i < replayAnalyze.replay().keyFrames().size(); i++) {
+            keyFrames.add(new TimedFrame(cumulative[i], replayAnalyze.replay().keyFrames().get(i)));
+        }
+
+        return ImageHelper.drawMiss(
+                missIndex + 1,
+                targetMiss.hitObject(),
+                extractNearbyKeyFrames(keyFrames, targetMiss.hitObject()),
+                replayAnalyze.beatmap(),
+                replayAnalyze.calculatedDifficulty()
+        );
+    }
+
+    private static List<TimedFrame> extractNearbyKeyFrames(List<TimedFrame> keyFrames, HitObject hitObject) {
         int leftIndex = -1, rightIndex = -1;
-        for (int i = 0; i < cumulative.length; i++) {
-            if (cumulative[i] > hitObject.getTime()) {
+        for (int i = 0; i < keyFrames.size(); i++) {
+            if (keyFrames.get(i).time() > hitObject.getTime()) {
                 leftIndex = i;
                 rightIndex = i + 1;
                 break;
@@ -75,11 +88,11 @@ public class MissVisualizeService {
             throw new RuntimeException("Could not find keyframe to lookup");
         }
 
-        while (leftIndex > 0 && cumulative[leftIndex] >= hitObject.getTime() - WINDOW_MILLIS) {
+        while (leftIndex > 0 && keyFrames.get(leftIndex).time() >= hitObject.getTime() - WINDOW_MILLIS) {
             leftIndex--;
         }
 
-        while (rightIndex < keyFrames.size() - 1 && cumulative[rightIndex] <= hitObject.getTime() + WINDOW_MILLIS) {
+        while (rightIndex < keyFrames.size() - 1 && keyFrames.get(rightIndex).time() <= hitObject.getTime() + WINDOW_MILLIS) {
             rightIndex++;
         }
 
@@ -137,7 +150,25 @@ public class MissVisualizeService {
             }
         }
 
-        private static byte[] drawMiss(int missIndex, double circleRadius, HitObject hitObject, List<OsuReplay.KeyFrame> keyFrames, OsuBeatmap beatmap) {
+        private static int getHitWindowCategory(long offset, DifficultyAttribute diff) {
+            long absOffset = Math.abs(offset);
+
+            if (absOffset < diff.getPerfectWindow()) return 4;
+
+            boolean isEarly = offset < 0;
+            if (absOffset < diff.getOkWindow())   return isEarly ? 3 : 5;
+            if (absOffset < diff.getMehWindow())  return isEarly ? 2 : 6;
+            if (absOffset < diff.getMissWindow()) return isEarly ? 1 : 7;
+
+            return isEarly ? 0 : 8;
+        }
+
+        private static byte[] drawMiss(int missIndex,
+                                       HitObject hitObject,
+                                       List<TimedFrame> keyFrames,
+                                       OsuBeatmap beatmap,
+                                       DifficultyAttribute diff) {
+            final double circleRadius = diff.getCircleRadiusInPixel();
             BufferedImage canvas = new BufferedImage(CANVAS_WIDTH, CANVAS_HEIGHT, BufferedImage.TYPE_INT_ARGB);
 
             Graphics2D g2d = canvas.createGraphics();
@@ -159,20 +190,58 @@ public class MissVisualizeService {
             g2d.draw(circle);
 
             // Draw cursor path
-            int previousFlags = keyFrames.getFirst().key();
+            Path2D.Double currentPath = new Path2D.Double();
+            int currentCategory = -1;
 
-            Path2D.Double path = new Path2D.Double();
-            path.moveTo(
-                    (keyFrames.getFirst().cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5,
-                    (keyFrames.getFirst().cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5
-            );
-            for (OsuReplay.KeyFrame keyFrame : keyFrames) {
-                final double x = (keyFrame.cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
-                final double y = (keyFrame.cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
+            double lastX = 0;
+            double lastY = 0;
+            boolean hasLast = false;
 
-                path.lineTo(x, y);
+            for (var keyFrame : keyFrames) {
+                long offset = keyFrame.time() - hitObject.getTime();
+                int category = getHitWindowCategory(offset, diff);
 
-                int currentFlags = keyFrame.key();
+                double x = (keyFrame.keyFrame().cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
+                double y = (keyFrame.keyFrame().cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
+
+                if (category != currentCategory) {
+                    if (currentCategory != -1) {
+                        g2d.setColor(PATH_COLORS.get(currentCategory));
+                        g2d.setStroke(new BasicStroke(1.5F));
+                        g2d.draw(currentPath);
+                    }
+
+                    currentPath = new Path2D.Double();
+                    currentCategory = category;
+
+                    if (hasLast) {
+                        currentPath.moveTo(lastX, lastY);
+                        currentPath.lineTo(x, y);
+                    } else {
+                        currentPath.moveTo(x, y);
+                    }
+                } else {
+                    currentPath.lineTo(x, y);
+                }
+
+                lastX = x;
+                lastY = y;
+                hasLast = true;
+            }
+
+            if (currentCategory != -1) {
+                g2d.setColor(PATH_COLORS.get(currentCategory));
+                g2d.draw(currentPath);
+            }
+
+            // Draw frame points
+            int previousFlags = keyFrames.getFirst().keyFrame().key();
+
+            for (var keyFrame : keyFrames) {
+                final double x = (keyFrame.keyFrame().cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
+                final double y = (keyFrame.keyFrame().cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
+
+                int currentFlags = keyFrame.keyFrame().key();
                 int newlyPressed = currentFlags & ~previousFlags;
                 boolean isNewPress = (newlyPressed & 15) > 0;
 
@@ -189,16 +258,13 @@ public class MissVisualizeService {
                         drawSemicircle(g2d, true, true, x, y, 2 * ZOOM_FACTOR, leftPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
                         drawSemicircle(g2d, false, true, x, y, 2 * ZOOM_FACTOR, rightPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
                     } else {
-                        drawSemicircle(g2d, true, true, x, y, 1 * ZOOM_FACTOR, PATH_COLOR);
-                        drawSemicircle(g2d, false, true, x, y, 1 * ZOOM_FACTOR, PATH_COLOR);
+                        drawSemicircle(g2d, true, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
+                        drawSemicircle(g2d, false, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
                     }
                 }
 
                 previousFlags = currentFlags;
             }
-
-            g2d.setColor(PATH_COLOR);
-            g2d.draw(path);
 
 
             // Text
@@ -212,7 +278,7 @@ public class MissVisualizeService {
             g2d.drawString(missInfo, 5, CANVAS_HEIGHT - 5);
 
             String beatmapInfo = beatmap.getArtist() + " - " + beatmap.getTitle() + " [" + beatmap.getVersion() + "]";
-            g2d.drawString(beatmapInfo, 5,  20);
+            g2d.drawString(beatmapInfo, 5, 20);
 
             g2d.dispose();
 
@@ -226,5 +292,8 @@ public class MissVisualizeService {
 
             return output.toByteArray();
         }
+    }
+
+    private record TimedFrame(long time, OsuReplay.KeyFrame keyFrame) {
     }
 }
