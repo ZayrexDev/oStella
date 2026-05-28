@@ -35,7 +35,7 @@ Here are some demo:
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/024fe6b2-c10a-4c9e-aefc-9c784826a9b7" />
 
 ### Miss Analysis
-<img width="400" alt="image" src="https://github.com/user-attachments/assets/a6b8e469-39fd-491e-91b0-3d9e452d3253" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/fa18c6b7-1c4d-4215-898b-2f6556e5704e" />
 
 ### Beatmapset Card
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/2bb887d6-5fff-429b-b39e-963235ec463e" />
