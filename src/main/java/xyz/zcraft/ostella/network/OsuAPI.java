@@ -493,7 +493,6 @@ public class OsuAPI {
         LOG.debug("Fetching friends");
         try {
             final var request = newRequestBuilder(auth, "/friends")
-                    .header("X-Api-Version", "20241022")
                     .GET()
                     .build();
 
