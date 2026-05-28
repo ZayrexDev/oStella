@@ -337,7 +337,7 @@
             <div class="mod-badges" th:if="${diff.isModded()}">
                 <div class="mod-badge" th:each="amod : ${score.getMods()}"
                      th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
-                     th:text="${amod.getAcronym()()}">HD
+                     th:text="${amod.getAcronym()}">HD
                 </div>
             </div>
             <div class="meta-row">
@@ -407,7 +407,7 @@
                      th:text="${Scores.getGreatCount(score)}
                                 + ' / ' + ${Scores.getOkCount(score)}
                                 + ' / ' + ${Scores.getMehCount(score)}
-                                + ' / ' + ${Scores.getMissCount()}">456 / 78 / 9 / 10
+                                + ' / ' + ${Scores.getMissCount(score)}">456 / 78 / 9 / 10
                 </div>
             </div>
         </div>

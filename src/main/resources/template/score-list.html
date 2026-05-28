@@ -580,7 +580,7 @@
         </div>
         <div class="score-record">
             <div class="score-id" th:text="'S' + ${score.getId()}">S1234567890</div>
-            <span class="score-time" th:text="${score.createdAt}">2026-04-11T23:30:27Z</span>
+            <span class="score-time" th:text="${score.getEndedAt()}">2026-04-11T23:30:27Z</span>
         </div>
     </div>
 </div>
