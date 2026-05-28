@@ -534,7 +534,7 @@
                 SS
             </div>
             <div class="mod-badges" th:if="${score.mods != null and !score.mods.isEmpty()}">
-                <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}"
+                <div class="mod-badge" th:each="amod : ${score.getMods()}"
                      th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
                      th:text="${amod.getAcronym()}">
                     AA

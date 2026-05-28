@@ -9,7 +9,6 @@ import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.Score;
@@ -49,7 +48,7 @@ public class AnalyzeController {
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
                     final Path rosuPath = router.getRosuPath(beatmap.getId());
-                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, rosuPath, ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
+                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, rosuPath, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
                         score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));

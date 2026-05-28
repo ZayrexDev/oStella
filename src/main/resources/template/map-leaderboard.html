@@ -406,7 +406,7 @@
                     <div class="pk-score-sub">
                         <span th:text="${placement.getScore().getRank()}">XH</span>
                         <span th:text="${#numbers.formatDecimal(placement.getScore().getAccuracy() * 100, 1, 2) + '%'}">98.76%</span>
-                        <span th:text="${placement.getScore().getPp()}">123 PP</span>
+                        <span th:text="${#numbers.formatDecimal(placement.getScore().getPp(), 1, 1)}">123 PP</span>
                         <div class="pk-diff"
                              th:if="${iterStat.index != 0}"
                              style="color: #ffcc22;"

@@ -52,6 +52,11 @@ public class oStella {
             UserFormatUtil.setSafeFlags(true);
         }
 
+        try {
+            LOG.info("Initializing, you may ignore the warnings below:");
+            System.load("");
+        } catch (UnsatisfiedLinkError _) {}
+
         LOG.info("Authorizing...");
 
         tokenManager = new TokenManager(conf);
