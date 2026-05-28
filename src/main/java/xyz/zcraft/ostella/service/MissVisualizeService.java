@@ -272,7 +272,7 @@ public class MissVisualizeService {
             g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
 
             final Duration duration = Duration.of(hitObject.getTime(), ChronoUnit.MILLIS);
-            String missInfo = "#" + missIndex + " Miss: " + hitObject.getObjectType() + " at " +
+            String missInfo = "#" + missIndex + " Miss: " + hitObject.getObjectType() + " @" +
                     String.format("%02d:%02d.%03d", duration.toMinutesPart(), duration.toSecondsPart(), duration.toMillisPart());
 
             g2d.drawString(missInfo, 5, CANVAS_HEIGHT - 5);
