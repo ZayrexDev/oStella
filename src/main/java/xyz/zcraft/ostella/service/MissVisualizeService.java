@@ -327,6 +327,8 @@ public class MissVisualizeService {
             double lastY = 0;
             boolean hasLast = false;
 
+            int segmentCounter = 0;
+
             for (var keyFrame : keyFrames) {
                 long offset = keyFrame.time() - hitObject.getTime();
                 int category = getHitWindowCategory(offset, diff);
@@ -347,11 +349,17 @@ public class MissVisualizeService {
                     if (hasLast) {
                         currentPath.moveTo(lastX, lastY);
                         currentPath.lineTo(x, y);
+
+                        segmentCounter = getSegmentCounter(g2d, lastX, lastY, segmentCounter, category, x, y);
                     } else {
                         currentPath.moveTo(x, y);
                     }
                 } else {
                     currentPath.lineTo(x, y);
+
+                    if (hasLast) {
+                        segmentCounter = getSegmentCounter(g2d, lastX, lastY, segmentCounter, category, x, y);
+                    }
                 }
 
                 lastX = x;
@@ -363,6 +371,55 @@ public class MissVisualizeService {
                 g2d.setColor(PATH_COLORS.get(currentCategory));
                 g2d.draw(currentPath);
             }
+        }
+
+        private static int getSegmentCounter(Graphics2D g2d, double lastX, double lastY, int segmentCounter, int category, double x, double y) {
+            double dx = x - lastX;
+            double dy = y - lastY;
+            double segLen = Math.hypot(dx, dy);
+            if (segLen >= 6.0) {
+                segmentCounter++;
+                if (segmentCounter % 3 == 0) {
+                    drawArrow(g2d, lastX, lastY, x, y, PATH_COLORS.get(category));
+                }
+            }
+            return segmentCounter;
+        }
+
+        private static void drawArrow(Graphics2D g2d, double x1, double y1, double x2, double y2, Color color) {
+            double placeT = 0.75;
+            double px = x1 + (x2 - x1) * placeT;
+            double py = y1 + (y2 - y1) * placeT;
+
+            double angle = Math.atan2(y2 - y1, x2 - x1);
+
+            double phi = Math.toRadians(22);
+
+            double xLeft = px - 9.0 * Math.cos(angle - phi);
+            double yLeft = py - 9.0 * Math.sin(angle - phi);
+
+            double xRight = px - 9.0 * Math.cos(angle + phi);
+            double yRight = py - 9.0 * Math.sin(angle + phi);
+
+            Path2D.Double tri = new Path2D.Double();
+            tri.moveTo(px, py);
+            tri.lineTo(xLeft, yLeft);
+            tri.lineTo(xRight, yRight);
+            tri.closePath();
+
+            Composite oldComp = g2d.getComposite();
+            Stroke oldStroke = g2d.getStroke();
+            Color oldColor = g2d.getColor();
+            Object oldHint = g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
+
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(color);
+            g2d.fill(tri);
+
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, oldHint);
+            g2d.setStroke(oldStroke);
+            g2d.setColor(oldColor);
+            g2d.setComposite(oldComp);
         }
 
         private static void drawTargetCircle(double circleRadius, Graphics2D g2d) {
