@@ -21,7 +21,7 @@ public class MissVisualizeService {
 
     private static final int CANVAS_WIDTH = 512;
     private static final int CANVAS_HEIGHT = 384;
-    private static final double ZOOM_FACTOR = 1.5;
+    private static final double ZOOM_FACTOR = 2;
     private static final int WINDOW_MILLIS = 250;
 
     private static final List<Color> PATH_COLORS;
