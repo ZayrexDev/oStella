@@ -1,5 +1,7 @@
 package xyz.zcraft.ostella.service;
 
+import xyz.zcraft.ostella.network.ApiException;
+import xyz.zcraft.ostella.network.ErrorCode;
 import xyz.zcraft.osu.parser.data.*;
 
 import javax.imageio.ImageIO;
@@ -42,10 +44,11 @@ public class MissVisualizeService {
     public static byte[] visualizeMiss(ReplayAnalyze replayAnalyze, int missIndex) {
         final List<HitEvent> missEvents = replayAnalyze.events().stream()
                 .filter(hitEvent -> !hitEvent.wasHit())
+                .filter(hitEvent -> hitEvent.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
                 .toList();
 
         if (missIndex < 0 || missIndex >= missEvents.size()) {
-            throw new ArrayIndexOutOfBoundsException("Invalid miss index: " + missIndex + ", should be 0-" + (missEvents.size() - 1));
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid miss index: " + missIndex + ", should be 0-" + (missEvents.size() - 1));
         }
 
         final HitEvent targetMiss = missEvents.get(missIndex);
@@ -85,7 +88,7 @@ public class MissVisualizeService {
         }
 
         if (leftIndex == -1) {
-            throw new RuntimeException("Could not find keyframe to lookup");
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Could not find keyframe to lookup");
         }
 
         while (leftIndex > 0 && keyFrames.get(leftIndex).time() >= hitObject.getTime() - WINDOW_MILLIS) {
