@@ -563,10 +563,10 @@
         </div>
         <div class="score-stats">
             <div class="hit-count">
-                <span class="hit-count-300" th:text="${score.statistics.get('count_300')}">300</span>
-                <span class="hit-count-100" th:text="${score.statistics.get('count_100')}">100</span>
-                <span class="hit-count-50" th:text="${score.statistics.get('count_50')}">50</span>
-                <span class="hit-count-miss" th:text="${score.statistics.get('count_miss')}">0</span>
+                <span class="hit-count-300" th:text="${Scores.getGreatCount(score)}">300</span>
+                <span class="hit-count-100" th:text="${Scores.getOkCount(score)}">100</span>
+                <span class="hit-count-50" th:text="${Scores.getMehCount(score)}">50</span>
+                <span class="hit-count-miss" th:text="${Scores.getMissCount(score)}">0</span>
             </div>
             <span class="pp-number"
                   th:text="${score.pp != null ? #numbers.formatDecimal(score.pp, 1, 1) + 'pp' : '--pp'}">222pp</span>

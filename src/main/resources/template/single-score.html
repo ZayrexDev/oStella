@@ -546,20 +546,20 @@
 
         <div class="hit-stats-container">
             <div class="hit-item">
-                <span class="hit-value c-300" th:text="${score.getStatistics().get('count_300')}">450</span>
+                <span class="hit-value c-300" th:text="${Scores.getGreatCount(score)}">450</span>
                 <span class="hit-label">PERFECT</span>
             </div>
             <div class="hit-item">
-                <span class="hit-value c-100" th:text="${score.statistics.get('count_100')}">24</span>
+                <span class="hit-value c-100" th:text="${Scores.getOkCount(score)}">24</span>
                 <span class="hit-label">OK</span>
             </div>
             <div class="hit-item">
-                <span class="hit-value c-50" th:text="${score.statistics.get('count_50')}">2</span>
+                <span class="hit-value c-50" th:text="${Scores.getMehCount(score)}">2</span>
                 <span class="hit-label">MEH</span>
             </div>
             <div class="hit-item">
-                <span class="hit-value" th:classappend="${score.statistics.get('count_miss') > 0 ? 'c-miss' : ''}"
-                      th:text="${score.statistics.get('count_miss')}">1</span>
+                <span class="hit-value" th:classappend="${Scores.getMissCount(score) > 0 ? 'c-miss' : ''}"
+                      th:text="${Scores.getMissCount(score)}">1</span>
                 <span class="hit-label">MISS</span>
             </div>
         </div>

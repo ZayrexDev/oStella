@@ -51,6 +51,22 @@ public class ScoreFormatUtil {
 
         return sb.toString();
     }
+
+    public static long getGreatCount(Score score) {
+        return score.getStatistics().getOrDefault("great", 0L);
+    }
+
+    public static long getOkCount(Score score) {
+        return score.getStatistics().getOrDefault("ok", 0L);
+    }
+
+    public static long getMehCount(Score score) {
+        return score.getStatistics().getOrDefault("meh", 0L);
+    }
+
+    public static long getMissCount(Score score) {
+        return score.getStatistics().getOrDefault("miss", 0L);
+    }
 }
 
 
