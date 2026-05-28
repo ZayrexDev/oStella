@@ -1,15 +1,19 @@
 package xyz.zcraft.ostella.network.controller;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
+import xyz.zcraft.ostella.network.Response;
 import xyz.zcraft.ostella.network.Router;
 import xyz.zcraft.ostella.service.AsyncService;
 import xyz.zcraft.ostella.service.CacheService;
+import xyz.zcraft.ostella.service.MissVisualizeService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
-import xyz.zcraft.ostella.util.format.ScoreFormatUtil;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.Score;
@@ -23,6 +27,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
+import static xyz.zcraft.ostella.util.RequestUtil.requirePathInt;
 import static xyz.zcraft.ostella.util.RequestUtil.requirePathLong;
 
 public class AnalyzeController {
@@ -49,7 +54,7 @@ public class AnalyzeController {
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
                     final Path rosuPath = router.getRosuPath(beatmap.getId());
-                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, rosuPath, ScoreFormatUtil.getModsList(score).stream().map(Mod::getAcronym).reduce("", String::concat));
+                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, rosuPath, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
                         score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
@@ -80,7 +85,7 @@ public class AnalyzeController {
                                 .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
                                 .map(HitEvent::aimBias)
                                 .filter(Objects::nonNull)
-                                .filter(b -> b.distance() < diffSpec.getCircleRadius() * 1.2)
+                                .filter(b -> b.distance() < diffSpec.getDifficulty().getCircleRadiusInPixel() * 1.2)
                                 .map(HitEvent.AimBias::standardize)
                                 .map(b -> new double[]{b.theta(), b.distance()})
                                 .toList();
@@ -91,10 +96,10 @@ public class AnalyzeController {
                                 .map(HitEvent::aimBias)
                                 .filter(Objects::nonNull)
                                 .map(HitEvent.AimBias::standardize)
-                                .map(b -> b.distance() * (Math.abs(b.theta()) >= Math.PI ? -1 : 1))
+                                .map(b -> b.distance() * (Math.abs(b.theta() - Math.PI) >= (Math.PI / 2) ? 1 : -1))
                                 .toList();
 
-                        final double aimBias = aimBiases.isEmpty() ? 0.0 : (aimBiases.stream().reduce(0.0, Double::sum) / aimBiases.size() / diffSpec.getCircleRadius());
+                        final double aimBias = aimBiases.isEmpty() ? 0.0 : (aimBiases.stream().reduce(0.0, Double::sum) / aimBiases.size() / diffSpec.getDifficulty().getCircleRadiusInPixel());
 
                         final double avgTimingError = hitErrors.isEmpty() ? 0.0 : (hitErrors.stream().reduce(0L, Long::sum) / (double) hitErrors.size());
                         return new ScoreAnalyzeData(score, diffSpec, hitErrors, hitPos, missPos, aimBias, avgTimingError, analyze);
@@ -103,6 +108,61 @@ public class AnalyzeController {
                     }
                 })
                 .thenApplyAsync(renderer::renderScoreAnalysis, renderer.getRenderExecutor())
+                .thenAccept(bytes -> context.status(200).result(bytes)));
+    }
+
+    public void getMisses(@NotNull Context context) {
+        final long scoreId = requirePathLong(context, "scoreId");
+        context.future(() -> router.getScore(scoreId)
+                .thenApply(score -> getReplayAnalyze(context, score))
+                .thenApply(analyze -> {
+                            var misses = analyze.events().stream()
+                                    .filter(hitEvent -> !hitEvent.wasHit())
+                                    .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
+                                    .toList();
+                            JsonArray arr = new JsonArray();
+                            for (int i = 0; i < misses.size(); i++) {
+                                JsonObject object = new JsonObject();
+                                object.addProperty("index", i);
+                                object.addProperty("time", misses.get(i).hitObject().getTime());
+
+                                arr.add(object);
+                            }
+                            return arr;
+                        }
+                )
+                .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString())));
+    }
+
+    private @NonNull ReplayAnalyze getReplayAnalyze(@NonNull Context context, Score score) {
+        if (score == null) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
+        final BeatmapExtended beatmap = score.getBeatmap();
+
+        context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
+                .header("X-Score-Id", String.valueOf(score.getId()));
+
+        final Path rosuPath = router.getRosuPath(beatmap.getId());
+
+        if (score.getPp() == null) {
+            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+        }
+
+        try {
+            final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(rosuPath);
+            final OsuReplay osuReplay = ReplayParser.parseReplay(CacheService.getReplay(tokenManager.getTokenData(), score.getId()));
+
+            return ReplayAnalyzer.analyze(osuBeatmap, osuReplay);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void visualizeMiss(@NotNull Context context) {
+        final long scoreId = requirePathLong(context, "scoreId");
+        final int missIndex = requirePathInt(context, "missIndex");
+        context.future(() -> router.getScore(scoreId)
+                .thenApply(score -> getReplayAnalyze(context, score))
+                .thenApply(analyze -> MissVisualizeService.visualizeMiss(analyze, missIndex))
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
 

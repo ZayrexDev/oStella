@@ -34,6 +34,9 @@ Here are some demo:
 ### Score Analysis
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/024fe6b2-c10a-4c9e-aefc-9c784826a9b7" />
 
+### Miss Analysis
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/a6b8e469-39fd-491e-91b0-3d9e452d3253" />
+
 ### Beatmapset Card
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/2bb887d6-5fff-429b-b39e-963235ec463e" />
 
@@ -89,26 +92,28 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 | Method | Path                                 | Purpose                        | Params / POST Body                                 | Response |
 |--------|--------------------------------------|--------------------------------|----------------------------------------------------|----------|
-| GET    | `/beatmaps/lookup`                   | Resolve beatmap IDs            | `m` **or** `ms` + `i`  **or** `of` + `u` + `i`     | JSON     |
+| GET    | `/beatmaps/lookup`                   | Resolve beatmap IDs            | See section below                                  | JSON     |
 | GET    | `/beatmaps/{beatmapId}`              | Beatmap card image             | path `beatmapId` (+ optional query param `mod`)    | PNG      |
 | POST   | `/beatmaps/{beatmapId}/leaderboards` | Compare players on one beatmap | path `beatmapId` + POST Body `{"uids":[user ids]}` | PNG      |
 
 ### Beatmapsets
 
-| Method | Path                                   | Purpose                | Params / POST Body                      | Response |
-|--------|----------------------------------------|------------------------|-----------------------------------------|----------|
-| GET    | `/beatmapsets/lookup`                  | Resolve beatmapset IDs | `ms` **or** `m` **or** `of` + `u` + `i` | JSON     |
-| GET    | `/beatmapsets/search`                  | Search beatmapsets     | `q` (search keyword)                    | JSON     |
-| GET    | `/beatmapsets/{beatmapsetId}`          | Beatmapset card image  | path `beatmapsetId`                     | PNG      |
-| GET    | `/beatmapsets/{beatmapsetId}/download` | Download beatmapset    | path `beatmapsetId`                     | OSZ      |
+| Method | Path                                   | Purpose                | Params / POST Body   | Response |
+|--------|----------------------------------------|------------------------|----------------------|----------|
+| GET    | `/beatmapsets/lookup`                  | Resolve beatmapset IDs | See section below    | JSON     |
+| GET    | `/beatmapsets/search`                  | Search beatmapsets     | `q` (search keyword) | JSON     |
+| GET    | `/beatmapsets/{beatmapsetId}`          | Beatmapset card image  | path `beatmapsetId`  | PNG      |
+| GET    | `/beatmapsets/{beatmapsetId}/download` | Download beatmapset    | path `beatmapsetId`  | OSZ      |
 
 ### Scores
 
-| Method | Path                         | Purpose                   | Params / POST Body                                                   | Response |
-|--------|------------------------------|---------------------------|----------------------------------------------------------------------|----------|
-| GET    | `/scores/lookup`             | Resolve score IDs         | `s` **or** `m` + `u` **or** `ms` + `i` + `u` **or** `of` + `u` + `i` | JSON     |
-| GET    | `/scores/{scoreId}`          | Score card image          | path `scoreId`                                                       | PNG      |
-| GET    | `/scores/{scoreId}/analysis` | Score analysis card image | path `scoreId`                                                       | PNG      |
+| Method | Path                                             | Purpose                      | Params / POST Body         | Response |
+|--------|--------------------------------------------------|------------------------------|----------------------------|----------|
+| GET    | `/scores/lookup`                                 | Resolve score IDs            | See section below          | JSON     |
+| GET    | `/scores/{scoreId}`                              | Score card image             | path `scoreId`             | PNG      |
+| GET    | `/scores/{scoreId}/analysis`                     | Score analysis card image    | path `scoreId`             | PNG      |
+| GET    | `/scores/{scoreId}/misses`                       | List the misses of the score | path `scoreId`             | JSON     |
+| GET    | `/scores/{scoreId}/misses/{missIndex}/visualize` | Visualize misses             | path `scoreId` `missIndex` | PNG      |
 
 ### Multiplayer Rooms
 
@@ -146,6 +151,36 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 | GET    | `/daily`  | Current daily challenge room summary | none               | JSON     |
 | GET    | `/health` | Service health and osu! API health   | none               | JSON     |
 
+
+### Lookup Params
+
+#### Looking up beatmaps, beatmapsets, or scores by explicit ID:
+
+- `m` = map ID
+- `s` = score ID
+- `ms` = mapset ID
+- `i` = index for mapset (e.g., `i=0` for the first map in a mapset, `i=1` for the second, etc.)
+
+You can look up a score's beatmap and beatmapset, 
+a beatmap's beatmapset, or a beatmapset's beatmaps 
+by including the index `i` in the query parameters.
+You can also look up the score of a beatmap, or the beatmap index of a beatmapset.
+
+#### Looking up beatmaps, beatmapset, or scores by a user and index (e.g., best-of-N):
+- `of` = score type (`bo` for best scores, and `rs` for recent scores, and `mp` for current multiplayer playlist item)
+- `i` = index (for `bo` and `rs`, which score index to return)
+- `u` = user ID
+
+#### Examples
+- `/beatmaps/lookup?m=12345678` - Look up beatmap by map ID
+- `/beatmaps/lookup?ms=12345678&i=0` - Look up the first beatmap of a beatmapset
+- `/beatmaps/lookup?s=12345678` - Look up the beatmap of a score
+- `/beatmaps/lookup?of=bo&i=0&u=12345678` - Look up the beatmap of a user's best score #1
+- `/beatmapsets/lookup?ms=12345678` - Look up beatmapset by mapset ID
+- `/beatmapsets/lookup?m=12345678` - Look up the beatmapset of a beatmap
+- `/beatmapsets/lookup?of=mp` - Look up the beatmapset of the current multiplayer playlist item
+- `/scores/lookup?of=rs&i=2&u=12345678` - Look up the score ID of a user's recent score #3
+- `/scores/lookup?s=12345678` - Look up score by score ID
 
 ## Cache Behavior
 

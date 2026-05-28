@@ -44,6 +44,8 @@ public class WebServer implements Closeable {
                     .get("/scores/lookup", router.scoreController::lookupScore)
                     .get("/scores/{scoreId}", router.scoreController::renderScoreById)
                     .get("/scores/{scoreId}/analysis", router.analyzeController::renderScoreAnalysisById)
+                    .get("/scores/{scoreId}/misses", router.analyzeController::getMisses)
+                    .get("/scores/{scoreId}/misses/{missIndex}/visualize", router.analyzeController::visualizeMiss)
 
                     .get("/multiplayer/rooms/current", router::getCurrentRoom)
                     .get("/multiplayer/rooms/current/item", router::getCurrentRoomItem)

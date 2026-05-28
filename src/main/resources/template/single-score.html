@@ -397,7 +397,7 @@
          th:style="'background-image: url(' + ${cache.getImageSrc(score.getBeatmapset().getCovers().getCover())} + ');'">
         <div class="hero-overlay">
             <div class="mod-badges" th:if="${diff.isModded()}">
-                <div class="mod-badge" th:each="amod : ${Scores.getModsList(score)}"
+                <div class="mod-badge" th:each="amod : ${score.getMods()}"
                      th:style="'background: ' + ${Mods.getColorHex(amod)} + '; color: ' + ${Mods.getTextColorHex(amod)} + ';'"
                      th:text="${amod.getAcronym()}">
                     HD
@@ -429,13 +429,8 @@
 
             <div class="diff-row">
                 <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
-                    <svg style="width: 16px; height: 16px;"
-                         th:styleappend="'fill: ' + ${DiffSpecs.getDiffTextColor(diff)} + ';'"
-                         viewBox="0 0 20 20">
-                        <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                    </svg>
                     <span th:style="'color: ' + ${DiffSpecs.getDiffTextColor(diff)}"
-                          th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">6.84</span>
+                          th:text="${'★' + #numbers.formatDecimal(diff.getStar(), 1, 2)}">★6.84</span>
                 </div>
                 <span class="spec-diff"
                       th:classappend="${'spec-diff' + DiffSpecs.getDiffChangeClassSuffix(diff.getStar() - score.getBeatmap().getDifficultyRating())}"
@@ -551,20 +546,20 @@
 
         <div class="hit-stats-container">
             <div class="hit-item">
-                <span class="hit-value c-300" th:text="${score.getStatistics().get('count_300')}">450</span>
+                <span class="hit-value c-300" th:text="${Scores.getGreatCount(score)}">450</span>
                 <span class="hit-label">PERFECT</span>
             </div>
             <div class="hit-item">
-                <span class="hit-value c-100" th:text="${score.statistics.get('count_100')}">24</span>
+                <span class="hit-value c-100" th:text="${Scores.getOkCount(score)}">24</span>
                 <span class="hit-label">OK</span>
             </div>
             <div class="hit-item">
-                <span class="hit-value c-50" th:text="${score.statistics.get('count_50')}">2</span>
+                <span class="hit-value c-50" th:text="${Scores.getMehCount(score)}">2</span>
                 <span class="hit-label">MEH</span>
             </div>
             <div class="hit-item">
-                <span class="hit-value" th:classappend="${score.statistics.get('count_miss') > 0 ? 'c-miss' : ''}"
-                      th:text="${score.statistics.get('count_miss')}">1</span>
+                <span class="hit-value" th:classappend="${Scores.getMissCount(score) > 0 ? 'c-miss' : ''}"
+                      th:text="${Scores.getMissCount(score)}">1</span>
                 <span class="hit-label">MISS</span>
             </div>
         </div>

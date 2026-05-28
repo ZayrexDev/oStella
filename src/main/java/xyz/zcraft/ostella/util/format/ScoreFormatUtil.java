@@ -5,26 +5,12 @@ import xyz.zcraft.ostella.util.MiscUtil;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.Score;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class ScoreFormatUtil {
     public static String getRelativeTime(Score score) {
-        if (score == null || score.getCreatedAt() == null) {
+        if (score == null || score.getEndedAt() == null) {
             return "";
         }
-        return MiscUtil.getRelativeTimeAgo(score.getCreatedAt());
-    }
-
-    public static List<Mod> getModsList(Score score) {
-        if (score == null || score.getMods() == null) {
-            return new ArrayList<>();
-        }
-        return score.getMods().stream().map(s -> {
-            final Mod mod = new Mod();
-            mod.setAcronym(s);
-            return mod;
-        }).toList();
+        return MiscUtil.getRelativeTimeAgo(score.getEndedAt());
     }
 
     public static String getWeightPP(Score score) {
@@ -58,12 +44,28 @@ public class ScoreFormatUtil {
         }
 
         StringBuilder sb = new StringBuilder("[");
-        for (String mod : score.getMods()) {
-            sb.append(mod);
+        for (Mod mod : score.getMods()) {
+            sb.append(mod.getAcronym());
         }
         sb.append("]");
 
         return sb.toString();
+    }
+
+    public static long getGreatCount(Score score) {
+        return score.getStatistics().getOrDefault("great", 0L);
+    }
+
+    public static long getOkCount(Score score) {
+        return score.getStatistics().getOrDefault("ok", 0L);
+    }
+
+    public static long getMehCount(Score score) {
+        return score.getStatistics().getOrDefault("meh", 0L);
+    }
+
+    public static long getMissCount(Score score) {
+        return score.getStatistics().getOrDefault("miss", 0L);
     }
 }
 

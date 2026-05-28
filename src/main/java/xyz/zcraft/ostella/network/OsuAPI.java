@@ -419,6 +419,7 @@ public class OsuAPI {
         return HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + endpoint))
                 .header("Content-Type", "application/json")
+                .header("X-Api-Version", "20250410")
                 .header("Accept", "application/json")
                 .header("Authorization", auth);
     }
@@ -492,7 +493,6 @@ public class OsuAPI {
         LOG.debug("Fetching friends");
         try {
             final var request = newRequestBuilder(auth, "/friends")
-                    .header("X-Api-Version", "20241022")
                     .GET()
                     .build();
 

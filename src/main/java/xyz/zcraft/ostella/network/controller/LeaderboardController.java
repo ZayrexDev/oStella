@@ -64,7 +64,7 @@ public class LeaderboardController {
     private byte[] finalizeMapLeaderboard(LinkedList<Placement> placements, BeatmapExtended beatmap, Path rosuBeatmapPath) {
         try {
             final DiffSpec diffSpecForMap = OsuParser.getDiffSpecForMap(beatmap, rosuBeatmapPath, "");
-            return renderer.renderPK(beatmap, placements, diffSpecForMap.getPpSS());
+            return renderer.renderMapLeaderboard(beatmap, placements, diffSpecForMap.getPpSS());
         } catch (RuntimeException e) {
             throw new ApiException(ErrorCode.ROSU_ERROR, "Failed to calculate difficulty with RosuFFI: " + e.getMessage());
         }

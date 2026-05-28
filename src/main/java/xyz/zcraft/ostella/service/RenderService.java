@@ -106,19 +106,19 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("change", UserFormatUtil.getScoreChange(user));
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
-        String finalHtml = templateEngine.process("scores", ctx);
+        String finalHtml = templateEngine.process("score-list", ctx);
 
         return takeScreenshot(finalHtml);
     }
 
-    public byte[] renderPK(BeatmapExtended map, List<Placement> placements, double ppMax) {
+    public byte[] renderMapLeaderboard(BeatmapExtended map, List<Placement> placements, double ppMax) {
         Context ctx = createContext();
         ctx.setVariable("beatmap", map);
         ctx.setVariable("placements", placements);
         ctx.setVariable("ppMax", ppMax);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
-        String finalHtml = templateEngine.process("pk", ctx);
+        String finalHtml = templateEngine.process("map-leaderboard", ctx);
 
         return takeScreenshot(finalHtml);
     }
@@ -128,7 +128,7 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("users", users);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
-        String finalHtml = templateEngine.process("leaderboard", ctx);
+        String finalHtml = templateEngine.process("user-leaderboard", ctx);
 
         return takeScreenshot(finalHtml);
     }
@@ -150,7 +150,7 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("diff", spec);
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
 
-        String finalHtml = templateEngine.process("ascore", ctx);
+        String finalHtml = templateEngine.process("single-score", ctx);
 
         return takeScreenshot(finalHtml);
     }
@@ -168,7 +168,7 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("avgTimingError", analyzeData.avgTimingError());
         ctx.setVariable("analyze", analyzeData.replayAnalyze());
 
-        String finalHtml = templateEngine.process("score-analyze", ctx);
+        String finalHtml = templateEngine.process("score-analysis", ctx);
 
         return takeScreenshot(finalHtml);
     }

@@ -117,17 +117,11 @@
             text-overflow: ellipsis;
         }
 
-        .diff-star {
-            width: 20px;
-            height: 20px;
-            fill: white;
-        }
-
         .diff-badge {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #8e44ad, #c0392b);
+            background: blue;
             color: #fff;
             font-weight: 700;
             padding: 1px 8px;
@@ -555,12 +549,8 @@
             </div>
             <div class="diff">
                 <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
-                    <svg class="diff-star" th:style="'fill: ' + ${DiffSpecs.getDiffTextColor(diff)} + ';'"
-                         viewBox="0 0 20 20">
-                        <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                    </svg>
                     <div class="diff-rating" th:style="'color: ' + ${DiffSpecs.getDiffTextColor(diff)} + ';'"
-                         th:text="${#numbers.formatDecimal(diff.getStar(), 1, 2)}">5.78
+                         th:text="'★' + ${#numbers.formatDecimal(diff.getStar(), 1, 2)}">★5.78
                     </div>
                 </div>
                 <span class="spec-diff spec-star-diff"
