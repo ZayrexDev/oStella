@@ -54,8 +54,13 @@ public class oStella {
 
         try {
             LOG.info("Initializing, you may ignore the warnings below:");
+            /*
+                osuParser will use Rosu-FFI, which calls a restricted method in System and prints a warning.
+                This is to call the methods during initialization, to avoid the warning during runtime.
+             */
             System.load("");
-        } catch (UnsatisfiedLinkError _) {}
+        } catch (UnsatisfiedLinkError _) {
+        }
 
         LOG.info("Authorizing...");
 
