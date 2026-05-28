@@ -8,6 +8,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -18,26 +19,26 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class MissVisualizeService {
+    public static final double TIMING_INDICATOR_PERCENTAGE = 2;
     private static final Color PRESSED_COLOR = new Color(255, 204, 34);
     private static final Color UNPRESSED_COLOR = new Color(68, 68, 68);
+    private static final Color COLOR_PERFECT = new Color(102, 204, 255);
+    private static final Color COLOR_OK = new Color(136, 179, 0);
+    private static final Color COLOR_MEH = new Color(255, 204, 34);
+    private static final Color COLOR_MISS = new Color(239, 83, 80);
 
     private static final int CANVAS_WIDTH = 512;
     private static final int CANVAS_HEIGHT = 384;
-    private static final double ZOOM_FACTOR = 2;
+    private static final double ZOOM_FACTOR = 1.5;
     private static final int WINDOW_MILLIS = 250;
 
     private static final List<Color> PATH_COLORS;
 
     static {
-        final Color PATH_COLOR_PERFECT = new Color(102, 204, 255);
-        final Color PATH_COLOR_OK = new Color(136, 179, 0);
-        final Color PATH_COLOR_MEH = new Color(255, 204, 34);
-        final Color PATH_COLOR_MISS = new Color(239, 83, 80);
-
         PATH_COLORS = List.of(
-                UNPRESSED_COLOR, PATH_COLOR_MISS, PATH_COLOR_MEH, PATH_COLOR_OK,
-                PATH_COLOR_PERFECT,
-                PATH_COLOR_OK, PATH_COLOR_MEH, PATH_COLOR_MISS, UNPRESSED_COLOR
+                UNPRESSED_COLOR, COLOR_MISS, COLOR_MEH, COLOR_OK,
+                COLOR_PERFECT,
+                COLOR_OK, COLOR_MEH, COLOR_MISS, UNPRESSED_COLOR
         );
     }
 
@@ -159,8 +160,8 @@ public class MissVisualizeService {
             if (absOffset < diff.getPerfectWindow()) return 4;
 
             boolean isEarly = offset < 0;
-            if (absOffset < diff.getOkWindow())   return isEarly ? 3 : 5;
-            if (absOffset < diff.getMehWindow())  return isEarly ? 2 : 6;
+            if (absOffset < diff.getOkWindow()) return isEarly ? 3 : 5;
+            if (absOffset < diff.getMehWindow()) return isEarly ? 2 : 6;
             if (absOffset < diff.getMissWindow()) return isEarly ? 1 : 7;
 
             return isEarly ? 0 : 8;
@@ -172,6 +173,9 @@ public class MissVisualizeService {
                                        OsuBeatmap beatmap,
                                        DifficultyAttribute diff) {
             final double circleRadius = diff.getCircleRadiusInPixel();
+
+            final LinkedList<Long> hitTimes = new LinkedList<>();
+
             BufferedImage canvas = new BufferedImage(CANVAS_WIDTH, CANVAS_HEIGHT, BufferedImage.TYPE_INT_ARGB);
 
             Graphics2D g2d = canvas.createGraphics();
@@ -181,18 +185,141 @@ public class MissVisualizeService {
             g2d.setColor(Color.WHITE);
             g2d.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // Draw circle
-            Ellipse2D circle = new Ellipse2D.Double(
-                    CANVAS_WIDTH * 0.5 - circleRadius * ZOOM_FACTOR,
-                    CANVAS_HEIGHT * 0.5 - circleRadius * ZOOM_FACTOR,
-                    circleRadius * 2 * ZOOM_FACTOR,
-                    circleRadius * 2 * ZOOM_FACTOR
-            );
+            drawNearbyCircles(hitObject, beatmap, circleRadius, g2d);
+
+            drawTargetCircle(circleRadius, g2d);
+
+            drawCursorPath(hitObject, keyFrames, diff, g2d);
+
+            drawFramePoints(hitObject, keyFrames, g2d, hitTimes);
+
+            drawText(missIndex, hitObject, beatmap, g2d);
+
+            drawTimingIndicator(diff, g2d, hitTimes);
+
+            g2d.dispose();
+
+            final ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+            try {
+                ImageIO.write(zoomAndCrop(canvas, 1), "png", output);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            return output.toByteArray();
+        }
+
+        private static void drawNearbyCircles(HitObject hitObject, OsuBeatmap beatmap, double circleRadius, Graphics2D g2d) {
+            beatmap.getHitObjects().stream()
+                    .filter(obj -> obj.getObjectType() != HitObject.ObjectType.SPINNER)
+                    .filter(obj -> obj.getTime() <= hitObject.getTime() + WINDOW_MILLIS
+                            && obj.getTime() >= hitObject.getTime() - WINDOW_MILLIS)
+                    .forEach(obj -> {
+                        Ellipse2D circle = new Ellipse2D.Double(
+                                (obj.getX() - hitObject.getX() - circleRadius) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5,
+                                (obj.getY() - hitObject.getY() - circleRadius) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5,
+                                circleRadius * 2 * ZOOM_FACTOR,
+                                circleRadius * 2 * ZOOM_FACTOR
+                        );
+
+                        g2d.setColor(new Color(0, 0, 0, 50));
+                        g2d.setStroke(new BasicStroke(1));
+                        g2d.draw(circle);
+                    });
+        }
+
+        private static void drawTimingIndicator(DifficultyAttribute diff, Graphics2D g2d, LinkedList<Long> hitTimes) {
+            final double startY = (CANVAS_HEIGHT * (1 - TIMING_INDICATOR_PERCENTAGE)) / 2;
+            final double barHeight = CANVAS_HEIGHT - 2 * startY;
+            g2d.setStroke(new BasicStroke(4));
+            g2d.setColor(COLOR_MISS);
+            drawJudgeLine(diff.getMissWindow(), diff.getMissWindow(), g2d);
+
+            g2d.setColor(COLOR_MEH);
+            drawJudgeLine(diff.getMehWindow(), diff.getMissWindow(), g2d);
+
+            g2d.setColor(COLOR_OK);
+            drawJudgeLine(diff.getOkWindow(), diff.getMissWindow(), g2d);
+
+            g2d.setColor(COLOR_PERFECT);
+            drawJudgeLine(diff.getPerfectWindow(), diff.getMissWindow(), g2d);
 
             g2d.setColor(Color.BLACK);
-            g2d.draw(circle);
+            g2d.setStroke(new BasicStroke(1));
+            g2d.draw(new Line2D.Double(CANVAS_WIDTH - 20, startY + barHeight * 0.5, CANVAS_WIDTH, startY + barHeight * 0.5));
 
-            // Draw cursor path
+            g2d.setStroke(new BasicStroke(2));
+            for (Long hitTime : hitTimes) {
+                final double lineY = startY + (1 - (double) hitTime / diff.getMissWindow()) * barHeight * 0.5;
+                g2d.setColor(PATH_COLORS.get(getHitWindowCategory(hitTime, diff)));
+                g2d.draw(new Line2D.Double(CANVAS_WIDTH - 18, lineY, CANVAS_WIDTH - 2, lineY));
+            }
+        }
+
+        private static void drawJudgeLine(double window, double missWindow, Graphics2D g2d) {
+            final double startY = (CANVAS_HEIGHT * (1 - TIMING_INDICATOR_PERCENTAGE)) / 2;
+            final double endY = CANVAS_HEIGHT - startY;
+            final double barHeight = CANVAS_HEIGHT - 2 * startY;
+            g2d.draw(new Line2D.Double(
+                    CANVAS_WIDTH - 10,
+                    startY + (1 - window / missWindow) * barHeight * 0.5,
+                    CANVAS_WIDTH - 10,
+                    endY - (1 - window / missWindow) * barHeight * 0.5
+            ));
+        }
+
+        private static void drawText(int missIndex, HitObject hitObject, OsuBeatmap beatmap, Graphics2D g2d) {
+            g2d.setColor(Color.BLACK);
+
+            final Duration duration = Duration.of(hitObject.getTime(), ChronoUnit.MILLIS);
+            String missInfo = "#" + missIndex + " Miss: " + hitObject.getObjectType() + " @" +
+                    String.format("%02d:%02d.%03d", duration.toMinutesPart(), duration.toSecondsPart(), duration.toMillisPart());
+
+            g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
+            g2d.drawString(missInfo, 5, CANVAS_HEIGHT - 5);
+
+            g2d.setFont(new Font("Dejavu Sans", Font.BOLD, 20));
+            g2d.drawString(beatmap.getBeatmapId() + " - " + beatmap.getTitle(), 5, 20);
+            g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
+            g2d.drawString(beatmap.getArtist() + " [" + beatmap.getVersion() + "]", 5, 40);
+        }
+
+        private static void drawFramePoints(HitObject hitObject, List<TimedFrame> keyFrames, Graphics2D g2d, List<Long> hitTimes) {
+            int previousFlags = keyFrames.getFirst().keyFrame().key();
+
+            for (var keyFrame : keyFrames) {
+                final double x = (keyFrame.keyFrame().cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
+                final double y = (keyFrame.keyFrame().cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
+
+                int currentFlags = keyFrame.keyFrame().key();
+                int newlyPressed = currentFlags & ~previousFlags;
+                boolean isNewPress = (newlyPressed & 15) > 0;
+
+                boolean leftPressed = (currentFlags & 4) > 0 || (currentFlags & 1) > 0;
+                boolean rightPressed = (currentFlags & 8) > 0 || (currentFlags & 2) > 0;
+
+                if (isNewPress) {
+                    g2d.setStroke(new BasicStroke(3));
+                    drawSemicircle(g2d, true, false, x, y, 6 * ZOOM_FACTOR, leftPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
+                    drawSemicircle(g2d, false, false, x, y, 6 * ZOOM_FACTOR, rightPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
+                    g2d.setStroke(new BasicStroke(1));
+                    hitTimes.add(keyFrame.time() - hitObject.getTime());
+                } else {
+                    if (leftPressed || rightPressed) {
+                        drawSemicircle(g2d, true, true, x, y, 2 * ZOOM_FACTOR, leftPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
+                        drawSemicircle(g2d, false, true, x, y, 2 * ZOOM_FACTOR, rightPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
+                    } else {
+                        drawSemicircle(g2d, true, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
+                        drawSemicircle(g2d, false, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
+                    }
+                }
+
+                previousFlags = currentFlags;
+            }
+        }
+
+        private static void drawCursorPath(HitObject hitObject, List<TimedFrame> keyFrames, DifficultyAttribute diff, Graphics2D g2d) {
             Path2D.Double currentPath = new Path2D.Double();
             int currentCategory = -1;
 
@@ -236,66 +363,19 @@ public class MissVisualizeService {
                 g2d.setColor(PATH_COLORS.get(currentCategory));
                 g2d.draw(currentPath);
             }
+        }
 
-            // Draw frame points
-            int previousFlags = keyFrames.getFirst().keyFrame().key();
+        private static void drawTargetCircle(double circleRadius, Graphics2D g2d) {
+            Ellipse2D circle = new Ellipse2D.Double(
+                    CANVAS_WIDTH * 0.5 - circleRadius * ZOOM_FACTOR,
+                    CANVAS_HEIGHT * 0.5 - circleRadius * ZOOM_FACTOR,
+                    circleRadius * 2 * ZOOM_FACTOR,
+                    circleRadius * 2 * ZOOM_FACTOR
+            );
 
-            for (var keyFrame : keyFrames) {
-                final double x = (keyFrame.keyFrame().cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
-                final double y = (keyFrame.keyFrame().cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
-
-                int currentFlags = keyFrame.keyFrame().key();
-                int newlyPressed = currentFlags & ~previousFlags;
-                boolean isNewPress = (newlyPressed & 15) > 0;
-
-                boolean leftPressed = (currentFlags & 4) > 0 || (currentFlags & 1) > 0;
-                boolean rightPressed = (currentFlags & 8) > 0 || (currentFlags & 2) > 0;
-
-                if (isNewPress) {
-                    g2d.setStroke(new BasicStroke(3));
-                    drawSemicircle(g2d, true, false, x, y, 6 * ZOOM_FACTOR, leftPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
-                    drawSemicircle(g2d, false, false, x, y, 6 * ZOOM_FACTOR, rightPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
-                    g2d.setStroke(new BasicStroke(1));
-                } else {
-                    if (leftPressed || rightPressed) {
-                        drawSemicircle(g2d, true, true, x, y, 2 * ZOOM_FACTOR, leftPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
-                        drawSemicircle(g2d, false, true, x, y, 2 * ZOOM_FACTOR, rightPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
-                    } else {
-                        drawSemicircle(g2d, true, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
-                        drawSemicircle(g2d, false, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
-                    }
-                }
-
-                previousFlags = currentFlags;
-            }
-
-
-            // Text
             g2d.setColor(Color.BLACK);
-
-            final Duration duration = Duration.of(hitObject.getTime(), ChronoUnit.MILLIS);
-            String missInfo = "#" + missIndex + " Miss: " + hitObject.getObjectType() + " @" +
-                    String.format("%02d:%02d.%03d", duration.toMinutesPart(), duration.toSecondsPart(), duration.toMillisPart());
-
-            g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
-            g2d.drawString(missInfo, 5, CANVAS_HEIGHT - 5);
-
-            g2d.setFont(new Font("Dejavu Sans", Font.BOLD, 20));
-            g2d.drawString(beatmap.getBeatmapId() + " - " + beatmap.getTitle(), 5, 20);
-            g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
-            g2d.drawString(beatmap.getArtist() + " [" + beatmap.getVersion() + "]", 5, 40);
-
-            g2d.dispose();
-
-            final ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-            try {
-                ImageIO.write(zoomAndCrop(canvas, 1), "png", output);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            return output.toByteArray();
+            g2d.setStroke(new BasicStroke(1.5F));
+            g2d.draw(circle);
         }
     }
 
