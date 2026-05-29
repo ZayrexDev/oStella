@@ -20,12 +20,6 @@ import java.util.List;
 
 public class MissVisualizeService {
     public static final double TIMING_INDICATOR_PERCENTAGE = 2;
-    private static final Color PRESSED_COLOR = new Color(255, 204, 34);
-    private static final Color UNPRESSED_COLOR = new Color(68, 68, 68);
-    private static final Color COLOR_PERFECT = new Color(102, 204, 255);
-    private static final Color COLOR_OK = new Color(136, 179, 0);
-    private static final Color COLOR_MEH = new Color(255, 204, 34);
-    private static final Color COLOR_MISS = new Color(239, 83, 80);
 
     private static final int CANVAS_WIDTH = 512;
     private static final int CANVAS_HEIGHT = 384;
@@ -36,9 +30,9 @@ public class MissVisualizeService {
 
     static {
         PATH_COLORS = List.of(
-                UNPRESSED_COLOR, COLOR_MISS, COLOR_MEH, COLOR_OK,
-                COLOR_PERFECT,
-                COLOR_OK, COLOR_MEH, COLOR_MISS, UNPRESSED_COLOR
+                Colors.UNPRESSED_COLOR, Colors.COLOR_MISS, Colors.COLOR_MEH, Colors.COLOR_OK,
+                Colors.COLOR_PERFECT,
+                Colors.COLOR_OK, Colors.COLOR_MEH, Colors.COLOR_MISS, Colors.UNPRESSED_COLOR
         );
     }
 
@@ -88,6 +82,15 @@ public class MissVisualizeService {
         }
 
         return keyFrames.subList(leftIndex, rightIndex);
+    }
+
+    private static final class Colors {
+        private static final Color PRESSED_COLOR = new Color(255, 204, 34);
+        private static final Color UNPRESSED_COLOR = new Color(68, 68, 68);
+        private static final Color COLOR_PERFECT = new Color(102, 204, 255);
+        private static final Color COLOR_OK = new Color(136, 179, 0);
+        private static final Color COLOR_MEH = new Color(255, 204, 34);
+        private static final Color COLOR_MISS = new Color(239, 83, 80);
     }
 
     private static class ImageHelper {
@@ -220,16 +223,16 @@ public class MissVisualizeService {
             final double startY = (CANVAS_HEIGHT * (1 - TIMING_INDICATOR_PERCENTAGE)) / 2;
             final double barHeight = CANVAS_HEIGHT - 2 * startY;
             g2d.setStroke(new BasicStroke(4));
-            g2d.setColor(COLOR_MISS);
+            g2d.setColor(Colors.COLOR_MISS);
             drawJudgeLine(diff.getMissWindow(), diff.getMissWindow(), g2d);
 
-            g2d.setColor(COLOR_MEH);
+            g2d.setColor(Colors.COLOR_MEH);
             drawJudgeLine(diff.getMehWindow(), diff.getMissWindow(), g2d);
 
-            g2d.setColor(COLOR_OK);
+            g2d.setColor(Colors.COLOR_OK);
             drawJudgeLine(diff.getOkWindow(), diff.getMissWindow(), g2d);
 
-            g2d.setColor(COLOR_PERFECT);
+            g2d.setColor(Colors.COLOR_PERFECT);
             drawJudgeLine(diff.getPerfectWindow(), diff.getMissWindow(), g2d);
 
             g2d.setColor(Color.BLACK);
@@ -291,18 +294,18 @@ public class MissVisualizeService {
 
                 if (isNewPress) {
                     g2d.setStroke(new BasicStroke(3));
-                    drawSemicircle(g2d, true, false, x, y, 6 * ZOOM_FACTOR, leftPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
-                    drawSemicircle(g2d, false, false, x, y, 6 * ZOOM_FACTOR, rightPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
+                    drawSemicircle(g2d, true, false, x, y, 6 * ZOOM_FACTOR, leftPressed ? Colors.PRESSED_COLOR : Colors.UNPRESSED_COLOR);
+                    drawSemicircle(g2d, false, false, x, y, 6 * ZOOM_FACTOR, rightPressed ? Colors.PRESSED_COLOR : Colors.UNPRESSED_COLOR);
                     g2d.setStroke(new BasicStroke(1));
                     hitTimes.add(keyFrame.time() - hitObject.getTime());
+                }
+
+                if (leftPressed || rightPressed) {
+                    drawSemicircle(g2d, true, true, x, y, 2 * ZOOM_FACTOR, leftPressed ? Colors.PRESSED_COLOR : Colors.UNPRESSED_COLOR);
+                    drawSemicircle(g2d, false, true, x, y, 2 * ZOOM_FACTOR, rightPressed ? Colors.PRESSED_COLOR : Colors.UNPRESSED_COLOR);
                 } else {
-                    if (leftPressed || rightPressed) {
-                        drawSemicircle(g2d, true, true, x, y, 2 * ZOOM_FACTOR, leftPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
-                        drawSemicircle(g2d, false, true, x, y, 2 * ZOOM_FACTOR, rightPressed ? PRESSED_COLOR : UNPRESSED_COLOR);
-                    } else {
-                        drawSemicircle(g2d, true, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
-                        drawSemicircle(g2d, false, true, x, y, 1 * ZOOM_FACTOR, UNPRESSED_COLOR);
-                    }
+                    drawSemicircle(g2d, true, true, x, y, 1 * ZOOM_FACTOR, Colors.UNPRESSED_COLOR);
+                    drawSemicircle(g2d, false, true, x, y, 1 * ZOOM_FACTOR, Colors.UNPRESSED_COLOR);
                 }
 
                 previousFlags = currentFlags;
@@ -343,7 +346,7 @@ public class MissVisualizeService {
                         currentPath.moveTo(lastX, lastY);
                         currentPath.lineTo(x, y);
 
-                        segmentCounter = getSegmentCounter(g2d, lastX, lastY, segmentCounter, category, x, y);
+                        segmentCounter = drawArrow(g2d, lastX, lastY, segmentCounter, category, x, y);
                     } else {
                         currentPath.moveTo(x, y);
                     }
@@ -351,7 +354,7 @@ public class MissVisualizeService {
                     currentPath.lineTo(x, y);
 
                     if (hasLast) {
-                        segmentCounter = getSegmentCounter(g2d, lastX, lastY, segmentCounter, category, x, y);
+                        segmentCounter = drawArrow(g2d, lastX, lastY, segmentCounter, category, x, y);
                     }
                 }
 
@@ -366,7 +369,7 @@ public class MissVisualizeService {
             }
         }
 
-        private static int getSegmentCounter(Graphics2D g2d, double lastX, double lastY, int segmentCounter, int category, double x, double y) {
+        private static int drawArrow(Graphics2D g2d, double lastX, double lastY, int segmentCounter, int category, double x, double y) {
             double dx = x - lastX;
             double dy = y - lastY;
             double segLen = Math.hypot(dx, dy);
