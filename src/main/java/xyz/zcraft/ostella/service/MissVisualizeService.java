@@ -54,20 +54,7 @@ public class MissVisualizeService {
 
         final HitEvent targetMiss = missEvents.get(missIndex);
 
-        final List<TimedFrame> keyFrames = new LinkedList<>();
-
-        final int n = replayAnalyze.replay().keyFrames().size();
-        long[] cumulative = new long[n];
-        long t = 0L;
-        for (int i = 0; i < n; i++) {
-            final long offset = replayAnalyze.replay().keyFrames().get(i).offset();
-            t += offset;
-            cumulative[i] = t;
-        }
-
-        for (int i = 0; i < replayAnalyze.replay().keyFrames().size(); i++) {
-            keyFrames.add(new TimedFrame(cumulative[i], replayAnalyze.replay().keyFrames().get(i)));
-        }
+        final var keyFrames = replayAnalyze.replay().timedKeyFrames();
 
         return ImageHelper.drawMiss(
                 missIndex + 1,
@@ -78,7 +65,7 @@ public class MissVisualizeService {
         );
     }
 
-    private static List<TimedFrame> extractNearbyKeyFrames(List<TimedFrame> keyFrames, HitObject hitObject) {
+    private static List<OsuReplay.TimedKeyFrame> extractNearbyKeyFrames(List<OsuReplay.TimedKeyFrame> keyFrames, HitObject hitObject) {
         int leftIndex = -1, rightIndex = -1;
         for (int i = 0; i < keyFrames.size(); i++) {
             if (keyFrames.get(i).time() > hitObject.getTime()) {
@@ -169,7 +156,7 @@ public class MissVisualizeService {
 
         private static byte[] drawMiss(int missIndex,
                                        HitObject hitObject,
-                                       List<TimedFrame> keyFrames,
+                                       List<OsuReplay.TimedKeyFrame> keyFrames,
                                        OsuBeatmap beatmap,
                                        DifficultyAttribute diff) {
             final double circleRadius = diff.getCircleRadiusInPixel();
@@ -285,14 +272,17 @@ public class MissVisualizeService {
             g2d.drawString(beatmap.getArtist() + " [" + beatmap.getVersion() + "]", 5, 40);
         }
 
-        private static void drawFramePoints(HitObject hitObject, List<TimedFrame> keyFrames, Graphics2D g2d, List<Long> hitTimes) {
-            int previousFlags = keyFrames.getFirst().keyFrame().key();
+        private static void drawFramePoints(HitObject hitObject,
+                                            List<OsuReplay.TimedKeyFrame> keyFrames,
+                                            Graphics2D g2d,
+                                            List<Long> hitTimes) {
+            int previousFlags = keyFrames.getFirst().key();
 
             for (var keyFrame : keyFrames) {
-                final double x = (keyFrame.keyFrame().cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
-                final double y = (keyFrame.keyFrame().cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
+                final double x = (keyFrame.cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
+                final double y = (keyFrame.cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
 
-                int currentFlags = keyFrame.keyFrame().key();
+                int currentFlags = keyFrame.key();
                 int newlyPressed = currentFlags & ~previousFlags;
                 boolean isNewPress = (newlyPressed & 15) > 0;
 
@@ -319,7 +309,10 @@ public class MissVisualizeService {
             }
         }
 
-        private static void drawCursorPath(HitObject hitObject, List<TimedFrame> keyFrames, DifficultyAttribute diff, Graphics2D g2d) {
+        private static void drawCursorPath(HitObject hitObject,
+                                           List<OsuReplay.TimedKeyFrame> keyFrames,
+                                           DifficultyAttribute diff,
+                                           Graphics2D g2d) {
             Path2D.Double currentPath = new Path2D.Double();
             int currentCategory = -1;
 
@@ -333,8 +326,8 @@ public class MissVisualizeService {
                 long offset = keyFrame.time() - hitObject.getTime();
                 int category = getHitWindowCategory(offset, diff);
 
-                double x = (keyFrame.keyFrame().cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
-                double y = (keyFrame.keyFrame().cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
+                double x = (keyFrame.cursorX() - hitObject.getX()) * ZOOM_FACTOR + CANVAS_WIDTH * 0.5;
+                double y = (keyFrame.cursorY() - hitObject.getY()) * ZOOM_FACTOR + CANVAS_HEIGHT * 0.5;
 
                 if (category != currentCategory) {
                     if (currentCategory != -1) {
@@ -434,8 +427,5 @@ public class MissVisualizeService {
             g2d.setStroke(new BasicStroke(1.5F));
             g2d.draw(circle);
         }
-    }
-
-    private record TimedFrame(long time, OsuReplay.KeyFrame keyFrame) {
     }
 }

@@ -47,7 +47,7 @@ public class LeaderboardController {
 
         context.future(() -> getPlacementsAsync(leaderboardRequest.uids(), m)
                 .thenApply(p -> {
-                    p.sort((a, b) -> Double.compare(b.score.pp, a.score.pp));
+                    p.sort((a, b) -> Long.compare(b.getScore().getTotalScore(), a.getScore().getTotalScore()));
                     return p;
                 })
                 .thenCompose(placements ->

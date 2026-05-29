@@ -186,5 +186,4 @@ public class BeatmapController {
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
-
 }
