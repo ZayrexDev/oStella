@@ -121,11 +121,11 @@ public class AnalyzeController {
                                     .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
                                     .toList();
                             JsonArray arr = new JsonArray();
-                            for (int i = 0; i < misses.size(); i++) {
+                            for (int i = 1; i <= misses.size(); i++) {
                                 JsonObject object = new JsonObject();
                                 object.addProperty("index", i);
                                 object.addProperty("time", misses.get(i).hitObject().getTime());
-
+                                object.addProperty("type", misses.get(i).hitObject().getObjectType().name());
                                 arr.add(object);
                             }
                             return arr;

@@ -42,16 +42,16 @@ public class MissVisualizeService {
                 .filter(hitEvent -> hitEvent.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
                 .toList();
 
-        if (missIndex < 0 || missIndex >= missEvents.size()) {
+        if (missIndex <= 0 || missIndex > missEvents.size()) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid miss index: " + missIndex + ", should be 0-" + (missEvents.size() - 1));
         }
 
-        final HitEvent targetMiss = missEvents.get(missIndex);
+        final HitEvent targetMiss = missEvents.get(missIndex - 1);
 
         final var keyFrames = replayAnalyze.replay().timedKeyFrames();
 
         return ImageHelper.drawMiss(
-                missIndex + 1,
+                missIndex,
                 targetMiss.hitObject(),
                 extractNearbyKeyFrames(keyFrames, targetMiss.hitObject()),
                 replayAnalyze.beatmap(),
