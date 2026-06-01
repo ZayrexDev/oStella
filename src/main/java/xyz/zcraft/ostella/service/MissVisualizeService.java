@@ -2,7 +2,8 @@ package xyz.zcraft.ostella.service;
 
 import xyz.zcraft.ostella.network.ApiException;
 import xyz.zcraft.ostella.network.ErrorCode;
-import xyz.zcraft.osu.parser.data.*;
+import xyz.zcraft.osu.parser.data.beatmap.*;
+import xyz.zcraft.osu.parser.data.replay.*;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

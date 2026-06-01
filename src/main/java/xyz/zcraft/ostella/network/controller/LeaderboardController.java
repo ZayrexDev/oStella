@@ -15,7 +15,7 @@ import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.User;
 import xyz.zcraft.osu.parser.OsuParser;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
 
 import java.nio.file.Path;
 import java.util.*;

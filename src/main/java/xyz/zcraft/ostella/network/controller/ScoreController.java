@@ -11,7 +11,7 @@ import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.Score;
 import xyz.zcraft.osu.parser.OsuParser;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
 
 import static xyz.zcraft.ostella.util.RequestUtil.requireLong;
 import static xyz.zcraft.ostella.util.RequestUtil.requirePathLong;

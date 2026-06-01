@@ -13,7 +13,7 @@ import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.MultiplayerRoom;
 import xyz.zcraft.osu.model.Score;
 import xyz.zcraft.osu.parser.OsuParser;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
 
 import java.util.Comparator;
 import java.util.List;

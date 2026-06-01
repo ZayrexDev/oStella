@@ -21,7 +21,8 @@ import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
 import xyz.zcraft.osu.parser.ReplayAnalyzer;
 import xyz.zcraft.osu.parser.ReplayParser;
-import xyz.zcraft.osu.parser.data.*;
+import xyz.zcraft.osu.parser.data.beatmap.*;
+import xyz.zcraft.osu.parser.data.replay.*;
 
 import java.nio.file.Path;
 import java.util.List;

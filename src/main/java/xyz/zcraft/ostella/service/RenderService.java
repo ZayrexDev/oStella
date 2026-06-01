@@ -15,7 +15,7 @@ import xyz.zcraft.ostella.network.controller.AnalyzeController;
 import xyz.zcraft.ostella.util.Colors;
 import xyz.zcraft.ostella.util.format.*;
 import xyz.zcraft.osu.model.*;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
