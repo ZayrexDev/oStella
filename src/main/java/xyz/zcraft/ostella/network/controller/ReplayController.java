@@ -168,7 +168,7 @@ public class ReplayController {
             List<CompletableFuture<Score>> scoreFutures = scoreIds.stream()
                     .map(router::getScore).toList();
 
-            return finalizeScoreRender(context, scoreFutures);
+            return finalizeShowcase(context, scoreFutures);
         });
     }
 
@@ -187,12 +187,12 @@ public class ReplayController {
                     .map(userId -> executor.enqueueAsync(() ->
                             OsuAPI.getUserScore(tokenManager.getTokenData(), userId, m))).toList();
 
-            return finalizeScoreRender(context, scoreFutures);
+            return finalizeShowcase(context, scoreFutures);
         });
     }
 
     @NonNull
-    private CompletableFuture<?> finalizeScoreRender(@NotNull Context context, List<CompletableFuture<Score>> scoreFutures) {
+    private CompletableFuture<?> finalizeShowcase(@NotNull Context context, List<CompletableFuture<Score>> scoreFutures) {
         return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
                 .thenApply(_ -> scoreFutures.stream()
                         .map(CompletableFuture::join)
@@ -244,19 +244,17 @@ public class ReplayController {
 
             score.getBeatmap().setBeatmapset(score.getBeatmapset());
 
-            context.status(202).result(
-                    new Response(
-                            true,
-                            "Replay render queued!",
-                            GSON.toJsonTree(Map.of(
-                                    "status", "queued",
-                                    "position", queueSize,
-                                    "id", jobId,
-                                    "beatmap", score.getBeatmap(),
-                                    "scores", router.getScoresArr(List.of(score))
-                            ))
-                    ).toString()
-            );
+            JsonObject obj = new JsonObject();
+            obj.addProperty("status", "queued");
+            obj.addProperty("position", queueSize);
+            obj.addProperty("id", jobId);
+            obj.add("beatmap", GSON.toJsonTree(score.getBeatmap()));
+            obj.add("scores", router.getScoresArr(List.of(score)));
+
+            if (!Double.isNaN(start)) obj.addProperty("start", start);
+            if (!Double.isNaN(end)) obj.addProperty("end", end);
+
+            context.status(202).result(new Response(true, "Replay render queued!", obj).toString());
         });
     }
 
@@ -313,9 +311,6 @@ public class ReplayController {
                         obj.addProperty("id", jobId);
                         obj.add("beatmap", GSON.toJsonTree(beatmap));
                         obj.add("scores", router.getScoresArr(scores));
-
-                        if (!Double.isNaN(start)) obj.addProperty("start", start);
-                        if (!Double.isNaN(end)) obj.addProperty("end", end);
 
                         context.status(202).result(new Response(true, "Replay render queued!", obj).toString());
                     });
