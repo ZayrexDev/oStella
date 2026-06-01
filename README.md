@@ -107,13 +107,14 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 ### Scores
 
-| Method | Path                                             | Purpose                      | Params / POST Body         | Response |
-|--------|--------------------------------------------------|------------------------------|----------------------------|----------|
-| GET    | `/scores/lookup`                                 | Resolve score IDs            | See section below          | JSON     |
-| GET    | `/scores/{scoreId}`                              | Score card image             | path `scoreId`             | PNG      |
-| GET    | `/scores/{scoreId}/analysis`                     | Score analysis card image    | path `scoreId`             | PNG      |
-| GET    | `/scores/{scoreId}/misses`                       | List the misses of the score | path `scoreId`             | JSON     |
-| GET    | `/scores/{scoreId}/misses/{missIndex}/visualize` | Visualize misses             | path `scoreId` `missIndex` | PNG      |
+| Method | Path                                             | Purpose                        | Params / POST Body         | Response |
+|--------|--------------------------------------------------|--------------------------------|----------------------------|----------|
+| GET    | `/scores/lookup`                                 | Resolve score IDs              | See section below          | JSON     |
+| GET    | `/scores/{scoreId}`                              | Score card image               | path `scoreId`             | PNG      |
+| GET    | `/scores/{scoreId}/analysis`                     | Score analysis card image      | path `scoreId`             | PNG      |
+| GET    | `/scores/{scoreId}/highlight`                    | 20s highlight range of a score | path `scoreId`             | JSON     |
+| GET    | `/scores/{scoreId}/misses`                       | List the misses of the score   | path `scoreId`             | JSON     |
+| GET    | `/scores/{scoreId}/misses/{missIndex}/visualize` | Visualize misses               | path `scoreId` `missIndex` | PNG      |
 
 ### Multiplayer Rooms
 

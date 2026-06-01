@@ -21,8 +21,13 @@ import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
 import xyz.zcraft.osu.parser.ReplayAnalyzer;
 import xyz.zcraft.osu.parser.ReplayParser;
-import xyz.zcraft.osu.parser.data.beatmap.*;
-import xyz.zcraft.osu.parser.data.replay.*;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.HitObject;
+import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
+import xyz.zcraft.osu.parser.data.replay.HitEvent;
+import xyz.zcraft.osu.parser.data.replay.OsuReplay;
+import xyz.zcraft.osu.parser.data.replay.ReplayAnalyze;
+import xyz.zcraft.osu.parser.data.replay.WdPerform;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -117,22 +122,39 @@ public class AnalyzeController {
         context.future(() -> router.getScore(scoreId)
                 .thenApply(score -> getReplayAnalyze(context, score))
                 .thenApply(analyze -> {
-                            var misses = analyze.events().stream()
-                                    .filter(hitEvent -> !hitEvent.wasHit())
-                                    .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
-                                    .toList();
-                            JsonArray arr = new JsonArray();
-                            for (int i = 0; i < misses.size(); i++) {
-                                JsonObject object = new JsonObject();
-                                object.addProperty("index", i + 1);
-                                object.addProperty("time", misses.get(i).hitObject().getTime());
-                                object.addProperty("type", misses.get(i).hitObject().getObjectType().name());
-                                arr.add(object);
-                            }
-                            return arr;
-                        }
-                )
+                    var misses = analyze.events().stream()
+                            .filter(hitEvent -> !hitEvent.wasHit())
+                            .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
+                            .toList();
+                    return getMissArr(misses);
+                })
                 .thenAccept(arr -> context.status(200).result(new Response(true, "Success", arr).toString())));
+    }
+
+    private @NonNull JsonArray getMissArr(List<HitEvent> misses) {
+        JsonArray arr = new JsonArray();
+        for (int i = 0; i < misses.size(); i++) {
+            JsonObject object = new JsonObject();
+            object.addProperty("index", i + 1);
+            object.addProperty("time", misses.get(i).hitObject().getTime());
+            object.addProperty("type", misses.get(i).hitObject().getObjectType().name());
+            arr.add(object);
+        }
+        return arr;
+    }
+
+    public void getScoreHighlight(@NotNull Context context) {
+        final long scoreId = requirePathLong(context, "scoreId");
+        context.future(() -> router.getScore(scoreId)
+                .thenApply(score -> getReplayAnalyze(context, score))
+                .thenApply(analyze -> {
+                    final WdPerform highlight = OsuParser.getHighlight(analyze);
+                    JsonObject object = new JsonObject();
+                    object.addProperty("start", highlight.startTime());
+                    object.addProperty("end", highlight.startTime());
+                    return object;
+                })
+                .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString())));
     }
 
     private @NonNull ReplayAnalyze getReplayAnalyze(@NonNull Context context, Score score) {
