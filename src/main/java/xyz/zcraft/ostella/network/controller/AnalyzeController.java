@@ -151,7 +151,7 @@ public class AnalyzeController {
                     final WdPerform highlight = OsuParser.getHighlight(analyze);
                     JsonObject object = new JsonObject();
                     object.addProperty("start", highlight.startTime());
-                    object.addProperty("end", highlight.startTime());
+                    object.addProperty("end", highlight.endTime());
                     return object;
                 })
                 .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString())));
