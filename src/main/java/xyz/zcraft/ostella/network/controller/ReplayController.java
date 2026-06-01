@@ -44,10 +44,6 @@ public class ReplayController {
         this.executor = router.executor;
     }
 
-    public void queueReplayRenderById(@NotNull Context context) {
-        queueReplayRenderOfIdAsync(context, requirePathLong(context, "scoreId"));
-    }
-
     public void getReplayRenderStatus(@NotNull Context context) {
         String jobId = context.pathParam("jobId");
         ReplayService.JobStatus status = replayService.getJobStatus(jobId);
@@ -142,7 +138,8 @@ public class ReplayController {
         return renderScoreForAsync(context, score, start, end);
     }
 
-    private void queueReplayRenderOfIdAsync(@NotNull Context context, long scoreId) {
+    public void queueReplayRenderOfIdAsync(@NotNull Context context) {
+        long scoreId = requirePathLong(context, "scoreId");
         context.future(() ->
                 router.getScore(scoreId).thenCompose(score -> {
                     if (score == null) {
@@ -310,14 +307,17 @@ public class ReplayController {
 
                         final String jobId = replayService.queueRenderShowcase(String.valueOf(beatmapId), replays, start, end);
 
-                        context.status(202).result(new Response(true, "Replay render queued!",
-                                GSON.toJsonTree(Map.of(
-                                        "status", "queued",
-                                        "position", queueSize,
-                                        "id", jobId,
-                                        "beatmap", beatmap,
-                                        "scores", router.getScoresArr(scores)
-                                ))).toString());
+                        JsonObject obj = new JsonObject();
+                        obj.addProperty("status", "queued");
+                        obj.addProperty("position", queueSize);
+                        obj.addProperty("id", jobId);
+                        obj.add("beatmap", GSON.toJsonTree(beatmap));
+                        obj.add("scores", router.getScoresArr(scores));
+
+                        if (!Double.isNaN(start)) obj.addProperty("start", start);
+                        if (!Double.isNaN(end)) obj.addProperty("end", end);
+
+                        context.status(202).result(new Response(true, "Replay render queued!", obj).toString());
                     });
         });
     }
