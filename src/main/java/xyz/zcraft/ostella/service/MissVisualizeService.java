@@ -44,7 +44,7 @@ public class MissVisualizeService {
                 .toList();
 
         if (missIndex <= 0 || missIndex > missEvents.size()) {
-            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid miss index: " + missIndex + ", should be 0-" + (missEvents.size() - 1));
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid miss index: " + missIndex + ", should be 1-" + missEvents.size());
         }
 
         final HitEvent targetMiss = missEvents.get(missIndex - 1);
@@ -268,7 +268,7 @@ public class MissVisualizeService {
                     String.format("%02d:%02d.%03d", duration.toMinutesPart(), duration.toSecondsPart(), duration.toMillisPart());
 
             g2d.setFont(new Font("Dejavu Sans", Font.PLAIN, 20));
-            g2d.drawString(missInfo, 5, CANVAS_HEIGHT - 5);
+            g2d.drawString(missInfo, 5, CANVAS_HEIGHT - 8);
 
             g2d.setFont(new Font("Dejavu Sans", Font.BOLD, 20));
             g2d.drawString(beatmap.getBeatmapId() + " - " + beatmap.getTitle(), 5, 20);
