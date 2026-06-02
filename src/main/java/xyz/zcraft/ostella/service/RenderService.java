@@ -102,6 +102,7 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("type", switch (type) {
             case BEST -> "Best of " + scores.size() + " Scores";
             case RECENT -> "Most recent " + scores.size() + " Scores";
+            case RECENT_PASS -> "Most recent " + scores.size() + " Passed Scores";
         });
         ctx.setVariable("change", UserFormatUtil.getScoreChange(user));
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));
