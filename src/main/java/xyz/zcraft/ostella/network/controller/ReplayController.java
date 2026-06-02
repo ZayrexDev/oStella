@@ -199,7 +199,7 @@ public class ReplayController {
                         .filter(s -> s != null && s.getHasReplay())
                         .peek(score -> {
                             if (score.getPp() == null) {
-                                final Path rosuBeatmapPath = CacheService.getBeatmapPath(score.getBeatmap().getId(), false);
+                                final Path rosuBeatmapPath = CacheService.getBeatmapPath(score.getBeatmap().getId());
                                 score.setPp(OsuParser.estimatePp(score, rosuBeatmapPath));
                             }
                         })

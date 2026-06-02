@@ -54,7 +54,7 @@ public class LeaderboardController {
                         executor.enqueueAsync(() -> OsuAPI.getBeatmap(tokenManager.getTokenData(), m))
                                 .thenApplyAsync(beatmap -> {
                                     if (beatmap == null) throw new ApiException(ErrorCode.NO_BEATMAP_FOUND);
-                                    final Path rosuBeatmapPath = CacheService.getBeatmapPath(m, false);
+                                    final Path rosuBeatmapPath = CacheService.getBeatmapPath(m);
 
                                     return finalizeMapLeaderboard(placements, beatmap, rosuBeatmapPath);
                                 }, renderer.getRenderExecutor()))
@@ -82,7 +82,7 @@ public class LeaderboardController {
                             }
 
                             if (score.getPp() == null) {
-                                score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(id, false)));
+                                score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(id)));
                             }
 
                             return executor
