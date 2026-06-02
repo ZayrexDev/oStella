@@ -24,7 +24,6 @@ import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -172,7 +171,7 @@ public class Router implements Closeable {
 
                             for (Score score : scores) {
                                 if (score.getPp() == null) {
-                                    score.setPp(OsuParser.estimatePp(score, getRosuPath(score.getBeatmap().getId())));
+                                    score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
                                 }
                             }
 
@@ -229,10 +228,6 @@ public class Router implements Closeable {
                             }, renderer.getRenderExecutor());
                 })
                 .thenAccept(bytes -> context.status(200).result(bytes)));
-    }
-
-    public Path getRosuPath(Long id) {
-        return CacheService.getRosuBeatmapPath(id, true);
     }
 
     @Override

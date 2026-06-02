@@ -7,6 +7,7 @@ import org.jspecify.annotations.NonNull;
 import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
+import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
@@ -188,7 +189,7 @@ public class BeatmapController {
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmap -> {
-                    DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), mod);
+                    DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, CacheService.getBeatmapPath(beatmap.getId()), mod);
                     return renderer.renderBeatmap(beatmap, diffSpec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));

@@ -5,6 +5,7 @@ import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
+import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
@@ -51,10 +52,10 @@ public class ScoreController {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
+                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, CacheService.getBeatmapPath(beatmap.getId()), score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
-                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
                     }
 
                     return renderer.renderScore(score, diffSpec);

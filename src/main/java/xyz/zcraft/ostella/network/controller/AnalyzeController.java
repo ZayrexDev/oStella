@@ -59,11 +59,11 @@ public class AnalyzeController {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final Path rosuPath = router.getRosuPath(beatmap.getId());
+                    final Path rosuPath = CacheService.getBeatmapPath(beatmap.getId());
                     final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, rosuPath, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
                     if (score.getPp() == null) {
-                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
                     }
 
                     try {
@@ -149,10 +149,13 @@ public class AnalyzeController {
                 .thenApply(score -> getReplayAnalyze(context, score))
                 .thenApply(analyze -> {
                     final WdPerform highlight = OsuParser.getHighlight(analyze);
-                    JsonObject object = new JsonObject();
-                    object.addProperty("start", highlight.startTime());
-                    object.addProperty("end", highlight.endTime());
-                    return object;
+                    JsonObject obj = new JsonObject();
+                    obj.addProperty("start", highlight.startTime());
+                    obj.addProperty("end", highlight.endTime());
+                    obj.addProperty("pp", highlight.beatmapPp());
+                    obj.addProperty("acc", highlight.accuracy());
+                    obj.addProperty("score", highlight.wdScore());
+                    return obj;
                 })
                 .thenAccept(obj -> context.status(200).result(new Response(true, "Success", obj).toString())));
     }
@@ -164,10 +167,10 @@ public class AnalyzeController {
         context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
                 .header("X-Score-Id", String.valueOf(score.getId()));
 
-        final Path rosuPath = router.getRosuPath(beatmap.getId());
+        final Path rosuPath = CacheService.getBeatmapPath(beatmap.getId());
 
         if (score.getPp() == null) {
-            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+            score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
         }
 
         try {

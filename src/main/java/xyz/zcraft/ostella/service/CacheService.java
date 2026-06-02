@@ -102,7 +102,7 @@ public class CacheService {
         return "png";
     }
 
-    public static Path getRosuBeatmapPath(long id, boolean update) {
+    public static Path getBeatmapPath(long id, boolean update) {
         if (!Files.exists(BEATMAP_CACHE.resolve(String.valueOf(id))) || update) {
             try {
                 LOG.debug("Caching beatmap {}", id);
@@ -120,6 +120,10 @@ public class CacheService {
             LOG.error("Failed to load beatmap from cache!", e);
             throw new RuntimeException("Failed to load beatmap from cache!", e);
         }
+    }
+
+    public static Path getBeatmapPath(long id) {
+        return getBeatmapPath(id, false);
     }
 
     private static void cacheBeatmapFile(long id) throws Exception {

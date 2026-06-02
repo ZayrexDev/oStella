@@ -132,7 +132,7 @@ public class ReplayController {
         final double end = optionalDouble(context, "end");
 
         if (score.getPp() == null) {
-            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+            score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
         }
 
         return renderScoreForAsync(context, score, start, end);
@@ -199,7 +199,7 @@ public class ReplayController {
                         .filter(s -> s != null && s.getHasReplay())
                         .peek(score -> {
                             if (score.getPp() == null) {
-                                final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(score.getBeatmap().getId(), false);
+                                final Path rosuBeatmapPath = CacheService.getBeatmapPath(score.getBeatmap().getId(), false);
                                 score.setPp(OsuParser.estimatePp(score, rosuBeatmapPath));
                             }
                         })
