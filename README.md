@@ -168,9 +168,15 @@ by including the index `i` in the query parameters.
 You can also look up the score of a beatmap, or the beatmap index of a beatmapset.
 
 #### Looking up beatmaps, beatmapset, or scores by a user and index (e.g., best-of-N):
-- `of` = score type (`bo` for best scores, and `rs` for recent scores, and `mp` for current multiplayer playlist item)
-- `i` = index (for `bo` and `rs`, which score index to return)
+- `of` = score type
+- `i` = index (for `bo` `rs` `rp`, which score index to return)
 - `u` = user ID
+
+##### Score Types for `of` parameter:
+- `bo` - best scores
+- `rs` - recent scores
+- `rp` - recent **passed** scores
+- `mp` - current multiplayer playlist item
 
 #### Examples
 - `/beatmaps/lookup?m=12345678` - Look up beatmap by map ID

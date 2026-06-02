@@ -65,7 +65,7 @@ public class BeatmapController {
     }
 
     private void lookupBeatmapOfRefAsync(@NotNull Context context) {
-        final String of = requireStringFrom(context, "of", "rs", "bo", "mp");
+        final String of = requireStringFrom(context, "of", "rs", "bo", "mp", "rp");
 
         if ("mp".equals(of)) {
             lookupBeatmapFromSomeRoom(context);
@@ -101,8 +101,9 @@ public class BeatmapController {
     private void lookupBeatmapFromSomeScore(@NonNull Context context, @NotNull String of) {
         final int i = requireInt(context, "i");
         final long u = requireLong(context, "u");
+        final boolean fail = "rs".equalsIgnoreCase(of);
 
-        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false))
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") || of.equals("rp") ? ScoreType.RECENT : ScoreType.BEST, i, fail))
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty())
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found");

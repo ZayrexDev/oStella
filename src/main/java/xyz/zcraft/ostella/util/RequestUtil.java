@@ -47,6 +47,19 @@ public class RequestUtil {
         }
     }
 
+    public static boolean requireBoolean(Context context, String param, boolean fallback) throws ApiException {
+        try {
+            final String obj = context.queryParam(param);
+            if (obj == null || obj.isBlank()) return fallback;
+
+            if ("true".equalsIgnoreCase(obj)) return true;
+            if ("false".equalsIgnoreCase(obj)) return false;
+            return fallback;
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
+        }
+    }
+
     public static long requirePathLong(Context context, String param) throws ApiException {
         try {
             final String s = context.pathParam(param);

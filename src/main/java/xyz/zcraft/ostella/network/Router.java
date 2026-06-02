@@ -155,9 +155,10 @@ public class Router implements Closeable {
     protected void getRecentScores(@NotNull Context context) {
         final long u = requirePathLong(context, "userId");
         final int n = requireInt(context, "n");
+        final boolean fail = requireBoolean(context, "fail", false);
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.RECENT, n, false)
+                        tokenManager.getTokenData(), u, ScoreType.RECENT, n, fail)
                 )
                 .thenCompose(scores -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
                         .thenApplyAsync(user -> {
@@ -284,12 +285,13 @@ public class Router implements Closeable {
     }
 
     public CompletableFuture<Score> getScoreFromRefAsync(@NotNull Context context) {
-        final String of = requireStringFrom(context, "of", "rs", "bo");
+        final String of = requireStringFrom(context, "of", "rs", "bo", "rp");
         final long u = requireLong(context, "u");
         final int i = requireInt(context, "i");
+        final boolean fail = "rs".equalsIgnoreCase(of);
 
         return executor
-                .enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false))
+                .enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") || of.equals("rp") ? ScoreType.RECENT : ScoreType.BEST, i, fail))
                 .thenApply(scores -> {
                     if (scores.isEmpty() || scores.size() < i) {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for user!");
