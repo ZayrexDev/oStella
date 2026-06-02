@@ -157,8 +157,10 @@ public class Router implements Closeable {
         final int n = requireInt(context, "n");
         final boolean fail = requireBoolean(context, "fail", false);
 
+        final ScoreType type = fail ? ScoreType.RECENT : ScoreType.RECENT_PASS;
+
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.RECENT, n, fail)
+                        tokenManager.getTokenData(), u, type, n)
                 )
                 .thenCompose(scores -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
                         .thenApplyAsync(user -> {
@@ -174,7 +176,7 @@ public class Router implements Closeable {
                                 }
                             }
 
-                            return renderer.renderScores(user, scores, ScoreType.RECENT);
+                            return renderer.renderScores(user, scores, fail ? ScoreType.RECENT : ScoreType.RECENT_PASS);
                         }, renderer.getRenderExecutor()))
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
@@ -214,7 +216,7 @@ public class Router implements Closeable {
         final int n = requireInt(context, "n");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.BEST, n, false
+                        tokenManager.getTokenData(), u, ScoreType.BEST, n
                 ))
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty()) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
@@ -288,10 +290,16 @@ public class Router implements Closeable {
         final String of = requireStringFrom(context, "of", "rs", "bo", "rp");
         final long u = requireLong(context, "u");
         final int i = requireInt(context, "i");
-        final boolean fail = "rs".equalsIgnoreCase(of);
+
+        final ScoreType type = switch (of.toLowerCase()) {
+            case "rs" -> ScoreType.RECENT;
+            case "rp" -> ScoreType.RECENT_PASS;
+            case "bo" -> ScoreType.BEST;
+            default -> throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid score type: " + of);
+        };
 
         return executor
-                .enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") || of.equals("rp") ? ScoreType.RECENT : ScoreType.BEST, i, fail))
+                .enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, type, i))
                 .thenApply(scores -> {
                     if (scores.isEmpty() || scores.size() < i) {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for user!");

@@ -84,10 +84,18 @@ public class OsuAPI {
         }
     }
 
-    public static List<Score> getUserScores(TokenData tokenData, long uid, ScoreType mode, int limit, boolean includeFails) {
+    public static List<Score> getUserScores(TokenData tokenData, long uid, ScoreType mode, int limit) {
         LOG.debug("Fetching {} scores for user id {} in mode {}", mode.name().toLowerCase(), uid, mode.name().toLowerCase());
         try {
-            final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", uid, mode.name().toLowerCase(), limit, includeFails ? 1 : 0))
+            String type = switch (mode) {
+                case RECENT_PASS, RECENT -> "recent";
+                case BEST -> "best";
+            };
+            boolean fail = switch (mode) {
+                case RECENT_PASS, BEST -> false;
+                case RECENT -> true;
+            };
+            final var request = newRequestBuilder(tokenData, String.format("/users/%s/scores/%s?mode=osu&limit=%d&include_fails=%d", uid, type, limit, fail ? 1 : 0))
                     .GET()
                     .build();
 

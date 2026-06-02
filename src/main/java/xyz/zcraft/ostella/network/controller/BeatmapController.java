@@ -101,9 +101,15 @@ public class BeatmapController {
     private void lookupBeatmapFromSomeScore(@NonNull Context context, @NotNull String of) {
         final int i = requireInt(context, "i");
         final long u = requireLong(context, "u");
-        final boolean fail = "rs".equalsIgnoreCase(of);
 
-        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") || of.equals("rp") ? ScoreType.RECENT : ScoreType.BEST, i, fail))
+        final ScoreType type = switch (of.toLowerCase()) {
+            case "rs" -> ScoreType.RECENT;
+            case "rp" -> ScoreType.RECENT_PASS;
+            case "bo" -> ScoreType.BEST;
+            default -> throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid score type: " + of);
+        };
+
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, type, i))
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty())
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found");
