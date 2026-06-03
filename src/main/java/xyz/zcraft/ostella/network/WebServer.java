@@ -44,6 +44,7 @@ public class WebServer implements Closeable {
                     .get("/scores/lookup", router.scoreController::lookupScore)
                     .get("/scores/{scoreId}", router.scoreController::renderScoreById)
                     .get("/scores/{scoreId}/analysis", router.analyzeController::renderScoreAnalysisById)
+                    .get("/scores/{scoreId}/highlight", router.analyzeController::getScoreHighlight)
                     .get("/scores/{scoreId}/misses", router.analyzeController::getMisses)
                     .get("/scores/{scoreId}/misses/{missIndex}/visualize", router.analyzeController::visualizeMiss)
 
@@ -64,7 +65,7 @@ public class WebServer implements Closeable {
                 cfg.routes
                         .get("/replays/status", router.replayController::getReplayRenderOverview)
 
-                        .post("/replays/renders/score/{scoreId}", router.replayController::queueReplayRenderById)
+                        .post("/replays/renders/score/{scoreId}", router.replayController::queueReplayRenderOfIdAsync)
                         .post("/replays/renders/showcase/scores", router.replayController::renderShowcaseOfIdsAsync)
                         .post("/replays/renders/showcase/{beatmapId}", router.replayController::renderShowcaseOfUsersAsync)
 
@@ -94,8 +95,7 @@ public class WebServer implements Closeable {
                                  ErrorCode.BEATMAPSET_FETCH_FAILED,
                                  ErrorCode.SCORE_FETCH_FAILED,
                                  ErrorCode.USER_FETCH_FAILED,
-                                 ErrorCode.RENDER_QUEUE_FULL,
-                                 ErrorCode.ROSU_ERROR -> ctx.status(500);
+                                 ErrorCode.RENDER_QUEUE_FULL -> ctx.status(500);
 
                             default -> ctx.status(500);
                         }

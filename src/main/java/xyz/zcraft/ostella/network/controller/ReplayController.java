@@ -15,7 +15,6 @@ import xyz.zcraft.ostella.service.ReplayService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Score;
-import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,10 +41,6 @@ public class ReplayController {
         this.replayService = router.replayService;
         this.tokenManager = router.tokenManager;
         this.executor = router.executor;
-    }
-
-    public void queueReplayRenderById(@NotNull Context context) {
-        queueReplayRenderOfIdAsync(context, requirePathLong(context, "scoreId"));
     }
 
     public void getReplayRenderStatus(@NotNull Context context) {
@@ -135,14 +130,13 @@ public class ReplayController {
         final double start = optionalDouble(context, "start");
         final double end = optionalDouble(context, "end");
 
-        if (score.getPp() == null) {
-            score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
-        }
+        router.ensurePp(score);
 
         return renderScoreForAsync(context, score, start, end);
     }
 
-    private void queueReplayRenderOfIdAsync(@NotNull Context context, long scoreId) {
+    public void queueReplayRenderOfIdAsync(@NotNull Context context) {
+        long scoreId = requirePathLong(context, "scoreId");
         context.future(() ->
                 router.getScore(scoreId).thenCompose(score -> {
                     if (score == null) {
@@ -171,7 +165,7 @@ public class ReplayController {
             List<CompletableFuture<Score>> scoreFutures = scoreIds.stream()
                     .map(router::getScore).toList();
 
-            return finalizeScoreRender(context, scoreFutures);
+            return finalizeShowcase(context, scoreFutures);
         });
     }
 
@@ -190,22 +184,17 @@ public class ReplayController {
                     .map(userId -> executor.enqueueAsync(() ->
                             OsuAPI.getUserScore(tokenManager.getTokenData(), userId, m))).toList();
 
-            return finalizeScoreRender(context, scoreFutures);
+            return finalizeShowcase(context, scoreFutures);
         });
     }
 
     @NonNull
-    private CompletableFuture<?> finalizeScoreRender(@NotNull Context context, List<CompletableFuture<Score>> scoreFutures) {
+    private CompletableFuture<?> finalizeShowcase(@NotNull Context context, List<CompletableFuture<Score>> scoreFutures) {
         return CompletableFuture.allOf(scoreFutures.toArray(new CompletableFuture[0]))
                 .thenApply(_ -> scoreFutures.stream()
                         .map(CompletableFuture::join)
                         .filter(s -> s != null && s.getHasReplay())
-                        .peek(score -> {
-                            if (score.getPp() == null) {
-                                final Path rosuBeatmapPath = CacheService.getRosuBeatmapPath(score.getBeatmap().getId(), false);
-                                score.setPp(OsuParser.estimatePp(score, rosuBeatmapPath));
-                            }
-                        })
+                        .peek(router::ensurePp)
                         .collect(Collectors.toCollection(LinkedList::new))
                 )
                 .thenCompose(validScores -> {
@@ -247,19 +236,17 @@ public class ReplayController {
 
             score.getBeatmap().setBeatmapset(score.getBeatmapset());
 
-            context.status(202).result(
-                    new Response(
-                            true,
-                            "Replay render queued!",
-                            GSON.toJsonTree(Map.of(
-                                    "status", "queued",
-                                    "position", queueSize,
-                                    "id", jobId,
-                                    "beatmap", score.getBeatmap(),
-                                    "scores", router.getScoresArr(List.of(score))
-                            ))
-                    ).toString()
-            );
+            JsonObject obj = new JsonObject();
+            obj.addProperty("status", "queued");
+            obj.addProperty("position", queueSize);
+            obj.addProperty("id", jobId);
+            obj.add("beatmap", GSON.toJsonTree(score.getBeatmap()));
+            obj.add("scores", router.getScoresArr(List.of(score)));
+
+            if (!Double.isNaN(start)) obj.addProperty("start", start);
+            if (!Double.isNaN(end)) obj.addProperty("end", end);
+
+            context.status(202).result(new Response(true, "Replay render queued!", obj).toString());
         });
     }
 
@@ -310,14 +297,14 @@ public class ReplayController {
 
                         final String jobId = replayService.queueRenderShowcase(String.valueOf(beatmapId), replays, start, end);
 
-                        context.status(202).result(new Response(true, "Replay render queued!",
-                                GSON.toJsonTree(Map.of(
-                                        "status", "queued",
-                                        "position", queueSize,
-                                        "id", jobId,
-                                        "beatmap", beatmap,
-                                        "scores", router.getScoresArr(scores)
-                                ))).toString());
+                        JsonObject obj = new JsonObject();
+                        obj.addProperty("status", "queued");
+                        obj.addProperty("position", queueSize);
+                        obj.addProperty("id", jobId);
+                        obj.add("beatmap", GSON.toJsonTree(beatmap));
+                        obj.add("scores", router.getScoresArr(scores));
+
+                        context.status(202).result(new Response(true, "Replay render queued!", obj).toString());
                     });
         });
     }

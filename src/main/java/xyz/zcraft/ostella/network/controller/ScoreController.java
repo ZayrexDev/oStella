@@ -5,13 +5,18 @@ import io.javalin.http.Context;
 import org.jetbrains.annotations.NotNull;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
+import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.Score;
+import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
+import xyz.zcraft.osu.parser.exception.AnalyzeException;
+import xyz.zcraft.osu.parser.exception.ParseException;
 
 import static xyz.zcraft.ostella.util.RequestUtil.requireLong;
 import static xyz.zcraft.ostella.util.RequestUtil.requirePathLong;
@@ -51,13 +56,18 @@ public class ScoreController {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
+                    try {
+                        final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(CacheService.getBeatmapPath(beatmap.getId()));
+                        final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(osuBeatmap, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
-                    if (score.getPp() == null) {
-                        score.setPp(OsuParser.estimatePp(score, router.getRosuPath(score.getBeatmap().getId())));
+                        router.ensurePp(score, osuBeatmap);
+
+                        return renderer.renderScore(score, diffSpec);
+                    } catch (ParseException e) {
+                        throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, e);
+                    } catch (AnalyzeException e) {
+                        throw new ApiException(ErrorCode.SCORE_PARSE_FAILED, e);
                     }
-
-                    return renderer.renderScore(score, diffSpec);
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }

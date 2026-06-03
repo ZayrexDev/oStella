@@ -20,7 +20,11 @@ import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.MultiplayerRoom;
 import xyz.zcraft.osu.model.Score;
+import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
+import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
+import xyz.zcraft.osu.parser.exception.AnalyzeException;
+import xyz.zcraft.osu.parser.exception.ParseException;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -155,9 +159,12 @@ public class Router implements Closeable {
     protected void getRecentScores(@NotNull Context context) {
         final long u = requirePathLong(context, "userId");
         final int n = requireInt(context, "n");
+        final boolean fail = requireBoolean(context, "fail", false);
+
+        final ScoreType type = fail ? ScoreType.RECENT : ScoreType.RECENT_PASS;
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.RECENT, n, false)
+                        tokenManager.getTokenData(), u, type, n)
                 )
                 .thenCompose(scores -> executor.enqueueAsync(() -> OsuAPI.getUser(tokenManager.getTokenData(), u))
                         .thenApplyAsync(user -> {
@@ -168,14 +175,34 @@ public class Router implements Closeable {
                             context.header("X-Score-Ids", scores.stream().map(Score::getId).map(String::valueOf).collect(Collectors.joining(",")));
 
                             for (Score score : scores) {
-                                if (score.getPp() == null) {
-                                    score.setPp(OsuParser.estimatePp(score, getRosuPath(score.getBeatmap().getId())));
-                                }
+                                ensurePp(score);
                             }
 
-                            return renderer.renderScores(user, scores, ScoreType.RECENT);
+                            return renderer.renderScores(user, scores, fail ? ScoreType.RECENT : ScoreType.RECENT_PASS);
                         }, renderer.getRenderExecutor()))
                 .thenAccept(bytes -> context.status(200).result(bytes)));
+    }
+
+    public void ensurePp(Score score) {
+        if (score.getPp() == null) {
+            try {
+                final Path beatmapPath = CacheService.getBeatmapPath(score.getBeatmap().getId());
+                final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(beatmapPath);
+                ensurePp(score, osuBeatmap);
+            } catch (ParseException e) {
+                LOG.error("Failed to estimate pp for score id: {}", score.getId(), e);
+            }
+        }
+    }
+
+    public void ensurePp(Score score, OsuBeatmap osuBeatmap) {
+        if (score.getPp() == null) {
+            try {
+                score.setPp(OsuParser.estimatePp(score, osuBeatmap));
+            } catch (AnalyzeException e) {
+                LOG.error("Failed to estimate pp for score id: {}", score.getId(), e);
+            }
+        }
     }
 
     protected void getDaily(@NotNull Context context) {
@@ -213,7 +240,7 @@ public class Router implements Closeable {
         final int n = requireInt(context, "n");
 
         context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(
-                        tokenManager.getTokenData(), u, ScoreType.BEST, n, false
+                        tokenManager.getTokenData(), u, ScoreType.BEST, n
                 ))
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty()) throw new ApiException(ErrorCode.NO_SCORE_FOUND);
@@ -226,10 +253,6 @@ public class Router implements Closeable {
                             }, renderer.getRenderExecutor());
                 })
                 .thenAccept(bytes -> context.status(200).result(bytes)));
-    }
-
-    public Path getRosuPath(Long id) {
-        return CacheService.getRosuBeatmapPath(id, true);
     }
 
     @Override
@@ -284,12 +307,19 @@ public class Router implements Closeable {
     }
 
     public CompletableFuture<Score> getScoreFromRefAsync(@NotNull Context context) {
-        final String of = requireStringFrom(context, "of", "rs", "bo");
+        final String of = requireStringFrom(context, "of", "rs", "bo", "rp");
         final long u = requireLong(context, "u");
-        final int i = requireInt(context, "i");
+        final int i = requirePositiveInt(context, "i");
+
+        final ScoreType type = switch (of.toLowerCase()) {
+            case "rs" -> ScoreType.RECENT;
+            case "rp" -> ScoreType.RECENT_PASS;
+            case "bo" -> ScoreType.BEST;
+            default -> throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid score type: " + of);
+        };
 
         return executor
-                .enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false))
+                .enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, type, i))
                 .thenApply(scores -> {
                     if (scores.isEmpty() || scores.size() < i) {
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found for user!");

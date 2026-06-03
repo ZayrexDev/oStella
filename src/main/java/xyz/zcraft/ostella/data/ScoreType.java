@@ -1,5 +1,5 @@
 package xyz.zcraft.ostella.data;
 
 public enum ScoreType {
-    BEST, RECENT
+    BEST, RECENT, RECENT_PASS
 }

@@ -15,7 +15,7 @@ import xyz.zcraft.ostella.network.controller.AnalyzeController;
 import xyz.zcraft.ostella.util.Colors;
 import xyz.zcraft.ostella.util.format.*;
 import xyz.zcraft.osu.model.*;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -102,6 +102,7 @@ public class RenderService implements AutoCloseable {
         ctx.setVariable("type", switch (type) {
             case BEST -> "Best of " + scores.size() + " Scores";
             case RECENT -> "Most recent " + scores.size() + " Scores";
+            case RECENT_PASS -> "Most recent " + scores.size() + " Passed Scores";
         });
         ctx.setVariable("change", UserFormatUtil.getScoreChange(user));
         ctx.setVariable("time", Instant.now().truncatedTo(ChronoUnit.SECONDS));

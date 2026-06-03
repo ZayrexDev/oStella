@@ -85,7 +85,7 @@ public class UserFormatUtil {
         String countryCode = user.getCountryCode();
 
         if (safeFlags && "TW".equalsIgnoreCase(countryCode)) {
-            countryCode = "CN";
+            countryCode = "__";
         }
 
         return "https://assets.ppy.sh/old-flags/" + countryCode + ".png";

@@ -1,7 +1,7 @@
 package xyz.zcraft.ostella.util.format;
 
 import xyz.zcraft.ostella.util.Colors;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
 
 public class DiffSpecFormatUtil {
     public static String getDiffColor(DiffSpec diffSpec) {
@@ -41,19 +41,18 @@ public class DiffSpecFormatUtil {
     }
 
     public static String getODString(DiffSpec diffSpec) {
-        final double od = diffSpec.getOd();
-        return "±" + String.format("%.2f", (80 - 6 * od)) + "ms";
+        return "±" + String.format("%.2f", diffSpec.getDifficulty().getPerfectWindow()) + "ms";
     }
 
     public static String getHPString(DiffSpec diffSpec) {
-        final double hp = diffSpec.getHp();
+        final double hp = diffSpec.getDifficulty().hp();
         if (hp <= 4) return "awa";
         else if (hp <= 8) return "owo";
         else return "qwq";
     }
 
     public static String getARString(DiffSpec diffSpec) {
-        final double ar = diffSpec.getAr();
+        final double ar = diffSpec.getDifficulty().ar();
         if (ar < 5) {
             return (int) (1200 + 120 * (5 - ar)) + "ms";
         } else if (ar == 5) {
@@ -64,7 +63,7 @@ public class DiffSpecFormatUtil {
     }
 
     public static String getCSString(DiffSpec diffSpec) {
-        final double cs = diffSpec.getCs();
+        final double cs = diffSpec.getDifficulty().cs();
         return (int) (54.4 - 4.48 * cs) + "px";
     }
 }

@@ -102,7 +102,7 @@ public class CacheService {
         return "png";
     }
 
-    public static Path getRosuBeatmapPath(long id, boolean update) {
+    public static Path getBeatmapPath(long id, boolean update) {
         if (!Files.exists(BEATMAP_CACHE.resolve(String.valueOf(id))) || update) {
             try {
                 LOG.debug("Caching beatmap {}", id);
@@ -120,6 +120,10 @@ public class CacheService {
             LOG.error("Failed to load beatmap from cache!", e);
             throw new RuntimeException("Failed to load beatmap from cache!", e);
         }
+    }
+
+    public static Path getBeatmapPath(long id) {
+        return getBeatmapPath(id, false);
     }
 
     private static void cacheBeatmapFile(long id) throws Exception {
@@ -297,12 +301,16 @@ public class CacheService {
         return false;
     }
 
-    public static Path getReplay(TokenData tokenData, long id) throws Exception {
+    public static Path getReplay(TokenData tokenData, long id) {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
         if (!Files.exists(beatmapsetPath)) {
             LOG.debug("Caching replay {}", id);
-            Files.write(beatmapsetPath, executor.enqueueAsync(() -> OsuAPI.getReplayBytes(tokenData, id)).join());
+            try {
+                Files.write(beatmapsetPath, executor.enqueueAsync(() -> OsuAPI.getReplayBytes(tokenData, id)).join());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         LOG.debug("Replay {} is ready", id);

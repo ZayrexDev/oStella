@@ -7,14 +7,20 @@ import org.jspecify.annotations.NonNull;
 import xyz.zcraft.ostella.data.ScoreType;
 import xyz.zcraft.ostella.network.*;
 import xyz.zcraft.ostella.service.AsyncService;
+import xyz.zcraft.ostella.service.CacheService;
 import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.MultiplayerRoom;
 import xyz.zcraft.osu.model.Score;
+import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
-import xyz.zcraft.osu.parser.data.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
+import xyz.zcraft.osu.parser.exception.AnalyzeException;
+import xyz.zcraft.osu.parser.exception.ParseException;
 
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -65,7 +71,7 @@ public class BeatmapController {
     }
 
     private void lookupBeatmapOfRefAsync(@NotNull Context context) {
-        final String of = requireStringFrom(context, "of", "rs", "bo", "mp");
+        final String of = requireStringFrom(context, "of", "rs", "bo", "mp", "rp");
 
         if ("mp".equals(of)) {
             lookupBeatmapFromSomeRoom(context);
@@ -99,10 +105,17 @@ public class BeatmapController {
     }
 
     private void lookupBeatmapFromSomeScore(@NonNull Context context, @NotNull String of) {
-        final int i = requireInt(context, "i");
+        final int i = requirePositiveInt(context, "i");
         final long u = requireLong(context, "u");
 
-        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, of.equals("rs") ? ScoreType.RECENT : ScoreType.BEST, i, false))
+        final ScoreType type = switch (of.toLowerCase()) {
+            case "rs" -> ScoreType.RECENT;
+            case "rp" -> ScoreType.RECENT_PASS;
+            case "bo" -> ScoreType.BEST;
+            default -> throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid score type: " + of);
+        };
+
+        context.future(() -> executor.enqueueAsync(() -> OsuAPI.getUserScores(tokenManager.getTokenData(), u, type, i))
                 .thenCompose(scores -> {
                     if (scores == null || scores.isEmpty())
                         throw new ApiException(ErrorCode.NO_SCORE_FOUND, "No scores found");
@@ -181,10 +194,17 @@ public class BeatmapController {
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmap -> {
-                    DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, router.getRosuPath(beatmap.getId()), mod);
-                    return renderer.renderBeatmap(beatmap, diffSpec);
+                    try {
+                        final Path beatmapPath = CacheService.getBeatmapPath(beatmap.getId());
+                        final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(beatmapPath);
+                        DiffSpec diffSpec = OsuParser.getDiffSpecForMap(osuBeatmap, mod);
+                        return renderer.renderBeatmap(beatmap, diffSpec);
+                    } catch (ParseException e) {
+                        throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, e);
+                    } catch (AnalyzeException e) {
+                        throw new ApiException(ErrorCode.SCORE_PARSE_FAILED, e);
+                    }
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }
-
 }

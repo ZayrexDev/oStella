@@ -16,6 +16,16 @@ public class RequestUtil {
         }
     }
 
+    public static int requirePositiveInt(Context context, String param) throws ApiException {
+        try {
+            final int i = Integer.parseInt(Objects.requireNonNull(context.queryParam(param)));
+            if (i <= 0) throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Parameter must be positive: " + param);
+            return i;
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
+        }
+    }
+
     public static double optionalDouble(Context context, String param) throws ApiException {
         try {
             final String obj = context.queryParam(param);
@@ -42,6 +52,19 @@ public class RequestUtil {
     public static long requireLong(Context context, String param) throws ApiException {
         try {
             return Long.parseLong(Objects.requireNonNull(context.queryParam(param)));
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
+        }
+    }
+
+    public static boolean requireBoolean(Context context, String param, boolean fallback) throws ApiException {
+        try {
+            final String obj = context.queryParam(param);
+            if (obj == null || obj.isBlank()) return fallback;
+
+            if ("true".equalsIgnoreCase(obj)) return true;
+            if ("false".equalsIgnoreCase(obj)) return false;
+            return fallback;
         } catch (Exception e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
         }
