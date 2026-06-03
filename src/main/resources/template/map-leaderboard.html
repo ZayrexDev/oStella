@@ -263,6 +263,7 @@
         }
 
         .pk-diff {
+            margin-bottom: -10px;
             font-size: 1em;
             color: #ff4e6a;
             font-weight: bold;
@@ -356,12 +357,13 @@
     <div class="pk-content">
         <div class="pk-subtitle">
             <div>Group PK Leaderboard</div>
-            <div class="pk-id" th:text="'MS' + ${beatmap.beatmapset.id} + ' - M' + ${beatmap.id}">MS123456 - M1234567
+            <div class="pk-id" th:text="'MS' + ${beatmap.beatmapset.id} + ' - M' + ${beatmap.id}">
+                MS123456 - M1234567
             </div>
         </div>
 
-        <div class="pk-not-available" th:if="${!Beatmaps.hasLeaderboard(beatmap)}">Leaderboard is not available for this
-            map...
+        <div class="pk-not-available" th:if="${!Beatmaps.hasLeaderboard(beatmap)}">
+            Leaderboard is not available for this map...
         </div>
 
         <div class="pk-list">
@@ -400,19 +402,18 @@
 <!--                </div>-->
 
                 <div class="pk-score-box">
+                    <div class="pk-diff"
+                         th:if="${iterStat.index != 0}"
+                         th:text="${'-' + #numbers.formatInteger(placements[iterStat.index - 1].getScore().getTotalScore() - placement.getScore().getTotalScore(), 1, 'COMMA')}">
+                        -12,345
+                    </div>
                     <div class="pk-pp" th:text="${#numbers.formatInteger(placement.getScore().getTotalScore(), 1, 'COMMA')}">
                         1,000,000
                     </div>
                     <div class="pk-score-sub">
                         <span th:text="${#numbers.formatDecimal(placement.getScore().getAccuracy() * 100, 1, 2) + '%'}">98.76%</span>
                         <span th:text="${#numbers.formatDecimal(placement.getScore().getPp(), 1, 1)} + ' PP'">123 PP</span>
-                        <div class="pk-diff"
-                             th:if="${iterStat.index != 0}"
-                             th:text="${'-' + #numbers.formatInteger(placements[0].getScore().getTotalScore() - placement.getScore().getTotalScore(), 1, 'COMMA')}">
-                            -12,345
-                        </div>
                     </div>
-
                 </div>
             </div>
         </div>
