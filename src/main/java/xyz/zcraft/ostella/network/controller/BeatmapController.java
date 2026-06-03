@@ -13,9 +13,14 @@ import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.MultiplayerRoom;
 import xyz.zcraft.osu.model.Score;
+import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
 import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
+import xyz.zcraft.osu.parser.exception.AnalyzeException;
+import xyz.zcraft.osu.parser.exception.ParseException;
 
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -189,8 +194,14 @@ public class BeatmapController {
                     return beatmapExtended;
                 })
                 .thenApplyAsync(beatmap -> {
-                    DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, CacheService.getBeatmapPath(beatmap.getId()), mod);
-                    return renderer.renderBeatmap(beatmap, diffSpec);
+                    try {
+                        final Path beatmapPath = CacheService.getBeatmapPath(beatmap.getId());
+                        final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(beatmapPath);
+                        DiffSpec diffSpec = OsuParser.getDiffSpecForMap(osuBeatmap, mod);
+                        return renderer.renderBeatmap(beatmap, diffSpec);
+                    } catch (ParseException | AnalyzeException e) {
+                        throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, e);
+                    }
                 }, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
     }

@@ -46,6 +46,9 @@ public class ApiException extends RuntimeException {
             case USER_FETCH_FAILED -> "User fetch failed";
             case SCORE_FETCH_FAILED -> "Score fetch failed";
             case REPLAY_UNAVAILABLE -> "Replay unavailable";
+            case BEATMAP_PARSE_FAILED -> "Beatmap parse failed";
+            case SCORE_PARSE_FAILED -> "Score parse failed";
+            case REPLAY_PARSE_FAILED -> "Replay parse failed";
             case RENDER_QUEUE_FULL -> "Render queue full";
             case ROSU_ERROR -> "Rosu error";
             case REPLAY_FETCH_FAILED -> "Replay fetch failed";

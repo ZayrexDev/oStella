@@ -28,6 +28,8 @@ import xyz.zcraft.osu.parser.data.replay.HitEvent;
 import xyz.zcraft.osu.parser.data.replay.OsuReplay;
 import xyz.zcraft.osu.parser.data.replay.ReplayAnalyze;
 import xyz.zcraft.osu.parser.data.replay.WdPerform;
+import xyz.zcraft.osu.parser.exception.AnalyzeException;
+import xyz.zcraft.osu.parser.exception.ParseException;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -59,59 +61,68 @@ public class AnalyzeController {
                     context.header("X-Beatmap-Id", String.valueOf(beatmap.getId()))
                             .header("X-Score-Id", String.valueOf(score.getId()));
 
-                    final Path rosuPath = CacheService.getBeatmapPath(beatmap.getId());
-                    final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(beatmap, rosuPath, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
-
-                    if (score.getPp() == null) {
-                        score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
-                    }
-
+                    final OsuBeatmap osuBeatmap;
+                    final DiffSpec diffSpec;
                     try {
-                        final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(rosuPath);
-                        final OsuReplay osuReplay = ReplayParser.parseReplay(CacheService.getReplay(tokenManager.getTokenData(), score.getId()));
+                        osuBeatmap = BeatmapParser.parseBeatmap(CacheService.getBeatmapPath(beatmap.getId()));
+                        diffSpec = OsuParser.getDiffSpecForMap(osuBeatmap, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
-                        final ReplayAnalyze analyze = ReplayAnalyzer.analyze(osuBeatmap, osuReplay);
-
-                        final List<Long> hitErrors = analyze.events().stream()
-                                .filter(HitEvent::wasHit)
-                                .map(HitEvent::hitTimeOffset)
-                                .toList();
-
-                        final List<double[]> hitPos = analyze.events().stream()
-                                .filter(HitEvent::wasHit)
-                                .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
-                                .map(HitEvent::aimBias)
-                                .filter(Objects::nonNull)
-                                .map(HitEvent.AimBias::standardize)
-                                .map(b -> new double[]{b.theta(), b.distance()})
-                                .toList();
-
-                        final List<double[]> missPos = analyze.events().stream()
-                                .filter(hitEvent -> !hitEvent.wasHit())
-                                .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
-                                .map(HitEvent::aimBias)
-                                .filter(Objects::nonNull)
-                                .filter(b -> b.distance() < diffSpec.getDifficulty().getCircleRadiusInPixel() * 1.2)
-                                .map(HitEvent.AimBias::standardize)
-                                .map(b -> new double[]{b.theta(), b.distance()})
-                                .toList();
-
-                        final List<Double> aimBiases = analyze.events().stream()
-                                .filter(HitEvent::wasHit)
-                                .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
-                                .map(HitEvent::aimBias)
-                                .filter(Objects::nonNull)
-                                .map(HitEvent.AimBias::standardize)
-                                .map(b -> b.distance() * (Math.abs(b.theta() - Math.PI) >= (Math.PI / 2) ? 1 : -1))
-                                .toList();
-
-                        final double aimBias = aimBiases.isEmpty() ? 0.0 : (aimBiases.stream().reduce(0.0, Double::sum) / aimBiases.size() / diffSpec.getDifficulty().getCircleRadiusInPixel());
-
-                        final double avgTimingError = hitErrors.isEmpty() ? 0.0 : (hitErrors.stream().reduce(0L, Long::sum) / (double) hitErrors.size());
-                        return new ScoreAnalyzeData(score, diffSpec, hitErrors, hitPos, missPos, aimBias, avgTimingError, analyze);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
+                        router.ensurePp(score, osuBeatmap);
+                    } catch (ParseException | AnalyzeException e) {
+                        throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, e);
                     }
+
+                    final OsuReplay osuReplay;
+                    try {
+                        osuReplay = ReplayParser.parseReplay(CacheService.getReplay(tokenManager.getTokenData(), score.getId()));
+                    } catch (Exception e) {
+                        throw new ApiException(ErrorCode.REPLAY_PARSE_FAILED);
+                    }
+
+                    final ReplayAnalyze analyze;
+                    try {
+                        analyze = ReplayAnalyzer.analyze(osuBeatmap, osuReplay);
+                    } catch (ParseException e) {
+                        throw new ApiException(ErrorCode.REPLAY_PARSE_FAILED, e);
+                    }
+
+                    final List<Long> hitErrors = analyze.events().stream()
+                            .filter(HitEvent::wasHit)
+                            .map(HitEvent::hitTimeOffset)
+                            .toList();
+
+                    final List<double[]> hitPos = analyze.events().stream()
+                            .filter(HitEvent::wasHit)
+                            .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
+                            .map(HitEvent::aimBias)
+                            .filter(Objects::nonNull)
+                            .map(HitEvent.AimBias::standardize)
+                            .map(b -> new double[]{b.theta(), b.distance()})
+                            .toList();
+
+                    final List<double[]> missPos = analyze.events().stream()
+                            .filter(hitEvent -> !hitEvent.wasHit())
+                            .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
+                            .map(HitEvent::aimBias)
+                            .filter(Objects::nonNull)
+                            .filter(b -> b.distance() < diffSpec.getDifficulty().getCircleRadiusInPixel() * 1.2)
+                            .map(HitEvent.AimBias::standardize)
+                            .map(b -> new double[]{b.theta(), b.distance()})
+                            .toList();
+
+                    final List<Double> aimBiases = analyze.events().stream()
+                            .filter(HitEvent::wasHit)
+                            .filter(e -> e.hitObject().getObjectType() != HitObject.ObjectType.SPINNER)
+                            .map(HitEvent::aimBias)
+                            .filter(Objects::nonNull)
+                            .map(HitEvent.AimBias::standardize)
+                            .map(b -> b.distance() * (Math.abs(b.theta() - Math.PI) >= (Math.PI / 2) ? 1 : -1))
+                            .toList();
+
+                    final double aimBias = aimBiases.isEmpty() ? 0.0 : (aimBiases.stream().reduce(0.0, Double::sum) / aimBiases.size() / diffSpec.getDifficulty().getCircleRadiusInPixel());
+
+                    final double avgTimingError = hitErrors.isEmpty() ? 0.0 : (hitErrors.stream().reduce(0L, Long::sum) / (double) hitErrors.size());
+                    return new ScoreAnalyzeData(score, diffSpec, hitErrors, hitPos, missPos, aimBias, avgTimingError, analyze);
                 })
                 .thenApplyAsync(renderer::renderScoreAnalysis, renderer.getRenderExecutor())
                 .thenAccept(bytes -> context.status(200).result(bytes)));
@@ -148,7 +159,12 @@ public class AnalyzeController {
         context.future(() -> router.getScore(scoreId)
                 .thenApply(score -> getReplayAnalyze(context, score))
                 .thenApply(analyze -> {
-                    final WdPerform highlight = OsuParser.getHighlight(analyze);
+                    final WdPerform highlight;
+                    try {
+                        highlight = OsuParser.getHighlight(analyze);
+                    } catch (AnalyzeException e) {
+                        throw new ApiException(ErrorCode.REPLAY_PARSE_FAILED, e);
+                    }
                     JsonObject obj = new JsonObject();
                     obj.addProperty("start", highlight.startTime());
                     obj.addProperty("end", highlight.endTime());
@@ -169,9 +185,7 @@ public class AnalyzeController {
 
         final Path rosuPath = CacheService.getBeatmapPath(beatmap.getId());
 
-        if (score.getPp() == null) {
-            score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
-        }
+        router.ensurePp(score);
 
         try {
             final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(rosuPath);

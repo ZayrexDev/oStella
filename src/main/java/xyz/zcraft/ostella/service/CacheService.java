@@ -301,12 +301,16 @@ public class CacheService {
         return false;
     }
 
-    public static Path getReplay(TokenData tokenData, long id) throws Exception {
+    public static Path getReplay(TokenData tokenData, long id) {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
         if (!Files.exists(beatmapsetPath)) {
             LOG.debug("Caching replay {}", id);
-            Files.write(beatmapsetPath, executor.enqueueAsync(() -> OsuAPI.getReplayBytes(tokenData, id)).join());
+            try {
+                Files.write(beatmapsetPath, executor.enqueueAsync(() -> OsuAPI.getReplayBytes(tokenData, id)).join());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         LOG.debug("Replay {} is ready", id);

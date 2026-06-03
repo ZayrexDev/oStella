@@ -20,10 +20,15 @@ import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Mod;
 import xyz.zcraft.osu.model.MultiplayerRoom;
 import xyz.zcraft.osu.model.Score;
+import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
+import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
+import xyz.zcraft.osu.parser.exception.AnalyzeException;
+import xyz.zcraft.osu.parser.exception.ParseException;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -170,14 +175,34 @@ public class Router implements Closeable {
                             context.header("X-Score-Ids", scores.stream().map(Score::getId).map(String::valueOf).collect(Collectors.joining(",")));
 
                             for (Score score : scores) {
-                                if (score.getPp() == null) {
-                                    score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
-                                }
+                                ensurePp(score);
                             }
 
                             return renderer.renderScores(user, scores, fail ? ScoreType.RECENT : ScoreType.RECENT_PASS);
                         }, renderer.getRenderExecutor()))
                 .thenAccept(bytes -> context.status(200).result(bytes)));
+    }
+
+    public void ensurePp(Score score) {
+        if (score.getPp() == null) {
+            try {
+                final Path beatmapPath = CacheService.getBeatmapPath(score.getBeatmap().getId());
+                final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(beatmapPath);
+                ensurePp(score, osuBeatmap);
+            } catch (ParseException e) {
+                LOG.error("Failed to estimate pp for score id: {}", score.getId(), e);
+            }
+        }
+    }
+
+    public void ensurePp(Score score, OsuBeatmap osuBeatmap) {
+        if (score.getPp() == null) {
+            try {
+                score.setPp(OsuParser.estimatePp(score, osuBeatmap));
+            } catch (AnalyzeException e) {
+                LOG.error("Failed to estimate pp for score id: {}", score.getId(), e);
+            }
+        }
     }
 
     protected void getDaily(@NotNull Context context) {

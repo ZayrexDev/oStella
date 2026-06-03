@@ -15,7 +15,6 @@ import xyz.zcraft.ostella.service.ReplayService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.Score;
-import xyz.zcraft.osu.parser.OsuParser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -131,9 +130,7 @@ public class ReplayController {
         final double start = optionalDouble(context, "start");
         final double end = optionalDouble(context, "end");
 
-        if (score.getPp() == null) {
-            score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(score.getBeatmap().getId())));
-        }
+        router.ensurePp(score);
 
         return renderScoreForAsync(context, score, start, end);
     }
@@ -197,12 +194,7 @@ public class ReplayController {
                 .thenApply(_ -> scoreFutures.stream()
                         .map(CompletableFuture::join)
                         .filter(s -> s != null && s.getHasReplay())
-                        .peek(score -> {
-                            if (score.getPp() == null) {
-                                final Path rosuBeatmapPath = CacheService.getBeatmapPath(score.getBeatmap().getId());
-                                score.setPp(OsuParser.estimatePp(score, rosuBeatmapPath));
-                            }
-                        })
+                        .peek(router::ensurePp)
                         .collect(Collectors.toCollection(LinkedList::new))
                 )
                 .thenCompose(validScores -> {

@@ -14,8 +14,10 @@ import xyz.zcraft.ostella.service.RenderService;
 import xyz.zcraft.ostella.util.TokenManager;
 import xyz.zcraft.osu.model.BeatmapExtended;
 import xyz.zcraft.osu.model.User;
+import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
 import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
+import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -61,12 +63,13 @@ public class LeaderboardController {
                 .thenAccept(imgByte -> context.status(200).result(imgByte)));
     }
 
-    private byte[] finalizeMapLeaderboard(LinkedList<Placement> placements, BeatmapExtended beatmap, Path rosuBeatmapPath) {
+    private byte[] finalizeMapLeaderboard(LinkedList<Placement> placements, BeatmapExtended beatmap, Path beatmapPath) {
         try {
-            final DiffSpec diffSpecForMap = OsuParser.getDiffSpecForMap(beatmap, rosuBeatmapPath, "");
+            final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(beatmapPath);
+            final DiffSpec diffSpecForMap = OsuParser.getDiffSpecForMap(osuBeatmap, "");
             return renderer.renderMapLeaderboard(beatmap, placements, diffSpecForMap.getPpSS());
-        } catch (RuntimeException e) {
-            throw new ApiException(ErrorCode.ROSU_ERROR, "Failed to calculate difficulty with RosuFFI: " + e.getMessage());
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, "Failed to calculate difficulty", e);
         }
     }
 
@@ -81,9 +84,7 @@ public class LeaderboardController {
                                 return CompletableFuture.completedFuture(null);
                             }
 
-                            if (score.getPp() == null) {
-                                score.setPp(OsuParser.estimatePp(score, CacheService.getBeatmapPath(id)));
-                            }
+                            router.ensurePp(score);
 
                             return executor
                                     .enqueueAsync(() ->
