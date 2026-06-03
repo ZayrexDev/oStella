@@ -60,7 +60,7 @@ public class ScoreController {
                         final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(CacheService.getBeatmapPath(beatmap.getId()));
                         final DiffSpec diffSpec = OsuParser.getDiffSpecForMap(osuBeatmap, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
-                        router.ensurePp(score);
+                        router.ensurePp(score, osuBeatmap);
 
                         return renderer.renderScore(score, diffSpec);
                     } catch (ParseException e) {

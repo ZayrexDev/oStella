@@ -68,15 +68,17 @@ public class AnalyzeController {
                         diffSpec = OsuParser.getDiffSpecForMap(osuBeatmap, score.getMods().stream().map(Mod::getAcronym).reduce("", String::concat));
 
                         router.ensurePp(score, osuBeatmap);
-                    } catch (ParseException | AnalyzeException e) {
+                    } catch (ParseException e) {
                         throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, e);
+                    } catch (AnalyzeException e) {
+                        throw new ApiException(ErrorCode.SCORE_PARSE_FAILED, e);
                     }
 
                     final OsuReplay osuReplay;
                     try {
                         osuReplay = ReplayParser.parseReplay(CacheService.getReplay(tokenManager.getTokenData(), score.getId()));
                     } catch (Exception e) {
-                        throw new ApiException(ErrorCode.REPLAY_PARSE_FAILED);
+                        throw new ApiException(ErrorCode.REPLAY_PARSE_FAILED, e);
                     }
 
                     final ReplayAnalyze analyze;

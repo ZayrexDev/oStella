@@ -82,7 +82,7 @@ public class MissVisualizeService {
             rightIndex++;
         }
 
-        return keyFrames.subList(leftIndex, rightIndex);
+        return keyFrames.subList(leftIndex, rightIndex + 1);
     }
 
     private static final class Colors {

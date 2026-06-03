@@ -16,6 +16,16 @@ public class RequestUtil {
         }
     }
 
+    public static int requirePositiveInt(Context context, String param) throws ApiException {
+        try {
+            final int i = Integer.parseInt(Objects.requireNonNull(context.queryParam(param)));
+            if (i <= 0) throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Parameter must be positive: " + param);
+            return i;
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
+        }
+    }
+
     public static double optionalDouble(Context context, String param) throws ApiException {
         try {
             final String obj = context.queryParam(param);

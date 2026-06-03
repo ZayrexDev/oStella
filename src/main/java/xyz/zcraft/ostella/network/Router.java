@@ -309,7 +309,7 @@ public class Router implements Closeable {
     public CompletableFuture<Score> getScoreFromRefAsync(@NotNull Context context) {
         final String of = requireStringFrom(context, "of", "rs", "bo", "rp");
         final long u = requireLong(context, "u");
-        final int i = requireInt(context, "i");
+        final int i = requirePositiveInt(context, "i");
 
         final ScoreType type = switch (of.toLowerCase()) {
             case "rs" -> ScoreType.RECENT;
