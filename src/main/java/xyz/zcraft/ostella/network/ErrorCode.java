@@ -29,9 +29,7 @@ public enum ErrorCode {
     SCORE_PARSE_FAILED(4003),
     REPLAY_PARSE_FAILED(4004),
 
-    RENDER_QUEUE_FULL(5001),
-
-    ROSU_ERROR(6001);
+    RENDER_QUEUE_FULL(5001);
 
     private final int code;
 
