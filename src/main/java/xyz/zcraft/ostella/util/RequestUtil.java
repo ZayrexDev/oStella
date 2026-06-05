@@ -11,7 +11,7 @@ public class RequestUtil {
     public static int requireInt(Context context, String param) throws ApiException {
         try {
             return Integer.parseInt(Objects.requireNonNull(context.queryParam(param)));
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
         }
     }
@@ -21,7 +21,7 @@ public class RequestUtil {
             final int i = Integer.parseInt(Objects.requireNonNull(context.queryParam(param)));
             if (i <= 0) throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Parameter must be positive: " + param);
             return i;
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
         }
     }
@@ -31,7 +31,7 @@ public class RequestUtil {
             final String obj = context.queryParam(param);
             if (obj == null) return Double.NaN;
             return Double.parseDouble(obj);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
         }
     }
@@ -52,7 +52,7 @@ public class RequestUtil {
     public static long requireLong(Context context, String param) throws ApiException {
         try {
             return Long.parseLong(Objects.requireNonNull(context.queryParam(param)));
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
         }
     }
@@ -65,7 +65,7 @@ public class RequestUtil {
             if ("true".equalsIgnoreCase(obj)) return true;
             if ("false".equalsIgnoreCase(obj)) return false;
             return fallback;
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid parameter: " + param);
         }
     }
@@ -74,7 +74,7 @@ public class RequestUtil {
         try {
             final String s = context.pathParam(param);
             return Long.parseLong(Objects.requireNonNull(s));
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid path parameter: " + param);
         }
     }
@@ -83,7 +83,7 @@ public class RequestUtil {
         try {
             final String s = context.pathParam(param);
             return Integer.parseInt(Objects.requireNonNull(s));
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             throw new ApiException(ErrorCode.ILLEGAL_ARGUMENT, "Invalid path parameter: " + param);
         }
     }

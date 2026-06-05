@@ -31,6 +31,7 @@ import xyz.zcraft.osu.parser.data.replay.WdPerform;
 import xyz.zcraft.osu.parser.exception.AnalyzeException;
 import xyz.zcraft.osu.parser.exception.ParseException;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -77,8 +78,10 @@ public class AnalyzeController {
                     final OsuReplay osuReplay;
                     try {
                         osuReplay = ReplayParser.parseReplay(CacheService.getReplay(tokenManager.getTokenData(), score.getId()));
-                    } catch (Exception e) {
+                    } catch (ParseException e) {
                         throw new ApiException(ErrorCode.REPLAY_PARSE_FAILED, e);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
 
                     final ReplayAnalyze analyze;
@@ -191,10 +194,13 @@ public class AnalyzeController {
 
         try {
             final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(rosuPath);
-            final OsuReplay osuReplay = ReplayParser.parseReplay(CacheService.getReplay(tokenManager.getTokenData(), score.getId()));
+            final Path replay = CacheService.getReplay(tokenManager.getTokenData(), score.getId());
+            final OsuReplay osuReplay = ReplayParser.parseReplay(replay);
 
             return ReplayAnalyzer.analyze(osuBeatmap, osuReplay);
-        } catch (Exception e) {
+        } catch (ParseException e) {
+            throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

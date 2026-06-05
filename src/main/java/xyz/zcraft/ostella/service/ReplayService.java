@@ -55,7 +55,7 @@ public class ReplayService implements Closeable {
                         LOG.info("Garbage Collector wiped stale job: {}", jobId);
                     }
                 }
-            } catch (Exception e) {
+            } catch (IOException e) {
                 LOG.error("Error during garbage collection of rendered videos", e);
             }
         }, 5, 5, TimeUnit.MINUTES);
@@ -99,7 +99,7 @@ public class ReplayService implements Closeable {
 
                     DANSER_LOG.info(line);
                 }
-            } catch (Exception e) {
+            } catch (NumberFormatException | IOException e) {
                 DANSER_LOG.error("Failed to read Danser stream", e);
             }
         });
@@ -147,7 +147,7 @@ public class ReplayService implements Closeable {
             c.add("-out=" + fileName);
 
             runDanser(jobId, fileName, c);
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             jobProgress.put(jobId, new JobProgress(JobStatus.FAILED));
             LOG.error("Danser failed to render video", e);
         } finally {
@@ -195,7 +195,7 @@ public class ReplayService implements Closeable {
             c.add("-out=" + fileName);
 
             runDanser(jobId, fileName, c);
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             jobProgress.put(jobId, new JobProgress(JobStatus.FAILED));
             LOG.error("Danser failed to render showcase", e);
         } finally {

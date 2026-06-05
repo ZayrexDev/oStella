@@ -24,7 +24,7 @@ public class UserFormatUtil {
             OffsetDateTime parsedDate = OffsetDateTime.parse(user.getJoinDate());
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
             return parsedDate.format(formatter);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return user.getJoinDate();
         }
     }

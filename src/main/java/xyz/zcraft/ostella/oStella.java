@@ -37,7 +37,7 @@ public class oStella {
 
         try {
             conf = ConfigLoader.loadConfig();
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             LOG.error("Invalid configuration! Please check your config.yml file.");
             System.exit(1);
             return;

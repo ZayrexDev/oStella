@@ -221,7 +221,7 @@ public class ReplayController {
                 executor.enqueueAsync(() -> {
                     try {
                         return CacheService.getReplay(tokenManager.getTokenData(), score.getId());
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         throw new ApiException(ErrorCode.REPLAY_FETCH_FAILED, "Failed to cache replay for score id: " + score.getId(), e);
                     }
                 })
@@ -276,7 +276,7 @@ public class ReplayController {
                     .map(score -> executor.enqueueAsync(() -> {
                         try {
                             return CacheService.getReplay(tokenManager.getTokenData(), score.getId());
-                        } catch (Exception e) {
+                        } catch (IOException e) {
                             LOG.error("Failed to cache replay for score id: {}", score.getId(), e);
                             return null;
                         }
