@@ -7,35 +7,93 @@ import xyz.zcraft.ostella.config.AppConfig;
 import xyz.zcraft.ostella.data.TokenData;
 import xyz.zcraft.ostella.network.OsuAPI;
 
-import java.util.Timer;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class TokenManager {
     private static final Logger LOG = LogManager.getLogger(TokenManager.class);
 
-    private final Timer timer = new Timer();
+    private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r, "token-poller");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     private final AppConfig conf;
+
     @Getter
-    private TokenData tokenData;
+    private volatile TokenData tokenData;
 
     public TokenManager(AppConfig conf) {
         this.conf = conf;
-        renewToken();
+
+        startPolling();
     }
 
-    public void close() {
-        timer.cancel();
-    }
-
-    private void renewToken() {
-        tokenData = OsuAPI.getToken(conf);
-        LOG.info("Token renewed, expires in {}", tokenData.expiresIn());
-
-        timer.schedule(new java.util.TimerTask() {
-            @Override
-            public void run() {
-                LOG.info("Preparing to renew token");
-                renewToken();
+    private void startPolling() {
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (!isValid()) {
+                    LOG.info("Token missing or nearing expiration. Initiating background renewal.");
+                    renewToken();
+                }
+            } catch (Exception e) {
+                LOG.error("Background token check encountered an error", e);
             }
-        }, (tokenData.expiresIn() - 60) * 1000);
+        }, 10, 60, TimeUnit.SECONDS);
+    }
+
+    public boolean isValid() {
+        TokenData currentToken = this.tokenData;
+        if (currentToken == null) {
+            return false;
+        }
+
+        long elapsedMillis = System.currentTimeMillis() - currentToken.tokenGrantTime();
+
+        long maxValidMillis = (currentToken.expiresIn() - 300) * 1000L;
+
+        return elapsedMillis < maxValidMillis;
+    }
+
+    private synchronized void renewToken() {
+        try {
+            this.tokenData = OsuAPI.getToken(conf);
+            LOG.info("Token renewed, expires in {}", tokenData.expiresIn());
+        } catch (Exception e) {
+            LOG.error("Failed to fetch new token. Will try again on next polling cycle.", e);
+        }
+    }
+
+    public void blockUntilValid() {
+        if (isValid()) {
+            return;
+        }
+
+        LOG.info("Startup paused: Waiting for a valid Osu API access token...");
+
+        while (!isValid()) {
+            synchronized (this) {
+                if (isValid()) {
+                    break;
+                }
+
+                try {
+                    this.tokenData = OsuAPI.getToken(conf);
+                    LOG.info("Startup token successfully acquired. Expires in {} seconds.", tokenData.expiresIn());
+                    break;
+                } catch (Exception e) {
+                    LOG.error("Failed to fetch token during startup. Retrying in 5 seconds...", e);
+                    try {
+                        //noinspection BusyWait
+                        Thread.sleep(5000L);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("Startup interrupted while waiting for access token", ie);
+                    }
+                }
+            }
+        }
     }
 }

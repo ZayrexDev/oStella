@@ -16,7 +16,6 @@ public class oStella {
     private static final Logger LOG = LogManager.getLogger(oStella.class);
 
     private static WebServer webServer;
-    private static TokenManager tokenManager;
 
     @Getter
     private static AppConfig conf;
@@ -64,7 +63,9 @@ public class oStella {
 
         LOG.info("Authorizing...");
 
-        tokenManager = new TokenManager(conf);
+        final TokenManager tokenManager = new TokenManager(conf);
+
+        tokenManager.blockUntilValid();
 
         LOG.info("Starting web server");
 
@@ -79,7 +80,6 @@ public class oStella {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("Stopping web server");
-            tokenManager.close();
             webServer.close();
         }));
 
