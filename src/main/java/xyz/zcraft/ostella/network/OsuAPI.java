@@ -50,7 +50,7 @@ public class OsuAPI {
                     System.currentTimeMillis(),
                     asJsonObject.get("expires_in").getAsLong()
             );
-        } catch (IOException | InterruptedException | IllegalArgumentException e) {
+        } catch (Exception e) {
             throw new ApiException(ErrorCode.TOKEN_FETCH_FAILED, "Failed to fetch token", e);
         }
     }

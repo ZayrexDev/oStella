@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class TokenManager {
     private static final Logger LOG = LogManager.getLogger(TokenManager.class);
 
-    private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "token-poller");
         thread.setDaemon(true);
         return thread;

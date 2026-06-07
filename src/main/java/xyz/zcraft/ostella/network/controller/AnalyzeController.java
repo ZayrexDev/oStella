@@ -81,7 +81,7 @@ public class AnalyzeController {
                     } catch (ParseException e) {
                         throw new ApiException(ErrorCode.REPLAY_PARSE_FAILED, e);
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        throw new ApiException(ErrorCode.REPLAY_FETCH_FAILED, e);
                     }
 
                     final ReplayAnalyze analyze;
@@ -201,7 +201,7 @@ public class AnalyzeController {
         } catch (ParseException e) {
             throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, e);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.BEATMAP_FETCH_FAILED, e);
         }
     }
 
