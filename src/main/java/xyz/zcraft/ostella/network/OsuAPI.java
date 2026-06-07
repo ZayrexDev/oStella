@@ -79,7 +79,7 @@ public class OsuAPI {
             }
 
             return score;
-        } catch (Exception e) {
+        } catch (JsonSyntaxException | InterruptedException | IOException e) {
             throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to get score id " + scoreId, e);
         }
     }
@@ -109,7 +109,7 @@ public class OsuAPI {
             });
 
             return scores;
-        } catch (Exception e) {
+        } catch (JsonSyntaxException | InterruptedException | IOException e) {
             throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for user id " + uid, e);
         }
     }
@@ -128,7 +128,7 @@ public class OsuAPI {
             }
 
             return GSON.fromJson(JsonParser.parseString(body).getAsJsonObject().get("score").getAsJsonObject(), Score.class);
-        } catch (Exception e) {
+        } catch (JsonSyntaxException | InterruptedException | IOException e) {
             throw new ApiException(ErrorCode.SCORE_FETCH_FAILED, "Failed to fetch scores for " + uid + " on beatmap " + beatmapId, e);
         }
     }
@@ -171,7 +171,7 @@ public class OsuAPI {
             }
 
             return GSON.fromJson(arr.get(0), MultiplayerRoom.class);
-        } catch (Exception e) {
+        } catch (JsonSyntaxException | InterruptedException | IOException e) {
             throw new ApiException(ErrorCode.ROOM_FETCH_FAILED, "Failed to fetch current room", e);
         }
     }
@@ -467,7 +467,10 @@ public class OsuAPI {
             final HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
             if (response.statusCode() == 404) {
-                return null;
+                throw new ApiException(
+                        ErrorCode.REPLAY_UNAVAILABLE,
+                        "Replay unavailable for score " + id
+                );
             }
 
             if (response.statusCode() >= 400) {
@@ -492,7 +495,7 @@ public class OsuAPI {
 
             HttpResponse<Void> response = CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
             return response.statusCode() == 200;
-        } catch (Exception e) {
+        } catch (InterruptedException | IOException e) {
             return false;
         }
     }

@@ -18,6 +18,8 @@ import xyz.zcraft.osu.parser.BeatmapParser;
 import xyz.zcraft.osu.parser.OsuParser;
 import xyz.zcraft.osu.parser.data.beatmap.DiffSpec;
 import xyz.zcraft.osu.parser.data.beatmap.OsuBeatmap;
+import xyz.zcraft.osu.parser.exception.AnalyzeException;
+import xyz.zcraft.osu.parser.exception.ParseException;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -68,7 +70,7 @@ public class LeaderboardController {
             final OsuBeatmap osuBeatmap = BeatmapParser.parseBeatmap(beatmapPath);
             final DiffSpec diffSpecForMap = OsuParser.getDiffSpecForMap(osuBeatmap, "");
             return renderer.renderMapLeaderboard(beatmap, placements, diffSpecForMap.getPpSS());
-        } catch (Exception e) {
+        } catch (ParseException | AnalyzeException e) {
             throw new ApiException(ErrorCode.BEATMAP_PARSE_FAILED, "Failed to calculate difficulty", e);
         }
     }

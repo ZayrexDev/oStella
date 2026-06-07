@@ -108,25 +108,20 @@ public class CacheService {
                 LOG.debug("Caching beatmap {}", id);
                 cacheBeatmapFile(id);
                 LOG.debug("Beatmap {} cached", id);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 LOG.error("Failed to download beatmap!", e);
                 throw new RuntimeException("Failed to download beatmap!", e);
             }
         }
 
-        try {
-            return BEATMAP_CACHE.resolve(String.valueOf(id)).toAbsolutePath();
-        } catch (Exception e) {
-            LOG.error("Failed to load beatmap from cache!", e);
-            throw new RuntimeException("Failed to load beatmap from cache!", e);
-        }
+        return BEATMAP_CACHE.resolve(String.valueOf(id)).toAbsolutePath();
     }
 
     public static Path getBeatmapPath(long id) {
         return getBeatmapPath(id, false);
     }
 
-    private static void cacheBeatmapFile(long id) throws Exception {
+    private static void cacheBeatmapFile(long id) throws IOException {
         Files.deleteIfExists(BEATMAP_CACHE.resolve(String.valueOf(id)));
         Files.write(BEATMAP_CACHE.resolve(String.valueOf(id)), executor.enqueueAsync(() -> OsuAPI.getBeatmapBytes(id)).join());
     }
@@ -149,22 +144,17 @@ public class CacheService {
             try {
                 cacheImage(fileName, url);
                 LOG.debug("Image {} cached", fileName);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 LOG.error("Failed to download image!", e);
                 throw new RuntimeException("Failed to download image!", e);
             }
         }
 
-        try {
-            return "http://ostella-cache/"
-                    + IMAGE_CACHE.resolve(getFileName(url)).toAbsolutePath().toString().replace("\\", "/");
-        } catch (Exception e) {
-            LOG.error("Failed to load image from cache!", e);
-            throw new RuntimeException("Failed to load image from cache!", e);
-        }
+        return "http://ostella-cache/"
+                + IMAGE_CACHE.resolve(getFileName(url)).toAbsolutePath().toString().replace("\\", "/");
     }
 
-    private static void cacheImage(String fileName, String url) throws Exception {
+    private static void cacheImage(String fileName, String url) throws IOException {
         Files.deleteIfExists(IMAGE_CACHE.resolve(fileName));
         Files.write(IMAGE_CACHE.resolve(fileName), Objects.requireNonNull(OsuAPI.getImageBytes(url)));
     }
@@ -301,16 +291,12 @@ public class CacheService {
         return false;
     }
 
-    public static Path getReplay(TokenData tokenData, long id) {
+    public static Path getReplay(TokenData tokenData, long id) throws IOException {
         Path beatmapsetPath = REPLAY_CACHE.resolve(id + ".osr");
 
         if (!Files.exists(beatmapsetPath)) {
             LOG.debug("Caching replay {}", id);
-            try {
-                Files.write(beatmapsetPath, executor.enqueueAsync(() -> OsuAPI.getReplayBytes(tokenData, id)).join());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            Files.write(beatmapsetPath, executor.enqueueAsync(() -> OsuAPI.getReplayBytes(tokenData, id)).join());
         }
 
         LOG.debug("Replay {} is ready", id);

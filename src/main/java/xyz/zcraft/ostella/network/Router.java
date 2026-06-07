@@ -390,7 +390,7 @@ public class Router implements Closeable {
                     LOG.debug("Score {} found in cache", id);
                     return scoreJsonCache.get();
                 }
-            } catch (Exception e) {
+            } catch (IOException e) {
                 LOG.warn("Failed to get score from cache for score id {}: {}", id, e.getMessage());
             }
 
