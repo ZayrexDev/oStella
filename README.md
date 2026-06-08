@@ -127,6 +127,7 @@ Image endpoints return PNG bytes. Replay download returns `video/mp4`.
 
 | Method | Path                            | Purpose                   | Params / POST Body               | Response |
 |--------|---------------------------------|---------------------------|----------------------------------|----------|
+| POST   | `/users`                        | Get multiple user data    | POST Body `{"ids":[user ids]}`   | JSON     |
 | GET    | `/users/me`                     | User data                 | Requires Authorization Header    | JSON     |
 | GET    | `/users/me/friends`             | Friends list for user     | Requires Authorization Header    | JSON     |
 | POST   | `/users/leaderboards`           | User PP leaderboard image | `{"uids":[user ids]}`            | PNG      |
