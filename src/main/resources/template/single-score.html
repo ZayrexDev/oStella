@@ -457,7 +457,7 @@
                       th:text="${DiffSpecs.getDiffChangeStr(diff.getStar() - score.getBeatmap().getDifficultyRating())}">▲1.23
                 </span>
 
-                <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColor(diff)}"
+                <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColorReadable(diff)}"
                      th:text="${score.getBeatmap().getVersion()}">Example Difficulty
                 </div>
             </div>
