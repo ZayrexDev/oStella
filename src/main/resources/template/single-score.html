@@ -526,9 +526,9 @@
                 1,234,567
             </div>
             <div class="data-sub">
-                <span class="if-unranked" th:if="${!Scores.hasPp(score)}">UNRANKED</span>
+                <span class="if-unranked" th:if="${!score.getRanked()}">UNRANKED</span>
                 <span th:if="${diff != null}"
-                th:text="${score.getPp() != null ? #numbers.formatDecimal(score.getPp(), 1, 1) : '--'} + 'pp' + ' / ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">
+                th:text="${ppSafe != null ? #numbers.formatDecimal(ppSafe, 1, 1) : '--'} + 'pp' + ' / ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">
                     412.5pp / 1234.56pp
                 </span>
             </div>

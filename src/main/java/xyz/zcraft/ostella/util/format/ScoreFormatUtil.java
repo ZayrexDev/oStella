@@ -14,7 +14,7 @@ public class ScoreFormatUtil {
     }
 
     public static String getWeightPP(Score score) {
-        if (!hasPp(score)) {
+        if (!hasPp(score) || score.getRanked() == false) {
             return "Unranked";
         }
         if (!hasWeight(score)) {
@@ -24,7 +24,7 @@ public class ScoreFormatUtil {
     }
 
     public static boolean hasPp(Score score) {
-        return score != null && score.getPp() != null
+        return score != null && score.getPp() != null && score.getRanked()
                 && "RANKED".equalsIgnoreCase(score.getBeatmap().getStatus());
     }
 
