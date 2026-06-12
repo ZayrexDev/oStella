@@ -306,7 +306,6 @@
             font-size: 1.3em;
             color: #e2e8f0;
             display: flex;
-            gap: 12px;
             align-items: baseline;
         }
 
@@ -324,6 +323,13 @@
             color: #ffcc22;
             font-weight: bold;
             background: rgba(255, 204, 34, 0.1);
+            padding: 2px 10px;
+            border-radius: 6px;
+        }
+
+        .if-loved {
+            color: #ff66ab;
+            font-weight: bold;
             padding: 2px 10px;
             border-radius: 6px;
         }
@@ -550,7 +556,8 @@
                 1,234,567
             </div>
             <div class="data-sub">
-                <span class="if-unranked" th:if="${!score.getRanked()}">UNRANKED</span>
+                <span class="if-unranked" th:if="${!(score.getRanked())}">UNRANKED</span>
+                <span class="if-loved" th:if="${score.getBeatmap().getStatus().equalsIgnoreCase('LOVED') && score.getRanked()}">❤</span>
                 <span th:if="${diff != null}"
                       th:text="${ppSafe != null ? #numbers.formatDecimal(ppSafe, 1, 1) : '--'} + 'pp' + ' / ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">
                     412.5pp / 1234.56pp
