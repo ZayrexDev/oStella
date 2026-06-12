@@ -62,6 +62,38 @@ public class ScoreFormatUtil {
     public static long getMissCount(Score score) {
         return score.getStatistics().getOrDefault("miss", 0L);
     }
+
+    public static long getSpinnerBonus(Score score) {
+        return score.getStatistics().getOrDefault("large_bonus", 0L);
+    }
+
+    public static long getSpinnerSpin(Score score) {
+        return score.getStatistics().getOrDefault("small_bonus", 0L);
+    }
+
+    public static long getSliderTick(Score score) {
+        return score.getStatistics().getOrDefault("large_tick_hit", 0L);
+    }
+
+    public static long getSliderEnd(Score score) {
+        return score.getStatistics().getOrDefault("slider_tail_hit", 0L);
+    }
+
+    public static long getSpinnerBonusMax(Score score) {
+        return score.getMaximumStatistics().getOrDefault("large_bonus", 0L);
+    }
+
+    public static long getSpinnerSpinMax(Score score) {
+        return score.getMaximumStatistics().getOrDefault("small_bonus", 0L);
+    }
+
+    public static long getSliderTickMax(Score score) {
+        return score.getMaximumStatistics().getOrDefault("large_tick_hit", 0L);
+    }
+
+    public static long getSliderEndMax(Score score) {
+        return score.getMaximumStatistics().getOrDefault("slider_tail_hit", 0L);
+    }
 }
 
 

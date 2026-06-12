@@ -329,14 +329,34 @@
         }
 
         .hit-stats-container {
-            grid-column: span 2;
-            display: flex;
-            justify-content: space-between;
             background: rgba(0, 0, 0, 0.2);
             padding: 16px 24px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             margin-top: 8px;
+            grid-column: 1 / -1;
+        }
+
+        .hit-stats-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .hit-stats-row.sub {
+            margin-top: 8px;
+        }
+
+        .hit-stats-row.sub .hit-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.6em;
+            gap: 0;
+        }
+
+        .hit-stats-row.sub .hit-label {
+            margin-bottom: 0;
+            font-size: 1.5em;
         }
 
         .hit-item {
@@ -551,22 +571,46 @@
         </div>
 
         <div class="hit-stats-container">
-            <div class="hit-item">
-                <span class="hit-value c-300" th:text="${Scores.getGreatCount(score)}">450</span>
-                <span class="hit-label">PERFECT</span>
-            </div>
-            <div class="hit-item">
-                <span class="hit-value c-100" th:text="${Scores.getOkCount(score)}">24</span>
-                <span class="hit-label">OK</span>
-            </div>
-            <div class="hit-item">
-                <span class="hit-value c-50" th:text="${Scores.getMehCount(score)}">2</span>
-                <span class="hit-label">MEH</span>
-            </div>
-            <div class="hit-item">
+            <div class="hit-stats-row">
+                <div class="hit-item">
+                    <span class="hit-value c-300" th:text="${Scores.getGreatCount(score)}">450</span>
+                    <span class="hit-label">PERFECT</span>
+                </div>
+                <div class="hit-item">
+                    <span class="hit-value c-100" th:text="${Scores.getOkCount(score)}">24</span>
+                    <span class="hit-label">OK</span>
+                </div>
+                <div class="hit-item">
+                    <span class="hit-value c-50" th:text="${Scores.getMehCount(score)}">2</span>
+                    <span class="hit-label">MEH</span>
+                </div>
+                <div class="hit-item">
                 <span class="hit-value" th:classappend="${Scores.getMissCount(score) > 0 ? 'c-miss' : ''}"
                       th:text="${Scores.getMissCount(score)}">1</span>
-                <span class="hit-label">MISS</span>
+                    <span class="hit-label">MISS</span>
+                </div>
+            </div>
+            <div class="hit-stats-row sub">
+                <div class="hit-item">
+                    <span class="hit-label">Slider Tick</span>
+                    <span class="hit-value"
+                          th:text="${Scores.getSliderTick(score)} + '/' + ${Scores.getSliderTickMax(score)}">450/456</span>
+                </div>
+                <div class="hit-item">
+                    <span class="hit-label">Slider End</span>
+                    <span class="hit-value"
+                          th:text="${Scores.getSliderEnd(score)} + '/' + ${Scores.getSliderEndMax(score)}">123/456</span>
+                </div>
+                <div class="hit-item">
+                    <span class="hit-label">Spinner Bonus</span>
+                    <span class="hit-value"
+                          th:text="${Scores.getSpinnerBonus(score)} + '/' + ${Scores.getSpinnerBonusMax(score)}">123/456</span>
+                </div>
+                <div class="hit-item">
+                    <span class="hit-label">Spinner Spin</span>
+                <span class="hit-value"
+                      th:text="${Scores.getSpinnerSpin(score)} + '/' + ${Scores.getSpinnerSpinMax(score)}">12/34</span>
+                </div>
             </div>
         </div>
     </div>
