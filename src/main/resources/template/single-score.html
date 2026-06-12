@@ -319,19 +319,22 @@
             margin-left: 8px;
         }
 
-        .if-unranked {
-            color: #ffcc22;
+        .if-ranked {
+            color: #66ccff;
             font-weight: bold;
-            background: rgba(255, 204, 34, 0.1);
-            padding: 2px 10px;
-            border-radius: 6px;
+            padding: 2px 6px;
+        }
+
+        .if-unranked {
+            color: #ff2222;
+            font-weight: bold;
+            padding: 2px 6px;
         }
 
         .if-loved {
             color: #ff66ab;
             font-weight: bold;
-            padding: 2px 10px;
-            border-radius: 6px;
+            padding: 2px 6px;
         }
 
         .hit-stats-container {
@@ -556,7 +559,8 @@
                 1,234,567
             </div>
             <div class="data-sub">
-                <span class="if-unranked" th:if="${!(score.getRanked())}">UNRANKED</span>
+                <span class="if-ranked" th:if="${score.getRanked() && score.getBeatmap().getStatus().equalsIgnoreCase('RANKED')}">▲</span>
+                <span class="if-unranked" th:if="${!(score.getRanked())}">×</span>
                 <span class="if-loved" th:if="${score.getBeatmap().getStatus().equalsIgnoreCase('LOVED') && score.getRanked()}">❤</span>
                 <span th:if="${diff != null}"
                       th:text="${ppSafe != null ? #numbers.formatDecimal(ppSafe, 1, 1) : '--'} + 'pp' + ' / ' + ${#numbers.formatDecimal(diff.getPpSS(), 1, 1)} + 'pp'">
