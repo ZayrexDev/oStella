@@ -213,7 +213,8 @@
                     <div class="song-artist">
                         <span th:text="${dna.getBeatmapset().getArtist()}">Example Artist</span>
                         <span style="color: #a0a0b8; margin: 0 8px;">//</span>
-                        <span style="color: #fff; font-weight: bold;" th:text="${Beatmaps.getOwnersString(dna.getBeatmap())}">Mapper</span>
+                        <span style="color: #fff; font-weight: bold;"
+                              th:text="${Beatmaps.getOwnersString(dna.getBeatmap())}">Mapper</span>
                     </div>
                 </div>
             </div>
@@ -224,7 +225,8 @@
         <div class="diff-badge" th:style="'background: ' + ${DiffSpecs.getDiffColor(diff)} + ';'">
             <span th:text="'★' + ${#numbers.formatDecimal(diff.getStar(), 1, 2)}">★7.24</span>
         </div>
-        <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColor(diff)}" th:text="${dna.getBeatmap().getVersion()}">
+        <div class="diff-name" th:style="'color: ' + ${DiffSpecs.getDiffColor(diff)}"
+             th:text="${dna.getBeatmap().getVersion()}">
             Extra
         </div>
     </div>
@@ -248,7 +250,8 @@
 
             <div class="data-block">
                 <div class="data-label">Farm Spike</div>
-                <div class="data-primary" style="color: #ff4e6a;" th:text="${#numbers.formatDecimal(dna.getFarmRating(), 1, 1)} + '/10'">
+                <div class="data-primary" style="color: #ff4e6a;"
+                     th:text="${#numbers.formatDecimal(dna.getFarmRating(), 1, 1)} + '/10'">
                     8.5/10
                 </div>
                 <div class="data-sub">Difficulty Focus</div>
@@ -286,12 +289,12 @@
         archetypeChart.setOption({
             backgroundColor: 'transparent',
             animation: false, // Critical for Playwright screenshotting
-            tooltip: { show: false },
+            tooltip: {show: false},
             legend: {
                 orient: 'vertical',
                 right: '10%',
                 top: 'center',
-                textStyle: { color: '#ffffff', fontSize: 14 },
+                textStyle: {color: '#ffffff', fontSize: 14},
                 itemGap: 20
             },
             series: [
@@ -301,12 +304,12 @@
                     radius: ['50%', '80%'], // Donut shape
                     center: ['35%', '50%'], // Push left to make room for legend
                     avoidLabelOverlap: false,
-                    label: { show: false },
-                    labelLine: { show: false },
+                    label: {show: false},
+                    labelLine: {show: false},
                     data: [
-                        { value: aimPct, name: 'Aim', itemStyle: { color: '#ff4e6a' } },     // Soft red
-                        { value: streamPct, name: 'Stream', itemStyle: { color: '#4a90e2' } }, // Blue
-                        { value: techPct, name: 'Tech', itemStyle: { color: '#9cff22' } }      // Warm yellow/green
+                        {value: aimPct, name: 'Aim', itemStyle: {color: '#ff4e6a'}},     // Soft red
+                        {value: streamPct, name: 'Stream', itemStyle: {color: '#4a90e2'}}, // Blue
+                        {value: techPct, name: 'Tech', itemStyle: {color: '#9cff22'}}      // Warm yellow/green
                     ]
                 }
             ]
@@ -326,7 +329,7 @@
         strainChart.setOption({
             backgroundColor: 'transparent',
             animation: false, // Critical for Playwright
-            grid: { left: 0, right: 0, top: 10, bottom: 0, containLabel: false },
+            grid: {left: 0, right: 0, top: 10, bottom: 0, containLabel: false},
             xAxis: {
                 type: 'category',
                 data: strainLabels,
@@ -349,8 +352,8 @@
                     },
                     areaStyle: {
                         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: 'rgba(255, 204, 34, 0.6)' }, // Yellow top
-                            { offset: 1, color: 'rgba(255, 78, 106, 0.0)' }  // Fade to transparent red
+                            {offset: 0, color: 'rgba(255, 204, 34, 0.6)'}, // Yellow top
+                            {offset: 1, color: 'rgba(255, 78, 106, 0.0)'}  // Fade to transparent red
                         ])
                     }
                 }

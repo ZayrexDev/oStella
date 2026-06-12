@@ -14,18 +14,13 @@ public class ScoreFormatUtil {
     }
 
     public static String getWeightPP(Score score) {
-        if (!hasPp(score) || score.getRanked() == false) {
+        if (score.getRanked() == false) {
             return "Unranked";
         }
         if (!hasWeight(score)) {
             return "";
         }
         return String.format("%d%% ↪%.1fpp", score.getWeight().getPercentage().intValue(), score.getWeight().getPp());
-    }
-
-    public static boolean hasPp(Score score) {
-        return score != null && score.getPp() != null && score.getRanked()
-                && "RANKED".equalsIgnoreCase(score.getBeatmap().getStatus());
     }
 
     public static boolean hasWeight(Score score) {
